@@ -37,6 +37,8 @@ export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
   "internal"
 ]);
 
+export const adminRoleEnum = pgEnum("admin_role", ["admin"]);
+
 export const categories = pgTable(
   "categories",
   {
@@ -126,9 +128,33 @@ export const reportEvents = pgTable(
   ]
 );
 
+
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    email: varchar("email", { length: 320 }).notNull(),
+    passwordHash: varchar("password_hash", { length: 512 }).notNull(),
+    role: adminRoleEnum("role").notNull().default("admin"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("admin_users_email_unique").on(table.email),
+    index("admin_users_active_idx").on(table.active),
+    check("admin_users_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("admin_users_email_not_empty", sql`length(trim(${table.email})) > 0`),
+    check("admin_users_email_normalized", sql`${table.email} = lower(trim(${table.email}))`),
+    check("admin_users_password_hash_not_empty", sql`length(trim(${table.passwordHash})) > 0`)
+  ]
+);
+
 export type CategoryRecord = typeof categories.$inferSelect;
 export type NewCategoryRecord = typeof categories.$inferInsert;
 export type ReportRecord = typeof reports.$inferSelect;
 export type NewReportRecord = typeof reports.$inferInsert;
 export type ReportEventRecord = typeof reportEvents.$inferSelect;
 export type NewReportEventRecord = typeof reportEvents.$inferInsert;
+export type AdminUserRecord = typeof adminUsers.$inferSelect;
+export type NewAdminUserRecord = typeof adminUsers.$inferInsert;

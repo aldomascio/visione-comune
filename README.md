@@ -45,6 +45,7 @@ Verifiche:
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:integration
 pnpm test:e2e
 pnpm build
 ```
@@ -82,6 +83,28 @@ pnpm test:integration
 `pnpm db:migrate:dev` usa `.env.local`. `pnpm db:seed:dev` inserisce categorie provvisorie di sviluppo, non definitive. Per provare `/segnala` in locale servono migration applicate e almeno una categoria attiva nel database.
 
 `pnpm test:integration` usa `.env.test.local` ed esegue test reali contro PostgreSQL. Gli integration test dentro `pnpm test` restano saltati se `TEST_DATABASE_URL` non è configurata nell'ambiente corrente.
+
+Autenticazione admin:
+
+Per usare l'area `/admin` in locale servono:
+
+- `AUTH_SECRET` in `.env.local`;
+- migration applicate con `pnpm db:migrate:dev`;
+- almeno un admin creato localmente.
+
+Genera `AUTH_SECRET` con:
+
+```bash
+openssl rand -base64 32
+```
+
+Crea un admin con:
+
+```bash
+pnpm admin:create
+```
+
+Il comando chiede email e password, normalizza l'email e salva solo l'hash Argon2id nel database. Non usare credenziali reali nei file versionati.
 
 Produzione:
 

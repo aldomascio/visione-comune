@@ -24,12 +24,14 @@
     "test:watch": "vitest",
     "test:e2e": "node --env-file=.env.local ./node_modules/@playwright/test/cli.js test",
     "db:migrate:dev": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
-    "test:integration": "node --env-file=.env.test.local ./node_modules/vitest/vitest.mjs run tests/integration",
-    "db:seed:dev": "node --env-file=.env.local scripts/seed-dev.mjs"
+    "test:integration": "node --env-file=.env.test.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "db:seed:dev": "node --env-file=.env.local scripts/seed-dev.mjs",
+    "admin:create": "node --env-file=.env.local scripts/create-admin.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "next": "16.3.5",
+    "next-auth": "5.0.0-beta.32",
     "postgres": "^3.4.9",
     "react": "19.2.3",
     "react-dom": "19.2.3"

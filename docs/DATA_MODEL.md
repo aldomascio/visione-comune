@@ -70,9 +70,19 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 ## AdminUser
 
 - id
-- authProviderId
+- email
+- passwordHash
 - role
 - active
+- createdAt
+- updatedAt
+
+Note implementative MVP:
+
+- `email` e normalizzata in lowercase e deve essere univoca.
+- `passwordHash` contiene solo hash Argon2id, mai password in chiaro.
+- `role` al momento supporta solo `admin`; ruoli granulari sono fuori scope.
+- Gli admin sono usati solo per il backoffice. I cittadini restano senza account.
 
 ## OutboundCommunication
 

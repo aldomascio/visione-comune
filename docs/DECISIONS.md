@@ -180,6 +180,17 @@ riduce attrito nel form pubblico mantenendo compatibilita con il dominio `Report
 Conseguenza:
 il titolo potra essere rivisto in moderazione quando sara disponibile il backoffice.
 
+### ADR-022 — Autenticazione admin con credenziali locali
+
+Decisione:
+per l'MVP l'area `/admin` usa Auth.js con provider Credentials, email e password per soli amministratori. Gli admin sono persistiti nella tabella `admin_users`; le password sono salvate solo come hash Argon2id e non devono comparire in log, sessione o risposte applicative.
+
+Motivo:
+permette di proteggere il backoffice senza introdurre account cittadini, OAuth o provider email ancora non deliberati.
+
+Conseguenza:
+la creazione iniziale degli admin avviene tramite comando CLI locale `pnpm admin:create`. Le sessioni usano JWT Auth.js con durata esplicita di 8 ore. Le pagine admin verificano server-side che l'utente esista ancora e sia attivo, cosi un admin disattivato non puo continuare a usare il backoffice anche se possiede un token precedente.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

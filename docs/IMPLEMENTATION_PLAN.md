@@ -202,7 +202,7 @@ Backend applicativo nello stesso progetto Next.js, organizzato in application se
 
 PostgreSQL.
 
-Decisione aperta: PostgreSQL locale e produzione possono essere self-hosted o gestiti. Il core deve dipendere da `DATABASE_URL`, non dal modo in cui il database e ospitato.
+Decisione MVP: PostgreSQL locale in sviluppo, preferibilmente tramite Postgres.app su macOS, e PostgreSQL self-hosted sul VPS in produzione. Il core deve continuare a dipendere solo da `DATABASE_URL` o `TEST_DATABASE_URL`, non dal modo in cui il database e ospitato.
 
 ### ORM o query layer
 
@@ -214,7 +214,7 @@ Adapter `StorageProvider` con implementazione locale per sviluppo e provider pro
 
 ### Autenticazione amministratori
 
-Auth.js per sessioni admin, con provider configurabile.
+Auth.js per sessioni admin. Nell'MVP viene usato un provider Credentials con email e password locali, admin persistiti in `admin_users`, password salvate solo come hash Argon2id e sessioni JWT di durata esplicita. I cittadini restano senza account.
 
 ### Mappe e geocoding
 
@@ -295,6 +295,38 @@ Scelte operative:
 - stato iniziale sempre `pending_review` e non pubblico.
 
 La conversione indirizzo-coordinate resta fuori scope e dovra essere risolta in una vertical slice successiva, insieme alla UX definitiva della mappa/geocoding.
+
+## VC-005 — Autenticazione amministratori
+
+L'area `/admin` e protetta server-side con Auth.js. La separazione resta:
+
+`UI admin -> Server Action/Auth.js -> application service admin -> repository admin -> PostgreSQL`
+
+Scelte operative:
+
+- login dedicato `/admin/login` con email e password;
+- route Auth.js sotto `/api/auth/[...nextauth]`;
+- sessione Auth.js basata su JWT con durata di 8 ore;
+- password hash Argon2id tramite API crypto native di Node.js;
+- tabella `admin_users` con email normalizzata, hash password, ruolo, flag `active` e timestamp;
+- comando CLI `pnpm admin:create` per creare il primo admin senza UI di gestione utenti;
+- nessuna password in chiaro in database, log, sessione o documentazione;
+- controllo server-side su `/admin` per verificare che l'admin della sessione esista ancora e sia attivo;
+- messaggi di errore login generici, senza distinguere email inesistente, password errata o admin disattivato.
+
+Gestione admin inattivo:
+
+- `authenticateAdminWithPassword` accetta solo admin attivi;
+- `/admin` ricarica l'utente dal database usando l'id in sessione;
+- se l'admin e stato disattivato dopo il login, l'accesso al backoffice viene negato e l'utente viene rimandato al login.
+
+Restano fuori scope:
+
+- gestione admin da UI;
+- ruoli granulari;
+- recupero password;
+- MFA;
+- audit completo degli accessi.
 
 ## Ambiente PostgreSQL locale
 
@@ -391,4 +423,3 @@ L'ordine consigliato punta a raggiungere rapidamente una prima vertical slice fu
 10. comunicazioni e integrazioni future.
 
 PEC, AI e newsletter non devono bloccare le prime slice: vanno isolate con adapter e implementate quando le decisioni provider saranno pronte.
-

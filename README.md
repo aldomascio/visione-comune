@@ -127,4 +127,14 @@ Produzione:
 
 Per l'MVP è prevista una strategia PostgreSQL self-hosted sul VPS già disponibile, con database e utente dedicati, accesso non pubblico quando app e DB sono sullo stesso VPS, backup periodici e restore testabile prima del go-live.
 
-Il progetto non configura Docker. Storage, PEC, AI e newsletter non sono ancora configurati.
+Il progetto non configura Docker.
+
+Upload immagini:
+
+- in sviluppo le foto sono salvate in `.local-storage/report-images`, directory ignorata da Git;
+- una segnalazione puo avere al massimo una foto opzionale;
+- input supportati: JPEG, PNG, WebP fino a 10 MB;
+- le immagini vengono normalizzate a JPEG con `sharp`;
+- le foto pending/rejected non sono servite pubblicamente.
+
+PEC, AI e newsletter non sono ancora configurati.

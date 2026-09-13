@@ -47,6 +47,20 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
                 </p>
               </section>
 
+
+              {report.attachment ? (
+                <section className="grid gap-2">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Foto</h2>
+                  <div className="overflow-hidden rounded-lg border border-border bg-background">
+                    <img
+                      alt={`Foto della segnalazione ${report.publicCode}`}
+                      className="h-auto w-full object-cover"
+                      src={report.attachment.url}
+                    />
+                  </div>
+                </section>
+              ) : null}
+
               <section className="grid gap-4 sm:grid-cols-2">
                 <InfoBlock label="Categoria" value={report.categoryName} />
                 <InfoBlock label="Stato" value={PUBLIC_REPORT_STATUS_LABELS[report.publicStatus]} />

@@ -29,6 +29,30 @@ export type ReportModerationSummary = {
   address?: string;
 };
 
+export type ReportAttachment = {
+  id: string;
+  reportId: string;
+  type: "image";
+  storageKey: string;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+};
+
+export type NewReportAttachment = ReportAttachment;
+
+export type PublicReportAttachment = {
+  mimeType: string;
+  size: number;
+  url: string;
+};
+
+export type ReportAttachmentAccess = {
+  storageKey: string;
+  mimeType: string;
+  size: number;
+};
+
 export type PublicReportDetail = {
   publicCode: string;
   title: string;
@@ -40,6 +64,7 @@ export type PublicReportDetail = {
   publicStatus: PublicReportStatus;
   createdAt: Date;
   publishedAt: Date;
+  attachment?: PublicReportAttachment;
 };
 
 export type PublicReportTimelineEvent = {
@@ -61,7 +86,10 @@ export type PublicReportMapItem = {
 
 export type ReportRepository = {
   save(report: Report, events?: ReportDomainEvent[], options?: ReportSaveOptions): Promise<void>;
+  saveWithAttachment(report: Report, attachment: NewReportAttachment, events?: ReportDomainEvent[]): Promise<void>;
   findByPublicCode(publicCode: PublicCode): Promise<Report | null>;
+  findAttachmentForModeration(publicCode: PublicCode): Promise<ReportAttachmentAccess | null>;
+  findPublicAttachmentByPublicCode(publicCode: PublicCode): Promise<ReportAttachmentAccess | null>;
   listForModeration(input?: {
     status?: ReportModerationFilter;
     limit?: number;

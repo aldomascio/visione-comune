@@ -67,6 +67,9 @@ describe("ListPublicReportsForMapUseCase", () => {
 function createRepository(reports: PublicReportMapItem[]): ReportRepository {
   return {
     save: async () => undefined,
+    saveWithAttachment: async () => undefined,
+    findAttachmentForModeration: async () => null,
+    findPublicAttachmentByPublicCode: async () => null,
     findByPublicCode: async () => null,
     listForModeration: async () => [],
     countByModerationStatus: async () => 0,

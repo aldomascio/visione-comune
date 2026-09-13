@@ -30,6 +30,7 @@ export type ModerationReportDetail = {
   publishedAt?: Date;
   communicatedAt?: Date;
   resolvedAt?: Date;
+  attachment?: { url: string; mimeType: string; size: number };
 };
 
 export type ModerationDashboard = {
@@ -116,9 +117,20 @@ export class GetReportForModerationUseCase {
     const snapshot = report.toSnapshot();
     const category = await this.dependencies.categoryRepository.findById(snapshot.categoryId);
 
+    const attachment = await this.dependencies.reportRepository.findAttachmentForModeration(publicCode);
+
     return {
       ...snapshot,
-      categoryName: category?.name ?? snapshot.categoryId
+      categoryName: category?.name ?? snapshot.categoryId,
+      ...(attachment
+        ? {
+            attachment: {
+              url: `/admin/segnalazioni/${snapshot.publicCode}/foto`,
+              mimeType: attachment.mimeType,
+              size: attachment.size
+            }
+          }
+        : {})
     };
   }
 }

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CategoryRepository } from "@/modules/categories/application/category-repository";
+import type { StorageProvider } from "@/modules/storage/application/storage-provider";
+import { processReportImage, mapReportImageErrorToMessage } from "./attachments/report-image-processing";
 import {
   InvalidLocationError,
   InvalidPublicCodeError,
@@ -25,6 +27,7 @@ export type CreateReportInput = {
   latitude: string | number;
   longitude: string | number;
   address?: string;
+  photo?: { buffer: Buffer; mimeType?: string };
 };
 
 export type CreateReportResult = {
@@ -47,13 +50,14 @@ export class PublicCodeGenerationExhaustedError extends Error {
 }
 
 export type CreateReportFieldErrors = Partial<
-  Record<"categoryId" | "description" | "latitude" | "longitude" | "address", string>
+  Record<"categoryId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
 >;
 
 export type CreateReportUseCaseDependencies = {
   reportRepository: ReportRepository;
   categoryRepository: CategoryRepository;
   publicCodeGenerator: PublicCodeGenerator;
+  storageProvider?: StorageProvider;
   now?: () => Date;
   createId?: () => string;
   maxPublicCodeRetries?: number;
@@ -83,6 +87,10 @@ export class CreateReportUseCase {
       });
     }
 
+    const processedPhoto = input.photo
+      ? await processReportImage({ buffer: input.photo.buffer, declaredMimeType: input.photo.mimeType })
+      : undefined;
+
     const title = deriveReportTitle({
       categoryName: category.name,
       address: validatedInput.address,
@@ -105,13 +113,48 @@ export class CreateReportUseCase {
         createdAt: this.now()
       });
 
+      const events = report.pullDomainEvents();
+      const snapshot = report.toSnapshot();
+      let savedStorageKey: string | undefined;
+
       try {
-        await this.dependencies.reportRepository.save(report, report.pullDomainEvents());
+        if (processedPhoto) {
+          if (!this.dependencies.storageProvider) {
+            throw new Error("Storage provider is required for report photos.");
+          }
+
+          const storedPhoto = await this.dependencies.storageProvider.save({
+            buffer: processedPhoto.buffer,
+            extension: processedPhoto.extension
+          });
+          savedStorageKey = storedPhoto.storageKey;
+
+          await this.dependencies.reportRepository.saveWithAttachment(
+            report,
+            {
+              id: this.createId(),
+              reportId: snapshot.id,
+              type: "image",
+              storageKey: storedPhoto.storageKey,
+              mimeType: processedPhoto.mimeType,
+              size: storedPhoto.size,
+              createdAt: snapshot.createdAt
+            },
+            events
+          );
+        } else {
+          await this.dependencies.reportRepository.save(report, events);
+        }
+
         return {
-          reportId: report.toSnapshot().id,
+          reportId: snapshot.id,
           publicCode: publicCode.toString()
         };
       } catch (error) {
+        if (savedStorageKey && this.dependencies.storageProvider) {
+          await cleanupStoredPhoto(this.dependencies.storageProvider, savedStorageKey);
+        }
+
         if (error instanceof DuplicatePublicCodePersistenceError) {
           continue;
         }
@@ -223,9 +266,21 @@ function parseCoordinate(value: string | number): number | null {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
+async function cleanupStoredPhoto(storageProvider: StorageProvider, storageKey: string): Promise<void> {
+  try {
+    await storageProvider.delete(storageKey);
+  } catch (cleanupError) {
+    console.error("Unable to cleanup report photo after create failure", cleanupError);
+  }
+}
+
 export function mapCreateReportErrorToMessage(error: unknown): string {
   if (error instanceof CreateReportValidationError) {
     return "Controlla i campi evidenziati.";
+  }
+
+  if (error instanceof Error && error.name === "InvalidReportImageError") {
+    return mapReportImageErrorToMessage(error);
   }
 
   if (

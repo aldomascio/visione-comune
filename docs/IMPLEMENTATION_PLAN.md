@@ -415,6 +415,40 @@ Rischi residui:
 - senza geocoding, la qualita della mappa dipende dalle coordinate raccolte in fase di creazione;
 - con molti report serviranno clustering o strategie di semplificazione visuale.
 
+
+## VC-009 — Upload immagini moderabile
+
+Il form `/segnala` accetta una foto opzionale, massimo una per segnalazione. La separazione resta:
+
+`UI -> Server Action -> application use case -> image validation/normalization -> StorageProvider -> repository -> PostgreSQL`
+
+Scelte operative:
+
+- input accettati: JPEG, PNG, WebP fino a 10 MB;
+- validazione server-side con controllo magic bytes e processamento immagine;
+- normalizzazione con `sharp`: output JPEG, qualita 82, lato lungo massimo 2200 px, nessun upscaling;
+- EXIF/metadati non vengono preservati;
+- storage locale di sviluppo tramite `LocalStorageProvider` in `.local-storage/report-images`;
+- filename/storage key generati server-side, senza usare il nome file utente;
+- tabella `report_attachments` con un allegato immagine massimo per report;
+- route admin protetta per vedere la foto durante la moderazione;
+- route pubblica `/api/report-images/[publicCode]` che serve la foto solo se il report e approvato e pubblico;
+- cleanup compensativo del file se il salvataggio database fallisce dopo storage.
+
+Restano fuori scope:
+
+- piu foto, galleria, upload admin o foto aggiunte da altri cittadini;
+- provider storage produzione definitivo, CDN e media library;
+- scansione antivirus avanzata;
+- OCR, AI vision, crop/editor immagini;
+- policy automatica di retention.
+
+Retention MVP documentata:
+
+- pending: foto conservata internamente e visibile agli admin;
+- approved: foto conservata e servibile pubblicamente;
+- rejected: foto conservata internamente per audit/moderazione, non pubblica.
+
 ## Ambiente PostgreSQL locale
 
 La fondazione database usa due database locali separati:

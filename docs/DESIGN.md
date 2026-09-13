@@ -142,3 +142,10 @@ La mappa pubblica introdotta in VC-008 usa i token del tema per layout, card, ba
 - `--chart-5` per `Risolta`.
 
 La mappa non e l'unico accesso alle informazioni: sotto la mappa e presente una lista accessibile con titolo, categoria, stato, indirizzo e link alla scheda pubblica. I filtri minimi per stato e categoria lavorano sui soli report pubblici gia caricati.
+
+
+## Upload foto
+
+La foto della segnalazione resta un contenuto secondario rispetto a descrizione, posizione e stato. Nel form viene mostrata una preview con azione `Rimuovi foto`; nel backoffice e nella scheda pubblica la foto usa card e bordi coerenti con il tema.
+
+Alt text e messaggi di errore devono essere comprensibili: la UI indica formati supportati e limite di 10 MB, mentre la validazione definitiva resta server-side.

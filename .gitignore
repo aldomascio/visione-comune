@@ -27,6 +27,7 @@ test-results/
 playwright-report/
 
 # Runtime files
+.local-storage/
 tmp/
 temp/
 uploads/

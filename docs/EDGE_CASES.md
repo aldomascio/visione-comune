@@ -156,3 +156,30 @@ non esistono segnalazioni approvate, oppure i filtri non hanno risultati.
 
 Gestione prevista:
 la pagina mostra la mappa centrata su Venafro e un empty state comprensibile, senza errori tecnici.
+
+
+## VC-009 — Upload immagini moderabile
+
+### EC-VC009-001 — Foto valida ma report non creato
+
+Caso:
+la foto viene salvata su filesystem locale, ma il salvataggio del report o dell'attachment fallisce.
+
+Gestione prevista:
+il use case esegue cleanup compensativo del file appena salvato. Il limite e documentato: database e filesystem non sono una singola transazione atomica.
+
+### EC-VC009-002 — Accesso diretto a foto non pubblica
+
+Caso:
+un utente conosce o prova a indovinare la URL pubblica della foto di una segnalazione pending o rejected.
+
+Gestione prevista:
+la route pubblica restituisce 404 finche il report non e approvato e pubblico. Lo storage key e il path filesystem non vengono esposti.
+
+### EC-VC009-003 — File non immagine o corrotto
+
+Caso:
+il cittadino carica un file con estensione o MIME ingannevole, vuoto, corrotto o non supportato.
+
+Gestione prevista:
+la validazione server-side controlla dimensione, signature/magic bytes e processamento immagine. Il form mostra un errore comprensibile e il report non viene creato con attachment incoerente.

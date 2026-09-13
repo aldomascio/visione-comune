@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import {
   Badge,
@@ -31,10 +31,21 @@ export function ReportForm({ categories }: ReportFormProps) {
   );
   const state = actionState ?? initialCreateReportActionState;
   const latitudeInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const longitudeInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [photoName, setPhotoName] = useState<string | null>(null);
   const [geolocationStatus, setGeolocationStatus] = useState<
     { type: "idle" } | { type: "success"; message: string } | { type: "error"; message: string }
   >({ type: "idle" });
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
 
   if (state.status === "success" && state.publicCode) {
     return (
@@ -283,6 +294,71 @@ export function ReportForm({ categories }: ReportFormProps) {
         <FieldError id="description-error" message={state.fieldErrors.description} />
       </Field>
 
+
+      <Field
+        hint="Opzionale. Accettiamo JPEG, PNG o WebP fino a 10 MB. La foto sara verificata prima della pubblicazione."
+        htmlFor="photo"
+        label="Aggiungi una foto del problema"
+      >
+        <Input
+          accept="image/jpeg,image/png,image/webp"
+          aria-describedby={state.fieldErrors.photo ? "photo-error" : undefined}
+          aria-invalid={Boolean(state.fieldErrors.photo)}
+          disabled={formDisabled}
+          id="photo"
+          name="photo"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+
+            if (photoPreviewUrl) {
+              URL.revokeObjectURL(photoPreviewUrl);
+            }
+
+            if (!file) {
+              setPhotoPreviewUrl(null);
+              setPhotoName(null);
+              return;
+            }
+
+            setPhotoPreviewUrl(URL.createObjectURL(file));
+            setPhotoName(file.name);
+          }}
+          ref={photoInputRef}
+          type="file"
+        />
+        <FieldError id="photo-error" message={state.fieldErrors.photo} />
+        {photoPreviewUrl ? (
+          <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-3">
+            <img
+              alt="Anteprima della foto selezionata"
+              className="max-h-64 w-full rounded-md object-cover"
+              src={photoPreviewUrl}
+            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="truncate text-sm text-muted-foreground">{photoName}</p>
+              <Button
+                onClick={() => {
+                  if (photoInputRef.current) {
+                    photoInputRef.current.value = "";
+                  }
+
+                  if (photoPreviewUrl) {
+                    URL.revokeObjectURL(photoPreviewUrl);
+                  }
+
+                  setPhotoPreviewUrl(null);
+                  setPhotoName(null);
+                }}
+                type="button"
+                variant="secondary"
+              >
+                Rimuovi foto
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Field>
+
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-muted-foreground">
           Nessun account richiesto. Non chiediamo nome, email o telefono.
@@ -309,7 +385,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 function getVisibleFieldErrors(
   fieldErrors: Partial<
-    Record<"categoryId" | "description" | "latitude" | "longitude" | "address", string>
+    Record<"categoryId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
   >
 ) {
   const labels = {
@@ -317,7 +393,8 @@ function getVisibleFieldErrors(
     address: { fieldId: "address", label: "Indirizzo" },
     latitude: { fieldId: "latitude", label: "Latitudine" },
     longitude: { fieldId: "longitude", label: "Longitudine" },
-    description: { fieldId: "description", label: "Descrizione" }
+    description: { fieldId: "description", label: "Descrizione" },
+    photo: { fieldId: "photo", label: "Foto" }
   } as const;
 
   return Object.entries(fieldErrors)

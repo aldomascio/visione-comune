@@ -3,7 +3,7 @@ export type CreateReportActionState = {
   message?: string;
   publicCode?: string;
   fieldErrors: Partial<
-    Record<"categoryId" | "description" | "latitude" | "longitude" | "address", string>
+    Record<"categoryId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
   >;
   values: {
     categoryId: string;

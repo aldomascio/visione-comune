@@ -224,6 +224,17 @@ la mappa deve essere utile al cittadino senza esporre dati interni, note di mode
 Conseguenza:
 il provider tile resta sostituibile tramite `NEXT_PUBLIC_MAP_STYLE_URL`. In locale, se la variabile non e impostata, si usa lo style raster OpenStreetMap solo come fallback di sviluppo; la scelta del provider cartografico definitivo resta da deliberare prima della produzione.
 
+### ADR-026 — Upload immagini con storage locale sostituibile
+
+Decisione:
+in VC-009 il cittadino puo allegare al massimo una foto opzionale alla segnalazione. L'immagine viene validata server-side, normalizzata a JPEG tramite `sharp`, ridimensionata a lato lungo massimo 2200 px e salvata tramite `StorageProvider`. In sviluppo il provider usa filesystem locale sotto `.local-storage/report-images`, ignorato da Git.
+
+Motivo:
+la foto aiuta la moderazione e la consultazione pubblica, ma non deve vincolare il core a un provider storage definitivo ne esporre path interni.
+
+Conseguenza:
+la produzione dello storage resta da definire. Le foto pending e rejected non sono servite dalla route pubblica; gli admin autenticati possono vederle nel backoffice. Le foto approvate sono servite tramite route applicativa che verifica sempre lo stato pubblico del report.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione
@@ -263,8 +274,11 @@ policy di retention, gestione log tecnici, privacy, cookie e richieste di rimozi
 
 ### D-010 — Limiti upload immagini
 
-Da decidere:
-formati accettati, dimensione massima, compressione, scansione, moderazione e retention.
+Parzialmente deciso per MVP:
+JPEG, PNG e WebP in input fino a 10 MB, normalizzati a JPEG con lato lungo massimo 2200 px.
+
+Da decidere prima della produzione:
+limiti definitivi, scansione antivirus, policy di retention, backup e trattamento privacy operativo.
 
 ### D-011 — Categorie definitive
 

@@ -125,6 +125,16 @@ class InMemoryPublicReportRepository implements ReportRepository {
 
   constructor(private readonly reports: Report[]) {}
 
+  async saveWithAttachment(): Promise<void> {}
+
+  async findAttachmentForModeration(): Promise<null> {
+    return null;
+  }
+
+  async findPublicAttachmentByPublicCode(): Promise<null> {
+    return null;
+  }
+
   async save(): Promise<void> {}
 
   async findByPublicCode(publicCode: PublicCode): Promise<Report | null> {

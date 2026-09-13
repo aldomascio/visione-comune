@@ -25,7 +25,16 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - reportId
 - type
 - storageKey
+- mimeType
+- size
 - createdAt
+
+Note implementative MVP:
+
+- `type` supporta `image`.
+- e consentito al massimo un allegato immagine per report.
+- `storageKey` resta interno e non deve essere esposto in HTML pubblico o payload pubblici.
+- la foto puo essere servita pubblicamente solo se il report e approvato e ha stato pubblico.
 
 ## ReportConfirmation
 

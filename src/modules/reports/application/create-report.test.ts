@@ -1,5 +1,7 @@
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import type { CategoryOption, CategoryRepository } from "@/modules/categories/application/category-repository";
+import type { SaveObjectInput, StorageProvider, StoredObject } from "@/modules/storage/application/storage-provider";
 import {
   PublicCode,
   type ModerationStatus,
@@ -9,6 +11,7 @@ import {
 } from "../domain";
 import {
   DuplicatePublicCodePersistenceError,
+  type NewReportAttachment,
   type ReportModerationFilter,
   type ReportModerationSummary,
   type ReportRepository
@@ -58,6 +61,46 @@ describe("CreateReportUseCase", () => {
     expect(reportRepository.savedEvents.map((event) => event.type)).toEqual([
       "ReportCreated"
     ]);
+  });
+
+
+  it("creates a pending report with a normalized photo attachment", async () => {
+    const reportRepository = new InMemoryReportRepository();
+    const storageProvider = new FakeStorageProvider();
+    const useCase = createUseCase({ reportRepository, storageProvider });
+
+    const result = await useCase.execute({
+      ...createValidInput(),
+      photo: { buffer: await validPng(), mimeType: "image/png" }
+    });
+
+    expect(result).toEqual({ reportId: "report-1", publicCode: "VC-23456789" });
+    expect(storageProvider.savedObjects).toHaveLength(1);
+    expect(reportRepository.savedAttachments[0]).toMatchObject({
+      reportId: "report-1",
+      type: "image",
+      storageKey: "stored-photo-1.jpg",
+      mimeType: "image/jpeg"
+    });
+  });
+
+  it("cleans up a stored photo when database save fails", async () => {
+    const reportRepository = new InMemoryReportRepository({ duplicateCodes: ["VC-23456789"] });
+    const storageProvider = new FakeStorageProvider();
+    const useCase = createUseCase({
+      reportRepository,
+      storageProvider,
+      maxPublicCodeRetries: 1
+    });
+
+    await expect(
+      useCase.execute({
+        ...createValidInput(),
+        photo: { buffer: await validPng(), mimeType: "image/png" }
+      })
+    ).rejects.toThrow(PublicCodeGenerationExhaustedError);
+
+    expect(storageProvider.deletedKeys).toEqual(["stored-photo-1.jpg"]);
   });
 
   it("rejects invalid input with field errors", async () => {
@@ -173,7 +216,8 @@ function createUseCase(overrides: Partial<CreateReportUseCaseDependenciesForTest
       overrides.publicCodeGenerator ?? new SequencePublicCodeGenerator(["VC-23456789"]),
     now: () => new Date("2026-01-01T10:00:00.000Z"),
     createId: overrides.createId?.next ?? new SequenceIdGenerator(["report-1"]).next,
-    maxPublicCodeRetries: overrides.maxPublicCodeRetries
+    maxPublicCodeRetries: overrides.maxPublicCodeRetries,
+    storageProvider: overrides.storageProvider
   });
 }
 
@@ -183,6 +227,7 @@ type CreateReportUseCaseDependenciesForTest = {
   publicCodeGenerator: PublicCodeGenerator;
   createId: SequenceIdGenerator;
   maxPublicCodeRetries: number;
+  storageProvider: StorageProvider;
 };
 
 class FakeCategoryRepository implements CategoryRepository {
@@ -204,9 +249,23 @@ class FakeCategoryRepository implements CategoryRepository {
 class InMemoryReportRepository implements ReportRepository {
   readonly savedReports: Report[] = [];
   readonly savedEvents: ReportDomainEvent[] = [];
+  readonly savedAttachments: NewReportAttachment[] = [];
   saveAttempts = 0;
 
   constructor(private readonly options: { duplicateCodes?: string[] } = {}) {}
+
+  async saveWithAttachment(report: Report, attachment: NewReportAttachment, events: ReportDomainEvent[] = []): Promise<void> {
+    await this.save(report, events);
+    this.savedAttachments.push(attachment);
+  }
+
+  async findAttachmentForModeration(): Promise<null> {
+    return null;
+  }
+
+  async findPublicAttachmentByPublicCode(): Promise<null> {
+    return null;
+  }
 
   async save(report: Report, events: ReportDomainEvent[] = []): Promise<void> {
     this.saveAttempts += 1;
@@ -291,4 +350,29 @@ class SequenceIdGenerator {
 
     return value;
   };
+}
+
+
+class FakeStorageProvider implements StorageProvider {
+  readonly savedObjects: SaveObjectInput[] = [];
+  readonly deletedKeys: string[] = [];
+
+  async save(input: SaveObjectInput): Promise<StoredObject> {
+    this.savedObjects.push(input);
+    return { storageKey: `stored-photo-${this.savedObjects.length}.${input.extension}`, size: input.buffer.byteLength };
+  }
+
+  async read(): Promise<Buffer> {
+    return Buffer.alloc(0);
+  }
+
+  async delete(storageKey: string): Promise<void> {
+    this.deletedKeys.push(storageKey);
+  }
+}
+
+async function validPng(): Promise<Buffer> {
+  return sharp({ create: { width: 8, height: 8, channels: 3, background: "red" } })
+    .png()
+    .toBuffer();
 }

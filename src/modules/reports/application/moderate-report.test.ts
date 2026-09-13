@@ -153,6 +153,18 @@ class InMemoryModerationReportRepository implements ReportRepository {
     private readonly options: { failConcurrentSave?: boolean } = {}
   ) {}
 
+  async saveWithAttachment(report: Report): Promise<void> {
+    await this.save(report);
+  }
+
+  async findAttachmentForModeration(): Promise<null> {
+    return null;
+  }
+
+  async findPublicAttachmentByPublicCode(): Promise<null> {
+    return null;
+  }
+
   async save(report: Report, events: ReportDomainEvent[] = [], options: ReportSaveOptions = {}): Promise<void> {
     this.lastSaveOptions = options;
 

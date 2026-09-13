@@ -60,6 +60,20 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 </p>
               </section>
 
+
+              {report.attachment ? (
+                <section className="grid gap-2">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Foto allegata</h2>
+                  <div className="overflow-hidden rounded-lg border border-border bg-background">
+                    <img
+                      alt={`Foto allegata alla segnalazione ${report.publicCode}`}
+                      className="h-auto w-full object-cover"
+                      src={report.attachment.url}
+                    />
+                  </div>
+                </section>
+              ) : null}
+
               <section className="grid gap-4 sm:grid-cols-2">
                 <InfoBlock label="Categoria" value={report.categoryName ?? report.categoryId} />
                 <InfoBlock label="Data invio" value={formatAdminDate(report.createdAt)} />

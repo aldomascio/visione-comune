@@ -2,7 +2,7 @@ import { inArray, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/client";
-import { categories, reportEvents, reports } from "@/shared/db/schema";
+import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DuplicatePublicCodePersistenceError } from "@/modules/reports/application/report-repository";
 import { Location, PublicCode, Report } from "@/modules/reports/domain";
@@ -18,7 +18,8 @@ const testReportIds = [
   "test-report-map-approved-new",
   "test-report-map-approved-old",
   "test-report-map-pending",
-  "test-report-map-rejected"
+  "test-report-map-rejected",
+  "test-report-attachment"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -220,6 +221,76 @@ maybeDescribe("DrizzleReportRepository", () => {
     expect(testMapReports[0]).not.toHaveProperty("description");
   });
 
+
+  it("persists one image attachment and exposes it only after approval", async () => {
+    const report = createReport("test-report-attachment", "VC-ATCH0001");
+    const events = report.pullDomainEvents();
+
+    await repository.saveWithAttachment(
+      report,
+      {
+        id: "test-attachment-1",
+        reportId: "test-report-attachment",
+        type: "image",
+        storageKey: "test-storage-key.jpg",
+        mimeType: "image/jpeg",
+        size: 1234,
+        createdAt: new Date("2026-01-01T10:00:00.000Z")
+      },
+      events
+    );
+
+    await expect(repository.findAttachmentForModeration(PublicCode.create("VC-ATCH0001"))).resolves.toEqual({
+      storageKey: "test-storage-key.jpg",
+      mimeType: "image/jpeg",
+      size: 1234
+    });
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toBeNull();
+
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toEqual({
+      storageKey: "test-storage-key.jpg",
+      mimeType: "image/jpeg",
+      size: 1234
+    });
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toMatchObject({
+      attachment: {
+        mimeType: "image/jpeg",
+        size: 1234,
+        url: "/api/report-images/VC-ATCH0001"
+      }
+    });
+  });
+
+  it("enforces at most one image attachment for each report", async () => {
+    const report = createReport("test-report-attachment", "VC-ATCH0001");
+    await repository.saveWithAttachment(report, {
+      id: "test-attachment-1",
+      reportId: "test-report-attachment",
+      type: "image",
+      storageKey: "test-storage-key.jpg",
+      mimeType: "image/jpeg",
+      size: 1234,
+      createdAt: new Date("2026-01-01T10:00:00.000Z")
+    });
+
+    await expect(
+      connection.db.insert(reportAttachments).values({
+        id: "test-attachment-2",
+        reportId: "test-report-attachment",
+        type: "image",
+        storageKey: "test-storage-key-2.jpg",
+        mimeType: "image/jpeg",
+        size: 1234,
+        createdAt: new Date("2026-01-01T10:00:00.000Z")
+      })
+    ).rejects.toThrow();
+  });
+
   it("persists report status dates and events", async () => {
     const report = createReport("test-report-1", "VC-ABC12345");
     report.pullDomainEvents();
@@ -277,6 +348,7 @@ maybeDescribe("DrizzleReportRepository", () => {
 
 async function cleanupTestData(connection: DatabaseConnection): Promise<void> {
   await connection.db.delete(reportEvents).where(inArray(reportEvents.reportId, testReportIds));
+  await connection.db.delete(reportAttachments).where(inArray(reportAttachments.reportId, testReportIds));
   await connection.db.delete(reports).where(inArray(reports.id, testReportIds));
   await connection.db.delete(categories).where(sql`${categories.id} = ${testCategoryId}`);
 }

@@ -1,12 +1,14 @@
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
-import { categories, reportEvents, reports } from "@/shared/db/schema";
+import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
   ConcurrentReportModerationError,
   DuplicatePublicCodePersistenceError,
   type ReportModerationFilter,
+  type NewReportAttachment,
   type PublicReportDetail,
   type PublicReportMapItem,
+  type ReportAttachmentAccess,
   type PublicReportTimelineEvent,
   type ReportModerationSummary,
   type ReportRepository,
@@ -65,6 +67,40 @@ export class DrizzleReportRepository implements ReportRepository {
     }
   }
 
+
+  async saveWithAttachment(
+    report: Report,
+    attachment: NewReportAttachment,
+    events: ReportDomainEvent[] = []
+  ): Promise<void> {
+    try {
+      await this.db.transaction(async (tx) => {
+        const record = reportToRecord(report);
+        await tx.insert(reports).values(record);
+
+        if (events.length > 0) {
+          await tx.insert(reportEvents).values(events.map(reportEventToRecord));
+        }
+
+        await tx.insert(reportAttachments).values({
+          id: attachment.id,
+          reportId: attachment.reportId,
+          type: attachment.type,
+          storageKey: attachment.storageKey,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          createdAt: attachment.createdAt
+        });
+      });
+    } catch (error) {
+      if (isPublicCodeUniqueViolation(error)) {
+        throw new DuplicatePublicCodePersistenceError(report.toSnapshot().publicCode);
+      }
+
+      throw error;
+    }
+  }
+
   async findByPublicCode(publicCode: PublicCode): Promise<Report | null> {
     const [record] = await this.db
       .select()
@@ -73,6 +109,44 @@ export class DrizzleReportRepository implements ReportRepository {
       .limit(1);
 
     return record ? recordToReport(record) : null;
+  }
+
+
+  async findAttachmentForModeration(publicCode: PublicCode): Promise<ReportAttachmentAccess | null> {
+    const [row] = await this.db
+      .select({
+        storageKey: reportAttachments.storageKey,
+        mimeType: reportAttachments.mimeType,
+        size: reportAttachments.size
+      })
+      .from(reportAttachments)
+      .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
+      .where(eq(reports.publicCode, publicCode.toString()))
+      .limit(1);
+
+    return row ?? null;
+  }
+
+  async findPublicAttachmentByPublicCode(publicCode: PublicCode): Promise<ReportAttachmentAccess | null> {
+    const [row] = await this.db
+      .select({
+        storageKey: reportAttachments.storageKey,
+        mimeType: reportAttachments.mimeType,
+        size: reportAttachments.size
+      })
+      .from(reportAttachments)
+      .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
+      .where(
+        and(
+          eq(reports.publicCode, publicCode.toString()),
+          eq(reports.moderationStatus, "approved"),
+          isNotNull(reports.publicStatus),
+          isNotNull(reports.publishedAt)
+        )
+      )
+      .limit(1);
+
+    return row ?? null;
   }
 
   async listForModeration(input: {
@@ -121,10 +195,14 @@ export class DrizzleReportRepository implements ReportRepository {
         longitude: reports.longitude,
         publicStatus: reports.publicStatus,
         createdAt: reports.createdAt,
-        publishedAt: reports.publishedAt
+        publishedAt: reports.publishedAt,
+        attachmentStorageKey: reportAttachments.storageKey,
+        attachmentMimeType: reportAttachments.mimeType,
+        attachmentSize: reportAttachments.size
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .leftJoin(reportAttachments, eq(reportAttachments.reportId, reports.id))
       .where(
         and(
           eq(reports.publicCode, publicCode.toString()),
@@ -147,7 +225,16 @@ export class DrizzleReportRepository implements ReportRepository {
       longitude: row.longitude,
       publicStatus: row.publicStatus,
       createdAt: row.createdAt,
-      publishedAt: row.publishedAt
+      publishedAt: row.publishedAt,
+      ...(row.attachmentStorageKey && row.attachmentMimeType && row.attachmentSize
+        ? {
+            attachment: {
+              mimeType: row.attachmentMimeType,
+              size: row.attachmentSize,
+              url: `/api/report-images/${row.publicCode}`
+            }
+          }
+        : {})
     };
   }
 
@@ -162,10 +249,14 @@ export class DrizzleReportRepository implements ReportRepository {
         longitude: reports.longitude,
         address: reports.address,
         publicStatus: reports.publicStatus,
-        publishedAt: reports.publishedAt
+        publishedAt: reports.publishedAt,
+        attachmentStorageKey: reportAttachments.storageKey,
+        attachmentMimeType: reportAttachments.mimeType,
+        attachmentSize: reportAttachments.size
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .leftJoin(reportAttachments, eq(reportAttachments.reportId, reports.id))
       .where(
         and(
           eq(reports.moderationStatus, "approved"),

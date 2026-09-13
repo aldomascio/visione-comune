@@ -4,6 +4,7 @@ import {
   check,
   doublePrecision,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -38,6 +39,8 @@ export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
 ]);
 
 export const adminRoleEnum = pgEnum("admin_role", ["admin"]);
+
+export const reportAttachmentTypeEnum = pgEnum("report_attachment_type", ["image"]);
 
 export const categories = pgTable(
   "categories",
@@ -129,6 +132,31 @@ export const reportEvents = pgTable(
 );
 
 
+
+export const reportAttachments = pgTable(
+  "report_attachments",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    reportId: varchar("report_id", { length: 64 })
+      .notNull()
+      .references(() => reports.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    type: reportAttachmentTypeEnum("type").notNull(),
+    storageKey: varchar("storage_key", { length: 300 }).notNull(),
+    mimeType: varchar("mime_type", { length: 80 }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("report_attachments_report_id_unique").on(table.reportId),
+    uniqueIndex("report_attachments_storage_key_unique").on(table.storageKey),
+    index("report_attachments_report_id_idx").on(table.reportId),
+    check("report_attachments_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("report_attachments_storage_key_not_empty", sql`length(trim(${table.storageKey})) > 0`),
+    check("report_attachments_mime_type_not_empty", sql`length(trim(${table.mimeType})) > 0`),
+    check("report_attachments_size_positive", sql`${table.size} > 0`)
+  ]
+);
+
 export const adminUsers = pgTable(
   "admin_users",
   {
@@ -156,5 +184,7 @@ export type ReportRecord = typeof reports.$inferSelect;
 export type NewReportRecord = typeof reports.$inferInsert;
 export type ReportEventRecord = typeof reportEvents.$inferSelect;
 export type NewReportEventRecord = typeof reportEvents.$inferInsert;
+export type ReportAttachmentRecord = typeof reportAttachments.$inferSelect;
+export type NewReportAttachmentRecord = typeof reportAttachments.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;

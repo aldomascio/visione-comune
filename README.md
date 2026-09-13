@@ -49,4 +49,13 @@ pnpm test:e2e
 pnpm build
 ```
 
-Il bootstrap non configura ancora database, storage, PEC, AI, newsletter o Docker.
+Database:
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+```
+
+Le migration usano `DATABASE_URL`. Gli integration test PostgreSQL usano `TEST_DATABASE_URL` e vengono saltati se la variabile non è configurata.
+
+Il progetto non configura Docker. Storage, PEC, AI e newsletter non sono ancora configurati.

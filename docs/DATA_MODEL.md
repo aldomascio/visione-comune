@@ -16,6 +16,7 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - moderationStatus
 - createdAt
 - publishedAt
+- communicatedAt
 - resolvedAt
 
 ## ReportAttachment
@@ -39,6 +40,7 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - reportId
 - type
 - visibility
+- publicStatus
 - metadata
 - createdAt
 

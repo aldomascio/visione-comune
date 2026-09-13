@@ -102,6 +102,17 @@ una segnalazione puo passare allo stato pubblico `Risolta` solo dopo essere stat
 Motivo:
 la risoluzione richiede verifica di Visione Comune e deve seguire una segnalazione gia pubblicata e comunicata, evitando salti di stato incoerenti nella timeline pubblica.
 
+### ADR-015 — Unicita codice pubblico
+
+Decisione:
+il value object `PublicCode` valida il formato `VC-XXXXXXXX`, mentre l'unicita e garantita dal database tramite vincolo unique su `reports.public_code`.
+
+Motivo:
+il dominio resta indipendente dalla persistenza; eventuali collisioni di generazione saranno gestite esplicitamente dal layer applicativo/persistenza quando verra implementato il flusso di creazione.
+
+Conseguenza:
+la strategia definitiva di generazione del codice pubblico resta fuori da VC-003 e verra completata nella vertical slice di creazione segnalazione.
+
 ## DA DEFINIRE
 
 ### D-001 — Database locale

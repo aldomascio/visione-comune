@@ -1,0 +1,461 @@
+{
+  "id": "5a58c8f7-326e-4961-bc9c-106b9343b8ff",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.categories": {
+      "name": "categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "categories_slug_unique": {
+          "name": "categories_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "categories_id_not_empty": {
+          "name": "categories_id_not_empty",
+          "value": "length(trim(\"categories\".\"id\")) > 0"
+        },
+        "categories_name_not_empty": {
+          "name": "categories_name_not_empty",
+          "value": "length(trim(\"categories\".\"name\")) > 0"
+        },
+        "categories_slug_not_empty": {
+          "name": "categories_slug_not_empty",
+          "value": "length(trim(\"categories\".\"slug\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.report_events": {
+      "name": "report_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "report_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "report_event_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_status": {
+          "name": "public_status",
+          "type": "public_report_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "report_events_report_id_idx": {
+          "name": "report_events_report_id_idx",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "report_events_visibility_idx": {
+          "name": "report_events_visibility_idx",
+          "columns": [
+            {
+              "expression": "visibility",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "report_events_report_id_reports_id_fk": {
+          "name": "report_events_report_id_reports_id_fk",
+          "tableFrom": "report_events",
+          "tableTo": "reports",
+          "columnsFrom": [
+            "report_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "report_events_id_not_empty": {
+          "name": "report_events_id_not_empty",
+          "value": "length(trim(\"report_events\".\"id\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reports": {
+      "name": "reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "public_code": {
+          "name": "public_code",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(180)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(4000)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "public_status": {
+          "name": "public_status",
+          "type": "public_report_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "moderation_status": {
+          "name": "moderation_status",
+          "type": "moderation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "communicated_at": {
+          "name": "communicated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "reports_public_code_unique": {
+          "name": "reports_public_code_unique",
+          "columns": [
+            {
+              "expression": "public_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_category_id_idx": {
+          "name": "reports_category_id_idx",
+          "columns": [
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_public_status_idx": {
+          "name": "reports_public_status_idx",
+          "columns": [
+            {
+              "expression": "public_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_moderation_status_idx": {
+          "name": "reports_moderation_status_idx",
+          "columns": [
+            {
+              "expression": "moderation_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reports_category_id_categories_id_fk": {
+          "name": "reports_category_id_categories_id_fk",
+          "tableFrom": "reports",
+          "tableTo": "categories",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reports_id_not_empty": {
+          "name": "reports_id_not_empty",
+          "value": "length(trim(\"reports\".\"id\")) > 0"
+        },
+        "reports_public_code_format": {
+          "name": "reports_public_code_format",
+          "value": "\"reports\".\"public_code\" ~ '^VC-[0-9A-Z]{8}$'"
+        },
+        "reports_title_not_empty": {
+          "name": "reports_title_not_empty",
+          "value": "length(trim(\"reports\".\"title\")) > 0"
+        },
+        "reports_description_not_empty": {
+          "name": "reports_description_not_empty",
+          "value": "length(trim(\"reports\".\"description\")) > 0"
+        },
+        "reports_latitude_range": {
+          "name": "reports_latitude_range",
+          "value": "\"reports\".\"latitude\" between -90 and 90"
+        },
+        "reports_longitude_range": {
+          "name": "reports_longitude_range",
+          "value": "\"reports\".\"longitude\" between -180 and 180"
+        },
+        "reports_public_status_requires_approval": {
+          "name": "reports_public_status_requires_approval",
+          "value": "(\"reports\".\"moderation_status\" = 'approved' and \"reports\".\"public_status\" is not null)\n        or (\"reports\".\"moderation_status\" <> 'approved' and \"reports\".\"public_status\" is null)"
+        },
+        "reports_public_status_requires_published_at": {
+          "name": "reports_public_status_requires_published_at",
+          "value": "\"reports\".\"public_status\" is null or \"reports\".\"published_at\" is not null"
+        },
+        "reports_communicated_or_resolved_requires_communicated_at": {
+          "name": "reports_communicated_or_resolved_requires_communicated_at",
+          "value": "\"reports\".\"public_status\" not in ('communicated', 'resolved') or \"reports\".\"communicated_at\" is not null"
+        },
+        "reports_resolved_requires_resolved_at": {
+          "name": "reports_resolved_requires_resolved_at",
+          "value": "\"reports\".\"public_status\" is distinct from 'resolved' or \"reports\".\"resolved_at\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.moderation_status": {
+      "name": "moderation_status",
+      "schema": "public",
+      "values": [
+        "pending_review",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.public_report_status": {
+      "name": "public_report_status",
+      "schema": "public",
+      "values": [
+        "reported",
+        "communicated",
+        "resolved"
+      ]
+    },
+    "public.report_event_type": {
+      "name": "report_event_type",
+      "schema": "public",
+      "values": [
+        "ReportCreated",
+        "ReportApproved",
+        "ReportRejected",
+        "ReportCommunicated",
+        "ReportResolved"
+      ]
+    },
+    "public.report_event_visibility": {
+      "name": "report_event_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "internal"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

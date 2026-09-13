@@ -49,7 +49,9 @@ test("tracks an approved report and opens the public detail page", async ({ page
   await expect(page.getByText(description)).toBeVisible();
   await expect(page.getByText(categoryName, { exact: true })).toBeVisible();
   await expect(page.getByText("Segnalata").first()).toBeVisible();
-  await expect(page.getByText("Segnalazione verificata e pubblicata")).toBeVisible();
+  await expect(page.getByText("Segnalazione pubblicata")).toBeVisible();
+  await expect(page.getByText("Visione Comune ha verificato la segnalazione e l'ha resa pubblica.")).toBeVisible();
+  await expect(page.getByText("Segnalazione ricevuta")).toHaveCount(0);
 });
 
 test("tracks a rejected report with a generic message and hides the internal note", async ({ page }) => {

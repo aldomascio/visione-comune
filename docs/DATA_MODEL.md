@@ -62,9 +62,16 @@ Note implementative MVP:
 
 Note implementative MVP:
 
-- `metadata` puo contenere dati operativi interni legati all'evento.
+- `visibility` supporta `public` e `internal`. Non e stato introdotto uno stato `system` per VC-014 perche gli eventi tecnici necessari sono rappresentabili come eventi interni.
+- solo eventi con `visibility = public` possono alimentare la timeline pubblica. Il filtro deve avvenire lato server.
+- `ReportCreated` resta interno: la timeline pubblica inizia dalla pubblicazione/approvazione della segnalazione.
+- `ReportRejected` resta interno e non deve comparire in viste pubbliche.
+- `createdAt` e `id` definiscono l'ordinamento stabile della timeline: `createdAt ASC`, poi `id ASC`.
+- `metadata` puo contenere dati operativi interni legati all'evento. Di default i metadata sono considerati non pubblici.
 - In VC-006 la nota opzionale di rifiuto viene salvata come `metadata.internalNote` sull'evento interno `ReportRejected`.
-- Le note salvate negli eventi interni non devono essere esposte nelle future viste pubbliche.
+- Chiavi metadata previste per evoluzioni future: `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`.
+- Le note salvate negli eventi interni non devono essere esposte nelle viste pubbliche.
+- Eventi futuri previsti ma non implementati in VC-014: `CommunicationSent`, `CommunicationDelivered`, `CommunicationFailed`, `ReplyReceived`, `ReminderSent`. La loro introduzione richiedera aggiornamento enum e migration.
 
 ## Category
 

@@ -279,6 +279,18 @@ prepara il flusso comunicazioni senza introdurre invio PEC/email, AI o routing a
 Conseguenza:
 il dettaglio admin di una segnalazione mostra solo un suggerimento in lettura. I destinatari disattivati restano nella configurazione ma vengono esclusi dalle proposte operative. Le associazioni non vengono eliminate quando una categoria viene disattivata. L'invio comunicazioni resta fuori scope fino a VC-015/VC-019.
 
+
+### ADR-031 — Timeline pubblica e interna centralizzata
+
+Decisione:
+in VC-014 la timeline delle segnalazioni viene letta da `report_events` tramite use case dedicati. La vista pubblica usa solo eventi `visibility = public`; la vista admin usa eventi pubblici e interni.
+
+Motivo:
+la scheda pubblica deve mostrare lo storico rilevante senza esporre note, metadata operativi o dettagli tecnici. Il backoffice deve invece avere una cronologia completa e comprensibile per seguire moderazione e future comunicazioni.
+
+Conseguenza:
+la UI non traduce direttamente gli enum tecnici. Label, descrizioni e metadata ammessi sono centralizzati nel layer applicativo. `ReportCreated` resta interno, `ReportApproved` e pubblico, `ReportRejected` resta interno. Per VC-014 non viene introdotta una visibilita `system`; eventuali eventi tecnici restano interni finche non emerge un bisogno distinto.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

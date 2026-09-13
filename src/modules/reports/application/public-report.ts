@@ -1,7 +1,6 @@
 import { InvalidPublicCodeError, PublicCode } from "../domain";
 import type {
   PublicReportDetail,
-  PublicReportTimelineEvent,
   ReportRepository
 } from "./report-repository";
 
@@ -81,23 +80,7 @@ export class GetPublicReportUseCase {
   }
 }
 
-export type GetPublicReportTimelineUseCaseDependencies = {
-  reportRepository: ReportRepository;
-};
-
-export class GetPublicReportTimelineUseCase {
-  constructor(private readonly dependencies: GetPublicReportTimelineUseCaseDependencies) {}
-
-  async execute(input: { publicCode: string }): Promise<PublicReportTimelineEvent[]> {
-    const publicCode = parsePublicCode(input.publicCode);
-
-    if (!publicCode) {
-      return [];
-    }
-
-    return this.dependencies.reportRepository.listPublicEventsByPublicCode(publicCode);
-  }
-}
+export { GetPublicReportTimelineUseCase } from "./report-timeline";
 
 function parsePublicCode(value: string): PublicCode | null {
   try {

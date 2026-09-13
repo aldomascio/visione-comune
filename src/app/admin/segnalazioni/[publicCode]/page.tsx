@@ -6,6 +6,7 @@ import {
   InvalidModerationPublicCodeError,
   ReportForModerationNotFoundError
 } from "@/modules/reports/application/moderate-report";
+import { GetAdminReportTimelineUseCase, type AdminTimelineItem } from "@/modules/reports/application/report-timeline";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
@@ -26,7 +27,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   await requireActiveAdmin();
   const { publicCode } = await params;
   const query = await searchParams;
-  const { report, recipients } = await getReportPageData(publicCode);
+  const { report, recipients, timeline } = await getReportPageData(publicCode);
   const canModerate = report.moderationStatus === "pending_review";
 
   return (
@@ -107,7 +108,28 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
             </CardContent>
           </Card>
 
-          <Card>
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Timeline completa</CardTitle>
+                <CardDescription>Eventi pubblici e interni della segnalazione, ordinati cronologicamente.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {timeline.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+                    Nessun evento registrato per questa segnalazione.
+                  </div>
+                ) : (
+                  <ol className="grid gap-4">
+                    {timeline.map((event) => (
+                      <AdminTimelineListItem event={event} key={event.id} />
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
             <CardHeader>
               <CardTitle>Moderazione</CardTitle>
               <CardDescription>
@@ -152,7 +174,8 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 </div>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
     </main>
@@ -164,13 +187,17 @@ async function getReportPageData(publicCode: string) {
 
   try {
     connection = createDatabaseConnection();
+    const reportRepository = new DrizzleReportRepository(connection.db);
     const report = await new GetReportForModerationUseCase({
-      reportRepository: new DrizzleReportRepository(connection.db),
+      reportRepository,
       categoryRepository: new DrizzleCategoryRepository(connection.db)
     }).execute({ publicCode });
-    const recipients = await new DrizzleRecipientRepository(connection.db).findActiveByCategory(report.categoryId);
+    const [recipients, timeline] = await Promise.all([
+      new DrizzleRecipientRepository(connection.db).findActiveByCategory(report.categoryId),
+      new GetAdminReportTimelineUseCase({ timelineRepository: reportRepository }).execute({ reportId: report.id })
+    ]);
 
-    return { report, recipients };
+    return { report, recipients, timeline };
   } catch (error) {
     if (error instanceof ReportForModerationNotFoundError || error instanceof InvalidModerationPublicCodeError) {
       notFound();
@@ -180,6 +207,47 @@ async function getReportPageData(publicCode: string) {
   } finally {
     await connection?.close();
   }
+}
+
+function AdminTimelineListItem({ event }: { event: AdminTimelineItem }) {
+  return (
+    <li className="rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-medium">{event.label}</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{event.description}</p>
+        </div>
+        <TimelineVisibilityBadge visibility={event.visibility} />
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">{formatAdminDate(event.occurredAt)}</p>
+      {event.note ? (
+        <div className="mt-3 rounded-md border border-border bg-muted/40 p-3 text-sm leading-6">
+          <p className="font-medium">Nota interna</p>
+          <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{event.note}</p>
+        </div>
+      ) : null}
+      {event.metadataItems.length > 0 ? (
+        <dl className="mt-3 grid gap-2 text-sm">
+          {event.metadataItems.map((item) => (
+            <div className="rounded-md border border-border bg-muted/30 p-3" key={item.label}>
+              <dt className="text-muted-foreground">{item.label}</dt>
+              <dd className="mt-1 font-medium">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </li>
+  );
+}
+
+function TimelineVisibilityBadge({ visibility }: { visibility: AdminTimelineItem["visibility"] }) {
+  const isPublic = visibility === "public";
+
+  return (
+    <span className={isPublic ? "rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground" : "rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"}>
+      {isPublic ? "Pubblico" : "Interno"}
+    </span>
+  );
 }
 
 function InfoBlock({ label, value }: { label: string; value: string }) {

@@ -5,6 +5,7 @@ import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/c
 import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DuplicatePublicCodePersistenceError } from "@/modules/reports/application/report-repository";
+import { GetAdminReportTimelineUseCase, GetPublicReportTimelineUseCase } from "@/modules/reports/application/report-timeline";
 import { Location, PublicCode, Report } from "@/modules/reports/domain";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
@@ -26,7 +27,8 @@ const testReportIds = [
   "test-report-duplicate-rejected",
   "test-report-duplicate-category",
   "test-report-duplicate-far",
-  "test-report-duplicate-old"
+  "test-report-duplicate-old",
+  "test-report-timeline"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -188,6 +190,93 @@ maybeDescribe("DrizzleReportRepository", () => {
         occurredAt: new Date("2026-01-06T10:00:00.000Z")
       }
     ]);
+  });
+
+
+  it("returns complete admin timeline and safe public timeline with stable order", async () => {
+    const report = createReport("test-report-timeline", "VC-TIMELN01");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const sameTimestamp = new Date("2026-01-04T10:00:00.000Z");
+    await connection.db.insert(reportEvents).values([
+      {
+        id: "test-report-timeline-a-internal-note",
+        reportId: "test-report-timeline",
+        type: "ReportRejected",
+        visibility: "internal",
+        publicStatus: null,
+        metadata: { internalNote: "Nota interna da non esporre", recipientName: "Ufficio tecnico" },
+        createdAt: sameTimestamp
+      },
+      {
+        id: "test-report-timeline-z-public-communicated",
+        reportId: "test-report-timeline",
+        type: "ReportCommunicated",
+        visibility: "public",
+        publicStatus: "communicated",
+        metadata: { externalMessageId: "PEC-123" },
+        createdAt: new Date("2026-01-05T10:00:00.000Z")
+      }
+    ]);
+
+    const adminEvents = await repository.listTimelineByReportId("test-report-timeline");
+    const sortedAdminEventIds = [...adminEvents]
+      .sort((left, right) => {
+        const timeDifference = left.occurredAt.getTime() - right.occurredAt.getTime();
+        return timeDifference || left.id.localeCompare(right.id);
+      })
+      .map((event) => event.id);
+    expect(adminEvents.map((event) => event.id)).toEqual(sortedAdminEventIds);
+    expect(adminEvents.map((event) => event.type)).toEqual(expect.arrayContaining(["ReportCreated", "ReportApproved", "ReportRejected", "ReportCommunicated"]));
+    expect(adminEvents.filter((event) => event.visibility === "internal")).toHaveLength(2);
+    expect(adminEvents.filter((event) => event.visibility === "public")).toHaveLength(2);
+    const internalNoteEvent = adminEvents.find((event) => event.id === "test-report-timeline-a-internal-note");
+    expect(internalNoteEvent?.metadata).toEqual({
+      internalNote: "Nota interna da non esporre",
+      recipientName: "Ufficio tecnico"
+    });
+
+    const publicEvents = await repository.listPublicTimelineByPublicCode(PublicCode.create("VC-TIMELN01"));
+    expect(publicEvents.map((event) => event.type)).toEqual(["ReportApproved", "ReportCommunicated"]);
+    expect(publicEvents.every((event) => event.visibility === "public")).toBe(true);
+
+    const publicItems = await new GetPublicReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ publicCode: "VC-TIMELN01" });
+    expect(publicItems).toEqual([
+      {
+        id: expect.any(String),
+        occurredAt: new Date("2026-01-04T10:00:00.000Z"),
+        label: "Segnalazione pubblicata",
+        description: "Visione Comune ha verificato la segnalazione e l'ha resa pubblica."
+      },
+      {
+        id: "test-report-timeline-z-public-communicated",
+        occurredAt: new Date("2026-01-05T10:00:00.000Z"),
+        label: "Segnalazione comunicata all'ente competente",
+        description: "La segnalazione e stata comunicata all'ente competente."
+      }
+    ]);
+    expect(publicItems[0]).not.toHaveProperty("metadata");
+
+    const adminItems = await new GetAdminReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ reportId: "test-report-timeline" });
+    expect(adminItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "test-report-timeline-a-internal-note",
+          label: "Segnalazione rifiutata",
+          visibility: "internal",
+          note: "Nota interna da non esporre",
+          metadataItems: [{ label: "Destinatario", value: "Ufficio tecnico" }]
+        })
+      ])
+    );
   });
 
 

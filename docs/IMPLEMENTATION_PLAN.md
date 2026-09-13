@@ -548,6 +548,37 @@ Scelte MVP:
 
 Limite noto: la validazione PEC e solo sintattica. La scelta provider PEC/email e il workflow di consegna restano rimandati a VC-015/VC-019.
 
+
+## VC-014 — Timeline completa
+
+La timeline delle segnalazioni e ora consolidata attorno a `report_events` e a use case applicativi dedicati. Non sono state introdotte nuove funzionalita di comunicazione, PEC o risoluzione.
+
+La separazione resta:
+
+`UI -> application timeline use case -> repository timeline -> PostgreSQL`
+
+Scelte MVP:
+
+- `report_events` resta lo schema di riferimento: `id`, `reportId`, `type`, `visibility`, `publicStatus`, `metadata`, `createdAt`;
+- nessuna migration aggiuntiva per VC-014: lo schema esistente copre gli eventi richiesti;
+- gli eventi sono ordinati per `createdAt ASC` e poi `id ASC`;
+- la timeline pubblica legge solo eventi `visibility = public` e restituisce item gia presentazionali: label, descrizione, data;
+- la timeline admin legge eventi pubblici e interni e mostra badge `Pubblico` / `Interno`, nota interna e metadata conosciuti;
+- la mappatura `event type -> label -> descrizione -> visibilita attesa` e centralizzata nel layer applicativo;
+- `ReportCreated` resta interno e non compare nella scheda pubblica;
+- `ReportApproved` e pubblico e rappresenta l'inizio dello storico visibile al cittadino;
+- `ReportRejected` resta interno e puo mostrare in admin `metadata.internalNote`;
+- metadata e note non vengono esposti in viste pubbliche;
+- eventi futuri di comunicazione, consegna, fallimento, risposta e promemoria sono documentati ma non implementati.
+
+Restano fuori scope:
+
+- invio o registrazione manuale di comunicazioni;
+- PEC/email;
+- cambio stato `Comunicata`;
+- cambio stato `Risolta`;
+- sistema generico di note interne indipendente dagli eventi.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

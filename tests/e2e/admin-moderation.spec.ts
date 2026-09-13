@@ -39,6 +39,11 @@ test("admin approves a pending report from the backoffice", async ({ page }) => 
   await expect(page.getByText("Segnalazione approvata e pubblicata come Segnalata.")).toBeVisible();
   await expect(page.getByText("Approvata").first()).toBeVisible();
   await expect(page.getByText("Segnalata").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Timeline completa" })).toBeVisible();
+  await expect(page.getByText("Segnalazione ricevuta")).toBeVisible();
+  await expect(page.getByText("Segnalazione pubblicata")).toBeVisible();
+  await expect(page.getByText("Interno").first()).toBeVisible();
+  await expect(page.getByText("Pubblico").first()).toBeVisible();
 
   await page.goto("/admin/segnalazioni");
   await expect(page.getByText("Buca da approvare")).toHaveCount(0);
@@ -56,6 +61,14 @@ test("admin rejects a pending report from the backoffice", async ({ page }) => {
   await expect(page.getByText("Segnalazione rifiutata.")).toBeVisible();
   await expect(page.getByText("Rifiutata").first()).toBeVisible();
   await expect(page.getByText("Non pubblica").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Timeline completa" })).toBeVisible();
+  await expect(page.getByText("Segnalazione ricevuta")).toBeVisible();
+  await expect(page.getByText("Segnalazione rifiutata", { exact: true })).toBeVisible();
+  await expect(page.getByText("Test rifiuto E2E")).toBeVisible();
+
+  const publicResponse = await page.goto(`/segnalazioni/${rejectCode}`);
+  expect(publicResponse?.status()).toBe(404);
+  await expect(page.getByText("Test rifiuto E2E")).toHaveCount(0);
 
   await page.goto("/admin/segnalazioni");
   await expect(page.getByText("Segnalazione da rifiutare")).toHaveCount(0);

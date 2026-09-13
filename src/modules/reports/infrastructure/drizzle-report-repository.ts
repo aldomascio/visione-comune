@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
 import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
@@ -16,6 +16,7 @@ import {
   type ReportRepository,
   type ReportSaveOptions
 } from "../application/report-repository";
+import type { ReportTimelineEvent } from "../application/report-timeline";
 import { PublicCode, type ModerationStatus, type Report, type ReportDomainEvent } from "../domain";
 import { recordToReport, reportEventToRecord, reportToRecord } from "./report-mapper";
 
@@ -341,11 +342,33 @@ export class DrizzleReportRepository implements ReportRepository {
     });
   }
 
-  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+  async listTimelineByReportId(reportId: string): Promise<ReportTimelineEvent[]> {
     const rows = await this.db
       .select({
+        id: reportEvents.id,
+        reportId: reportEvents.reportId,
         type: reportEvents.type,
+        visibility: reportEvents.visibility,
         publicStatus: reportEvents.publicStatus,
+        metadata: reportEvents.metadata,
+        occurredAt: reportEvents.createdAt
+      })
+      .from(reportEvents)
+      .where(eq(reportEvents.reportId, reportId))
+      .orderBy(asc(reportEvents.createdAt), asc(reportEvents.id));
+
+    return rows.map(timelineRowToEvent);
+  }
+
+  async listPublicTimelineByPublicCode(publicCode: PublicCode): Promise<ReportTimelineEvent[]> {
+    const rows = await this.db
+      .select({
+        id: reportEvents.id,
+        reportId: reportEvents.reportId,
+        type: reportEvents.type,
+        visibility: reportEvents.visibility,
+        publicStatus: reportEvents.publicStatus,
+        metadata: reportEvents.metadata,
         occurredAt: reportEvents.createdAt
       })
       .from(reportEvents)
@@ -354,15 +377,23 @@ export class DrizzleReportRepository implements ReportRepository {
         and(
           eq(reports.publicCode, publicCode.toString()),
           eq(reports.moderationStatus, "approved"),
+          isNotNull(reports.publicStatus),
+          isNotNull(reports.publishedAt),
           eq(reportEvents.visibility, "public")
         )
       )
-      .orderBy(reportEvents.createdAt);
+      .orderBy(asc(reportEvents.createdAt), asc(reportEvents.id));
 
-    return rows.map((row) => ({
-      type: row.type,
-      ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
-      occurredAt: row.occurredAt
+    return rows.map(timelineRowToEvent);
+  }
+
+  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+    const events = await this.listPublicTimelineByPublicCode(publicCode);
+
+    return events.map((event) => ({
+      type: event.type,
+      ...(event.publicStatus ? { publicStatus: event.publicStatus } : {}),
+      occurredAt: event.occurredAt
     }));
   }
 
@@ -417,4 +448,29 @@ function isPostgresError(error: unknown): error is PostgresError {
     "code" in error &&
     "constraint_name" in error
   );
+}
+
+
+function timelineRowToEvent(row: {
+  id: string;
+  reportId: string;
+  type: ReportTimelineEvent["type"];
+  visibility: ReportTimelineEvent["visibility"];
+  publicStatus: ReportTimelineEvent["publicStatus"] | null;
+  metadata: unknown;
+  occurredAt: Date;
+}): ReportTimelineEvent {
+  return {
+    id: row.id,
+    reportId: row.reportId,
+    type: row.type,
+    visibility: row.visibility,
+    ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
+    ...(isTimelineMetadata(row.metadata) ? { metadata: row.metadata } : {}),
+    occurredAt: row.occurredAt
+  };
+}
+
+function isTimelineMetadata(value: unknown): value is ReportTimelineEvent["metadata"] & {} {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

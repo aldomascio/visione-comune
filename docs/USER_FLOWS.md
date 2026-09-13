@@ -29,6 +29,7 @@
    - diventa pubblica;
    - compare sulla mappa;
    - stato pubblico = `Segnalata`.
+7. Nel dettaglio admin viene mostrata la timeline completa con eventi interni e pubblici, inclusa l'eventuale nota interna di rifiuto.
 
 ## FLOW-003 — Conferma di una segnalazione
 
@@ -64,4 +65,5 @@
 2. Il sistema recupera la segnalazione.
 3. Se la segnalazione e ancora da verificare, mostra un messaggio di verifica in corso senza esporre la scheda pubblica.
 4. Se la segnalazione e approvata, mostra la scheda pubblica con stato e timeline pubblica.
-5. Se la segnalazione e rifiutata, mostra un messaggio generico di mancata pubblicazione senza note interne o motivazioni operative.
+5. La timeline pubblica mostra solo eventi pubblici con label, descrizione e data comprensibili.
+6. Se la segnalazione e rifiutata, mostra un messaggio generico di mancata pubblicazione senza note interne o motivazioni operative.

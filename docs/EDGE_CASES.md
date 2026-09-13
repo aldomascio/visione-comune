@@ -319,3 +319,37 @@ un admin prova a creare o modificare un destinatario usando una email o PEC gia 
 
 Gestione prevista:
 la validazione applicativa e il vincolo database rifiutano il duplicato con errore sul campo.
+
+## VC-014 — Timeline completa
+
+### EC-VC014-001 — Evento interno nella scheda pubblica
+
+Caso:
+un evento contiene note interne, metadata tecnici o informazioni operative non adatte alla pubblicazione.
+
+Gestione prevista:
+la timeline pubblica legge solo eventi con `visibility = public` e il use case pubblico restituisce solo label, descrizione e data. Metadata, note interne, ID destinatari e dettagli tecnici non vengono esposti.
+
+### EC-VC014-002 — Eventi con stesso timestamp
+
+Caso:
+due eventi della stessa segnalazione hanno lo stesso `createdAt`.
+
+Gestione prevista:
+l'ordinamento resta stabile usando `createdAt ASC` e poi `id ASC`.
+
+### EC-VC014-003 — Segnalazione rifiutata con nota interna
+
+Caso:
+un admin rifiuta una segnalazione inserendo una nota interna.
+
+Gestione prevista:
+il backoffice mostra `ReportRejected` e la nota nella timeline admin. La route pubblica della segnalazione non viene renderizzata e il tracking mostra solo il messaggio generico di mancata pubblicazione.
+
+### EC-VC014-004 — Metadata non riconosciuti
+
+Caso:
+un evento contiene chiavi metadata non ancora mappate dalla presentazione della timeline.
+
+Gestione prevista:
+la vista admin mostra solo metadata conosciuti e utili. La vista pubblica non espone metadata. Non viene mostrato JSON grezzo.

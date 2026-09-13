@@ -7,8 +7,9 @@ import {
   REPORT_CONFIRMATION_COOKIE_NAME
 } from "@/modules/reports/application/confirmations/anti-abuse-key";
 import { GetReportConfirmationStateUseCase } from "@/modules/reports/application/confirmations/report-confirmations";
-import { GetPublicReportTimelineUseCase, GetPublicReportUseCase, PublicReportNotFoundError } from "@/modules/reports/application/public-report";
-import { PUBLIC_REPORT_STATUS_LABELS, type PublicReportStatus } from "@/modules/reports/domain";
+import { GetPublicReportUseCase, PublicReportNotFoundError } from "@/modules/reports/application/public-report";
+import { GetPublicReportTimelineUseCase } from "@/modules/reports/application/report-timeline";
+import { PUBLIC_REPORT_STATUS_LABELS } from "@/modules/reports/domain";
 import { DrizzleReportConfirmationRepository } from "@/modules/reports/infrastructure/confirmations/drizzle-report-confirmation-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
@@ -114,9 +115,10 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
                 ) : (
                   <ol className="grid gap-4">
                     {timeline.map((event) => (
-                      <li className="rounded-lg border border-border bg-background p-4" key={`${event.type}-${event.occurredAt.toISOString()}`}>
-                        <p className="font-medium">{publicEventLabel(event.type, event.publicStatus)}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{formatPublicDate(event.occurredAt)}</p>
+                      <li className="rounded-lg border border-border bg-background p-4" key={event.id}>
+                        <p className="font-medium">{event.label}</p>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{event.description}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{formatPublicDate(event.occurredAt)}</p>
                       </li>
                     ))}
                   </ol>
@@ -138,7 +140,7 @@ async function getPublicReportPageData(publicCode: string) {
     const reportRepository = new DrizzleReportRepository(connection.db);
     const confirmationRepository = new DrizzleReportConfirmationRepository(connection.db);
     const report = await new GetPublicReportUseCase({ reportRepository }).execute({ publicCode });
-    const timeline = await new GetPublicReportTimelineUseCase({ reportRepository }).execute({ publicCode });
+    const timeline = await new GetPublicReportTimelineUseCase({ timelineRepository: reportRepository }).execute({ publicCode });
     const cookieValue = (await cookies()).get(REPORT_CONFIRMATION_COOKIE_NAME)?.value;
     const antiAbuseKey = isValidReportConfirmationCookieValue(cookieValue)
       ? createReportConfirmationAntiAbuseKey(cookieValue)
@@ -188,20 +190,4 @@ function formatPublicDate(date: Date): string {
     timeStyle: "short",
     timeZone: "Europe/Rome"
   }).format(date);
-}
-
-function publicEventLabel(type: string, publicStatus?: PublicReportStatus): string {
-  if (type === "ReportApproved") {
-    return "Segnalazione verificata e pubblicata";
-  }
-
-  if (type === "ReportCommunicated") {
-    return "Segnalazione comunicata all'ente";
-  }
-
-  if (type === "ReportResolved") {
-    return "Segnalazione risolta";
-  }
-
-  return publicStatus ? PUBLIC_REPORT_STATUS_LABELS[publicStatus] : "Aggiornamento pubblico";
 }

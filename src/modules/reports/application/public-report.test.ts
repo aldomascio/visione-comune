@@ -108,13 +108,14 @@ describe("public report tracking", () => {
         publicStatus: "reported"
       }
     ];
-    const useCase = new GetPublicReportTimelineUseCase({ reportRepository: repository });
+    const useCase = new GetPublicReportTimelineUseCase({ timelineRepository: repository });
 
     await expect(useCase.execute({ publicCode: "VC-ABC12345" })).resolves.toEqual([
       {
-        type: "ReportApproved",
-        publicStatus: "reported",
-        occurredAt: approvedAt
+        id: "event-1",
+        occurredAt: approvedAt,
+        label: "Segnalazione pubblicata",
+        description: "Visione Comune ha verificato la segnalazione e l'ha resa pubblica."
       }
     ]);
   });
@@ -193,15 +194,35 @@ class InMemoryPublicReportRepository implements ReportRepository {
     return [];
   }
 
-  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+  async listTimelineByReportId(reportId: string) {
+    return this.events
+      .filter((event) => event.reportId === reportId)
+      .map((event, index) => ({
+        id: `event-${index}`,
+        reportId: event.reportId,
+        type: event.type,
+        visibility: event.visibility,
+        ...(event.publicStatus ? { publicStatus: event.publicStatus } : {}),
+        ...(event.metadata ? { metadata: event.metadata } : {}),
+        occurredAt: event.occurredAt
+      }));
+  }
+
+  async listPublicTimelineByPublicCode(publicCode: PublicCode) {
     const report = await this.findByPublicCode(publicCode);
 
     if (!report?.isPublic()) {
       return [];
     }
 
-    return this.events
-      .filter((event) => event.reportId === report.toSnapshot().id && event.visibility === "public")
+    return this.listTimelineByReportId(report.toSnapshot().id);
+  }
+
+  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+    const events = await this.listPublicTimelineByPublicCode(publicCode);
+
+    return events
+      .filter((event) => event.visibility === "public")
       .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
       .map((event) => ({
         type: event.type,

@@ -24,3 +24,29 @@ Costruire un ecosistema digitale unico per sito, piattaforma di segnalazione, ma
 ## Stato
 
 Il progetto è in fase di predisposizione tecnica. Alcune decisioni implementative sono ancora da definire, in particolare PEC, provider newsletter, infrastruttura definitiva e servizi AI.
+
+## Sviluppo locale
+
+Requisiti:
+
+- Node.js 24 LTS
+- pnpm 12
+
+Comandi principali:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Verifiche:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:e2e
+pnpm build
+```
+
+Il bootstrap non configura ancora database, storage, PEC, AI, newsletter o Docker.

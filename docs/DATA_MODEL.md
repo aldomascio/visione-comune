@@ -40,8 +40,15 @@ Note implementative MVP:
 
 - id
 - reportId
-- antiAbuseKey / fingerprint strategy
+- antiAbuseKey
 - createdAt
+
+Note implementative MVP:
+
+- `reportId` e FK verso `reports.id` con cancellazione a cascata.
+- `antiAbuseKey` e una chiave pseudonima derivata server-side da un cookie first-party anonimo; il valore del cookie non viene salvato nel database.
+- esiste un vincolo univoco su `(reportId, antiAbuseKey)` per impedire conferme duplicate banali dallo stesso browser.
+- il pubblico vede solo il conteggio aggregato, non chiavi, cookie, IP o timestamp individuali.
 
 ## ReportEvent
 

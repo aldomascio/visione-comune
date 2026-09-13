@@ -157,6 +157,31 @@ export const reportAttachments = pgTable(
   ]
 );
 
+
+export const reportConfirmations = pgTable(
+  "report_confirmations",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    reportId: varchar("report_id", { length: 64 })
+      .notNull()
+      .references(() => reports.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    antiAbuseKey: varchar("anti_abuse_key", { length: 128 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("report_confirmations_report_anti_abuse_unique").on(
+      table.reportId,
+      table.antiAbuseKey
+    ),
+    index("report_confirmations_report_id_idx").on(table.reportId),
+    check("report_confirmations_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check(
+      "report_confirmations_anti_abuse_key_not_empty",
+      sql`length(trim(${table.antiAbuseKey})) > 0`
+    )
+  ]
+);
+
 export const adminUsers = pgTable(
   "admin_users",
   {
@@ -186,5 +211,7 @@ export type ReportEventRecord = typeof reportEvents.$inferSelect;
 export type NewReportEventRecord = typeof reportEvents.$inferInsert;
 export type ReportAttachmentRecord = typeof reportAttachments.$inferSelect;
 export type NewReportAttachmentRecord = typeof reportAttachments.$inferInsert;
+export type ReportConfirmationRecord = typeof reportConfirmations.$inferSelect;
+export type NewReportConfirmationRecord = typeof reportConfirmations.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;

@@ -1,10 +1,19 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import {
+  createReportConfirmationAntiAbuseKey,
+  isValidReportConfirmationCookieValue,
+  REPORT_CONFIRMATION_COOKIE_NAME
+} from "@/modules/reports/application/confirmations/anti-abuse-key";
+import { GetReportConfirmationStateUseCase } from "@/modules/reports/application/confirmations/report-confirmations";
 import { GetPublicReportTimelineUseCase, GetPublicReportUseCase, PublicReportNotFoundError } from "@/modules/reports/application/public-report";
 import { PUBLIC_REPORT_STATUS_LABELS, type PublicReportStatus } from "@/modules/reports/domain";
+import { DrizzleReportConfirmationRepository } from "@/modules/reports/infrastructure/confirmations/drizzle-report-confirmation-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
+import { ConfirmReportForm } from "./confirm-report-form";
 
 type PublicReportPageProps = {
   params: Promise<{ publicCode: string }>;
@@ -14,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PublicReportPage({ params }: PublicReportPageProps) {
   const { publicCode } = await params;
-  const { report, timeline } = await getPublicReportPageData(publicCode);
+  const { report, timeline, confirmationState } = await getPublicReportPageData(publicCode);
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
@@ -72,28 +81,49 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Timeline pubblica</CardTitle>
-              <CardDescription>Mostra solo gli aggiornamenti pubblici della segnalazione.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {timeline.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-                  Non ci sono ancora aggiornamenti pubblici oltre alla scheda della segnalazione.
+          <div className="grid gap-6">
+            <Card id="conferma">
+              <CardHeader>
+                <CardTitle>Conferme dei cittadini</CardTitle>
+                <CardDescription>
+                  La conferma indica che un altro cittadino ha riscontrato lo stesso problema. Non e un voto e non abilita commenti.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <p className="text-sm text-muted-foreground">Conferme aggiuntive</p>
+                  <p className="mt-2 text-2xl font-semibold">{formatConfirmationCount(confirmationState.count)}</p>
                 </div>
-              ) : (
-                <ol className="grid gap-4">
-                  {timeline.map((event) => (
-                    <li className="rounded-lg border border-border bg-background p-4" key={`${event.type}-${event.occurredAt.toISOString()}`}>
-                      <p className="font-medium">{publicEventLabel(event.type, event.publicStatus)}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{formatPublicDate(event.occurredAt)}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+                <ConfirmReportForm
+                  alreadyConfirmed={confirmationState.alreadyConfirmed}
+                  publicCode={report.publicCode}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Timeline pubblica</CardTitle>
+                <CardDescription>Mostra solo gli aggiornamenti pubblici della segnalazione.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {timeline.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+                    Non ci sono ancora aggiornamenti pubblici oltre alla scheda della segnalazione.
+                  </div>
+                ) : (
+                  <ol className="grid gap-4">
+                    {timeline.map((event) => (
+                      <li className="rounded-lg border border-border bg-background p-4" key={`${event.type}-${event.occurredAt.toISOString()}`}>
+                        <p className="font-medium">{publicEventLabel(event.type, event.publicStatus)}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{formatPublicDate(event.occurredAt)}</p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </main>
@@ -106,10 +136,19 @@ async function getPublicReportPageData(publicCode: string) {
   try {
     connection = createDatabaseConnection();
     const reportRepository = new DrizzleReportRepository(connection.db);
+    const confirmationRepository = new DrizzleReportConfirmationRepository(connection.db);
     const report = await new GetPublicReportUseCase({ reportRepository }).execute({ publicCode });
     const timeline = await new GetPublicReportTimelineUseCase({ reportRepository }).execute({ publicCode });
+    const cookieValue = (await cookies()).get(REPORT_CONFIRMATION_COOKIE_NAME)?.value;
+    const antiAbuseKey = isValidReportConfirmationCookieValue(cookieValue)
+      ? createReportConfirmationAntiAbuseKey(cookieValue)
+      : undefined;
+    const confirmationState = await new GetReportConfirmationStateUseCase({
+      reportRepository,
+      confirmationRepository
+    }).execute({ publicCode, antiAbuseKey });
 
-    return { report, timeline };
+    return { report, timeline, confirmationState };
   } catch (error) {
     if (error instanceof PublicReportNotFoundError) {
       notFound();
@@ -119,6 +158,19 @@ async function getPublicReportPageData(publicCode: string) {
   } finally {
     await connection?.close();
   }
+}
+
+
+function formatConfirmationCount(count: number): string {
+  if (count === 0) {
+    return "Nessuna conferma aggiuntiva";
+  }
+
+  if (count === 1) {
+    return "1 cittadino ha riscontrato questo problema";
+  }
+
+  return `${count} cittadini hanno riscontrato questo problema`;
 }
 
 function InfoBlock({ label, value }: { label: string; value: string }) {

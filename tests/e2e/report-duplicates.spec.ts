@@ -44,9 +44,9 @@ test("shows a nearby approved report as a possible duplicate and opens its publi
   await expect(page.getByText(/Circa \d+ m/)).toBeVisible();
 
   const popupPromise = page.waitForEvent("popup");
-  await page.getByRole("link", { name: "Vedi segnalazione" }).click();
+  await page.getByRole("link", { name: "Vedi e conferma" }).click();
   const detailPage = await popupPromise;
-  await expect(detailPage).toHaveURL(new RegExp(`/segnalazioni/${existingDuplicateCode}$`));
+  await expect(detailPage).toHaveURL(new RegExp(`/segnalazioni/${existingDuplicateCode}#conferma$`));
   await expect(detailPage.getByRole("heading", { name: "Buca gia segnalata in Via Roma" })).toBeVisible();
 });
 

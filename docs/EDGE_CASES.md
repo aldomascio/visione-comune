@@ -217,3 +217,37 @@ esiste un report nella stessa categoria, ma oltre 100 metri o pubblicato prima d
 
 Gestione prevista:
 non viene mostrato in VC-010. Le soglie restano configurabili per evoluzioni successive.
+
+## VC-011 — Conferme segnalazione
+
+### EC-VC011-001 — Doppio click o invio ripetuto
+
+Caso:
+il cittadino clicca piu volte `Conferma anche tu` dalla stessa sessione/browser.
+
+Gestione prevista:
+il vincolo univoco su report e chiave anti-abuso impedisce duplicati. Il conteggio resta invariato e la UI mostra che la segnalazione e gia stata confermata.
+
+### EC-VC011-002 — Cookie assente o cancellato
+
+Caso:
+il cittadino non ha ancora il cookie tecnico anonimo oppure lo ha cancellato.
+
+Gestione prevista:
+la Server Action crea un nuovo cookie first-party HttpOnly e usa una chiave derivata per registrare la conferma. Questo protegge dai duplicati banali ma non identifica stabilmente la persona.
+
+### EC-VC011-003 — Conferma su report non pubblico
+
+Caso:
+un client prova a confermare una segnalazione pending, rejected, inesistente o non pubblicabile.
+
+Gestione prevista:
+il use case rilegge il report tramite `publicCode` e accetta solo report approvati con stato pubblico. Non usa ID interni forniti dal client.
+
+### EC-VC011-004 — Privacy conferme
+
+Caso:
+un cittadino consulta la scheda pubblica con conteggio conferme.
+
+Gestione prevista:
+la pagina mostra solo il conteggio aggregato. Non espone cookie, chiave anti-abuso, IP, timestamp individuali o metadati tecnici.

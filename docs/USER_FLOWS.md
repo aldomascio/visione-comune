@@ -11,7 +11,7 @@
 7. Se trova corrispondenze:
    - mostra le segnalazioni simili;
    - permette di aprire la scheda pubblica della segnalazione esistente;
-   - prepara la futura conferma persistente;
+   - permette di aprire la scheda pubblica e confermare la segnalazione esistente;
    - permette di continuare se il problema è diverso.
 8. L'utente invia.
 9. Il sistema genera un codice univoco.
@@ -33,9 +33,12 @@
 ## FLOW-003 — Conferma di una segnalazione
 
 1. Il cittadino apre una segnalazione pubblica.
-2. Clicca "Conferma anche tu".
-3. Il sistema registra la conferma.
-4. Il conteggio pubblico viene aggiornato.
+2. Visualizza il conteggio aggregato delle conferme.
+3. Clicca "Conferma anche tu".
+4. Il sistema usa un identificatore anonimo first-party per limitare doppie conferme banali dallo stesso browser.
+5. Se non aveva gia confermato, registra la conferma.
+6. Il conteggio pubblico viene aggiornato.
+7. Se aveva gia confermato, non crea duplicati e mostra lo stato gia confermato.
 
 ## FLOW-004 — Comunicazione all'ente
 

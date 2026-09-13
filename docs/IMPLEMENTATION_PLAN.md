@@ -492,6 +492,24 @@ Nel form pubblico, se vengono trovati candidati, l'utente vede una sezione `Potr
 
 Limite noto: se era stata selezionata una foto e compare lo step duplicati, il browser puo perdere il file input dopo il roundtrip. La UI avvisa di riselezionare la foto prima di continuare.
 
+## VC-011 — Conferme segnalazione
+
+Le conferme vengono implementate come modello persistente separato `report_confirmations` collegato a `reports`. La separazione resta:
+
+`UI pubblica -> Server Action -> application use case -> repository -> PostgreSQL`
+
+Scelte MVP:
+
+- conferma ammessa solo su report approvati e pubblici;
+- input client limitato al `publicCode`; il report viene riletto lato server;
+- cookie first-party anonimo `vc_report_confirmation_id`, HttpOnly, SameSite=Lax, durata 180 giorni;
+- database con `antiAbuseKey` derivata dal cookie tramite SHA-256;
+- vincolo univoco `(reportId, antiAbuseKey)`;
+- conteggio pubblico solo aggregato;
+- nessun commento, voto, ranking, upload aggiuntivo o dato personale obbligatorio.
+
+Limite noto: la strategia impedisce doppio click e ripetizioni banali dallo stesso browser, ma non impedisce nuove conferme da browser, dispositivi o profili diversi. Non introduce fingerprinting aggressivo.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

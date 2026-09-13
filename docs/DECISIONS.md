@@ -246,6 +246,17 @@ riduce duplicati evidenti senza introdurre AI, embedding, PostGIS o scoring opac
 Conseguenza:
 le soglie sono centralizzate in configurazione applicativa e potranno essere modificate. Pending e rejected non vengono mostrati. Se l'utente dichiara che il problema e diverso, puo continuare e creare una nuova segnalazione. La CTA di conferma persistente resta fuori scope e sara completata in VC-011.
 
+### ADR-028 — Conferme anonime con cookie first-party
+
+Decisione:
+in VC-011 le conferme usano un cookie first-party anonimo `vc_report_confirmation_id`, HttpOnly, SameSite=Lax, path `/`, durata 180 giorni e Secure in produzione. Il cookie contiene un valore casuale non significativo. Il database salva solo una chiave `antiAbuseKey` derivata con SHA-256 dal valore cookie, mai il valore cookie in chiaro.
+
+Motivo:
+rispetta l'assenza di account cittadini, email, nome o telefono e limita il doppio click o conferme ripetute banali dallo stesso browser senza fingerprinting invasivo, CAPTCHA o raccolta di segnali device.
+
+Conseguenza:
+una conferma e consentita solo per report approvati e pubblici, verificando sempre lato server tramite `publicCode`. Il conteggio pubblico e aggregato. L'anti-abuso resta leggero: cancellare cookie, usare un altro browser o un altro dispositivo puo produrre una nuova conferma. Strategie piu forti restano fuori scope MVP e richiedono valutazione privacy.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione
@@ -275,8 +286,11 @@ provider AI e funzioni abilitate, nel rispetto dell'AI solo assistiva.
 
 ### D-008 — Anti-abuso conferme
 
-Da decidere:
-strategia anti-abuso compatibile con assenza di account cittadini e minimizzazione dati.
+Parzialmente deciso per MVP:
+cookie first-party anonimo e vincolo database su report + chiave derivata, come definito in ADR-028.
+
+Da decidere prima di eventuale scala maggiore:
+se servono limiti aggiuntivi anti-abuso, rate limit, monitoraggio operativo o altri controlli compatibili con minimizzazione dati e privacy.
 
 ### D-009 — Retention, log e privacy
 

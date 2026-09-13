@@ -83,11 +83,10 @@ test("does not render public detail pages for pending or rejected reports", asyn
 });
 
 async function submitReport(page: Page, description: string): Promise<string> {
+  await mockGeocoding(page);
   await page.goto("/segnala");
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill("41.4821");
-  await page.getByLabel("Longitudine").fill("14.0474");
+  await selectAddressSuggestion(page);
   await page.getByLabel("Descrivi il problema").fill(description);
   await page.getByRole("button", { name: "Invia segnalazione" }).click();
   await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
@@ -101,6 +100,48 @@ async function submitReport(page: Page, description: string): Promise<string> {
   }
 
   return publicCode;
+}
+
+async function selectAddressSuggestion(page: Page): Promise<void> {
+  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
+  await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
+  await expect(page.getByText("Posizione confermata")).toBeVisible();
+}
+
+async function mockGeocoding(page: Page): Promise<void> {
+  await page.route("**/api/geocoding/search**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [
+          {
+            id: "mock-via-roma-venafro",
+            label: "Via Roma, Venafro, Molise, Italia",
+            latitude: 41.4821,
+            longitude: 14.0474,
+            city: "Venafro",
+            street: "Via Roma"
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route("**/api/geocoding/reverse**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        result: {
+          id: "mock-reverse-via-roma-venafro",
+          label: "Via Roma, Venafro, Molise, Italia",
+          latitude: 41.4821,
+          longitude: 14.0474,
+          city: "Venafro",
+          street: "Via Roma"
+        }
+      })
+    });
+  });
 }
 
 async function trackCode(page: Page, publicCode: string): Promise<void> {

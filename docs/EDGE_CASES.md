@@ -438,3 +438,37 @@ una segnalazione passa a `Risolta`.
 
 Gestione prevista:
 resta visibile nella mappa pubblica e puo essere distinta dal filtro stato `Risolta`, cosi rimane memoria pubblica dei problemi risolti.
+
+## VC-021B — Geocoding e selezione posizione
+
+### EC-VC021B-001 — Provider geocoding non disponibile
+
+Caso:
+la ricerca indirizzo o il reverse geocoding falliscono per rete, quota o errore provider.
+
+Gestione prevista:
+il form mostra un messaggio comprensibile e resta utilizzabile. L'utente puo selezionare il punto direttamente sulla mappa; se il reverse geocoding fallisce, le coordinate valide restano confermate e l'indirizzo puo restare vuoto o testuale.
+
+### EC-VC021B-002 — Indirizzo modificato dopo selezione
+
+Caso:
+l'utente seleziona un suggerimento o ottiene un indirizzo da geolocalizzazione/reverse geocoding, poi modifica manualmente il testo.
+
+Gestione prevista:
+la posizione viene marcata come non confermata e le coordinate non vengono inviate. Per proseguire l'utente deve selezionare un nuovo suggerimento, usare la geolocalizzazione o scegliere il punto sulla mappa. Questo evita di associare coordinate vecchie a un indirizzo modificato.
+
+### EC-VC021B-003 — Risultati fuori Venafro
+
+Caso:
+il provider restituisce risultati lontani dal territorio iniziale del progetto.
+
+Gestione prevista:
+le query sono biasate verso Venafro, Molise, Italia, ma non viene imposto un geofence rigido perche non esiste ancora una business rule che blocchi segnalazioni fuori Comune.
+
+### EC-VC021B-004 — Mappa non caricabile nel form
+
+Caso:
+MapLibre o lo style della mappa non si caricano.
+
+Gestione prevista:
+il form mostra un messaggio di errore e resta utilizzabile tramite ricerca indirizzo o geolocalizzazione. La mappa non e l'unico modo per impostare la posizione.

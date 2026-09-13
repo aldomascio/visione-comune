@@ -91,14 +91,48 @@ async function fillReportForm(
   page: Page,
   input: { category: string; latitude: string; longitude: string }
 ): Promise<void> {
+  await mockGeocoding(page, {
+    latitude: Number(input.latitude),
+    longitude: Number(input.longitude),
+    label: "Via Roma, Venafro, Molise, Italia"
+  });
   await page.goto("/segnala");
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(input.category);
   await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill(input.latitude);
-  await page.getByLabel("Longitudine").fill(input.longitude);
+  await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
+}
+
+async function mockGeocoding(
+  page: Page,
+  result: { latitude: number; longitude: number; label: string }
+): Promise<void> {
+  await page.route("**/api/geocoding/search**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [
+          {
+            id: "mock-duplicate-location",
+            label: result.label,
+            latitude: result.latitude,
+            longitude: result.longitude
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route("**/api/geocoding/reverse**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ result })
+    });
+  });
 }
 
 async function createApprovedReport(input: {

@@ -1,5 +1,6 @@
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
+import { readPublicMapConfig } from "@/shared/config/map";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 import { ReportForm } from "./report-form";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ReportSubmissionPage() {
   const categories = await getActiveCategories();
+  const mapConfig = readPublicMapConfig();
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
@@ -30,8 +32,8 @@ export default async function ReportSubmissionPage() {
             <CardHeader>
               <CardTitle>Prima di inviare</CardTitle>
               <CardDescription>
-                Il primo flusso non include ancora foto, mappa, deduplica avanzata o tracking
-                pubblico completo.
+                Il flusso include ricerca indirizzo, mappa e controllo duplicati prima della creazione.
+                Le segnalazioni restano moderate prima della pubblicazione.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 text-sm leading-6 text-muted-foreground">
@@ -45,12 +47,12 @@ export default async function ReportSubmissionPage() {
             <CardHeader>
               <CardTitle id="report-form-title">Dati della segnalazione</CardTitle>
               <CardDescription>
-                Le coordinate sono una soluzione temporanea: geocoding e mappa arriveranno in
-                vertical slice successive.
+                Cerca un indirizzo, usa la tua posizione o seleziona il punto sulla mappa.
+                Non serve inserire coordinate tecniche.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ReportForm categories={categories} />
+              <ReportForm categories={categories} mapConfig={mapConfig} />
             </CardContent>
           </Card>
         </section>

@@ -445,3 +445,14 @@ il progetto non deve assumere API non documentate ne introdurre lock-in prematur
 
 Conseguenza proposta:
 la scelta provider resta aperta. Prima di implementare VC-019B reale servono casella PEC dedicata, conferma accesso SMTP/IMAP, piano con invii adeguati e policy retention/conservazione.
+
+### ADR-037 — Geocoding tramite adapter Photon per MVP
+
+Decisione:
+in VC-021B la selezione posizione del form pubblico usa un adapter `GeocodingProvider` sostituibile. La prima implementazione MVP usa Photon, interrogato solo tramite API route server-side interne dell'applicazione.
+
+Motivo:
+Photon supporta ricerca testuale, search-as-you-type e reverse geocoding su dati OpenStreetMap senza API key, riducendo costi e lock-in iniziali. Il codice applicativo non dipende direttamente dal payload Photon: la UI riceve solo risultati normalizzati con label, latitudine e longitudine.
+
+Conseguenza:
+`/segnala` non mostra piu campi latitudine/longitudine al cittadino. La posizione viene confermata tramite suggerimento indirizzo, geolocalizzazione browser o click/drag sulla mappa MapLibre. Se il provider non e disponibile, il cittadino puo continuare selezionando il punto sulla mappa. La scelta provider resta sostituibile tramite adapter e configurazione ambiente; per produzione va rivalutato il carico previsto e l'eventuale uso di un piano/API dedicata o istanza self-hosted.

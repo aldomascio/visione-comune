@@ -29,13 +29,12 @@ test.afterEach(async () => {
   await cleanupE2eData();
 });
 
-test("submits an anonymous report and shows the public code", async ({ page }) => {
+test("submits an anonymous report from an address suggestion and shows the public code", async ({ page }) => {
+  await mockGeocoding(page);
   await page.goto("/segnala");
 
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill("41.4821");
-  await page.getByLabel("Longitudine").fill("14.0474");
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
@@ -44,9 +43,17 @@ test("submits an anonymous report and shows the public code", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
   await expect(page.getByText(/VC-[0-9A-Z]{8}/)).toBeVisible();
   await expect(page.getByText("La segnalazione non viene pubblicata automaticamente.")).toBeVisible();
+
+  const publicCode = await readPublicCode(page);
+  await expect(readReportLocation(publicCode)).resolves.toEqual({
+    address: "Via Roma, Venafro, Molise, Italia",
+    latitude: 41.4821,
+    longitude: 14.0474
+  });
 });
 
-test("continues when geolocation permission is denied", async ({ page }) => {
+test("continues when geolocation permission is denied and the user selects the map", async ({ page }) => {
+  await mockGeocoding(page);
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
@@ -73,9 +80,7 @@ test("continues when geolocation permission is denied", async ({ page }) => {
   await expect(page.getByText("Permesso negato.")).toBeVisible();
 
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill("41.4821");
-  await page.getByLabel("Longitudine").fill("14.0474");
+  await clickLocationMap(page);
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
@@ -85,14 +90,81 @@ test("continues when geolocation permission is denied", async ({ page }) => {
   await expect(page.getByText(/VC-[0-9A-Z]{8}/)).toBeVisible();
 });
 
+test("uses browser geolocation and reverse geocoding", async ({ page }) => {
+  await mockGeocoding(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: PositionCallback) => {
+          success({
+            coords: {
+              latitude: 41.4836,
+              longitude: 14.0443,
+              accuracy: 10,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null
+            },
+            timestamp: Date.now()
+          } as GeolocationPosition);
+        }
+      }
+    });
+  });
+
+  await page.goto("/segnala");
+  await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
+  await page.getByRole("button", { name: "Usa la mia posizione" }).click();
+  await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Corso Campano, Venafro, Molise, Italia");
+  await page
+    .getByLabel("Descrivi il problema")
+    .fill("Un punto luce spento rende poco sicuro il passaggio serale.");
+  await page.getByRole("button", { name: "Invia segnalazione" }).click();
+
+  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
+});
+
+test("requires a new location confirmation after editing a selected address", async ({ page }) => {
+  await mockGeocoding(page);
+  await page.goto("/segnala");
+
+  await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
+  await page.getByLabel("Inserisci indirizzo").fill("Via modificata senza selezione");
+  await page
+    .getByLabel("Descrivi il problema")
+    .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
+  await page.getByRole("button", { name: "Invia segnalazione" }).click();
+
+  await expect(page.getByText("Inserisci una latitudine valida tra -90 e 90.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toHaveCount(0);
+});
+
+test("continues with map selection when address search provider fails", async ({ page }) => {
+  await mockGeocoding(page);
+  await page.goto("/segnala");
+
+  await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
+  await page.getByLabel("Inserisci indirizzo").fill("fail provider");
+  await expect(page.getByText("Non siamo riusciti a trovare l'indirizzo.")).toBeVisible();
+  await clickLocationMap(page);
+  await page
+    .getByLabel("Descrivi il problema")
+    .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
+  await page.getByRole("button", { name: "Invia segnalazione" }).click();
+
+  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
+});
+
 
 test("submits a report with a photo, shows it to admin, then publishes it", async ({ page }) => {
   await page.goto("/segnala");
 
+  await mockGeocoding(page);
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill("41.4821");
-  await page.getByLabel("Longitudine").fill("14.0474");
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda con foto rende difficile il passaggio pedonale vicino alla scuola.");
@@ -125,10 +197,9 @@ test("submits a report with a photo, shows it to admin, then publishes it", asyn
 test("rejects an invalid photo without creating a successful report", async ({ page }) => {
   await page.goto("/segnala");
 
+  await mockGeocoding(page);
   await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByLabel("Latitudine").fill("41.4821");
-  await page.getByLabel("Longitudine").fill("14.0474");
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda con allegato non valido vicino alla scuola.");
@@ -142,6 +213,78 @@ test("rejects an invalid photo without creating a successful report", async ({ p
   await expect(page.getByText("La foto deve essere JPEG, PNG o WebP.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toHaveCount(0);
 });
+
+async function mockGeocoding(page: Page): Promise<void> {
+  await page.route("**/api/geocoding/search**", async (route) => {
+    const url = new URL(route.request().url());
+    const query = url.searchParams.get("q") ?? "";
+    if (query.toLowerCase().includes("fail")) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ results: [], error: "Provider unavailable" }) });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [
+          {
+            id: "mock-via-roma",
+            label: "Via Roma, Venafro, Molise, Italia",
+            latitude: 41.4821,
+            longitude: 14.0474
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route("**/api/geocoding/reverse**", async (route) => {
+    const url = new URL(route.request().url());
+    const latitude = Number(url.searchParams.get("lat"));
+    const longitude = Number(url.searchParams.get("lon"));
+    const isCorso = Math.abs(latitude - 41.4836) < 0.001 && Math.abs(longitude - 14.0443) < 0.001;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        result: {
+          id: "mock-reverse",
+          label: isCorso ? "Corso Campano, Venafro, Molise, Italia" : "Punto selezionato sulla mappa, Venafro, Italia",
+          latitude,
+          longitude
+        }
+      })
+    });
+  });
+}
+
+async function selectAddressSuggestion(page: Page, query: string): Promise<void> {
+  await page.getByLabel("Inserisci indirizzo").fill(query);
+  await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
+  await expect(page.getByText("Indirizzo selezionato e posizione confermata.")).toBeVisible();
+}
+
+async function clickLocationMap(page: Page): Promise<void> {
+  const map = page.getByTestId("report-location-map");
+  await expect(map).toBeVisible();
+  await map.click({ position: { x: 250, y: 160 } });
+  await expect(page.getByText(/Posizione confermata/)).toBeVisible();
+}
+
+async function readReportLocation(publicCode: string): Promise<{ address: string | null; latitude: number; longitude: number }> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ address: string | null; latitude: number; longitude: number }[]>`
+      select address, latitude, longitude from reports where public_code = ${publicCode}
+    `;
+
+    if (!row) {
+      throw new Error(`Report not found for ${publicCode}`);
+    }
+
+    return row;
+  });
+}
 
 async function cleanupE2eData(): Promise<void> {
   await withDatabase(async (sql) => {

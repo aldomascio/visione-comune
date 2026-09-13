@@ -733,3 +733,22 @@ Implementazione prevista/completata per la slice:
 - test unit, integration e E2E dedicati.
 
 Restano fuori scope: categorie/tag news, autore pubblico, immagini copertina, SEO avanzata, scheduling, revision history, newsletter automatica e notifiche.
+
+## Aggiornamento VC-021B — Geocoding e posizione
+
+La selezione posizione e stata portata fuori dai campi tecnici manuali. L'architettura segue il confine:
+
+`UI /segnala → API route applicative → GeocodingProvider → provider esterno`
+
+Scelta MVP:
+
+- adapter `GeocodingProvider` con operazioni `searchAddress` e `reverseGeocode`;
+- implementazione iniziale `PhotonGeocodingProvider`;
+- richieste geocoding mediate da `/api/geocoding/search` e `/api/geocoding/reverse`;
+- bias geografico verso Venafro tramite coordinate centrali gia usate dalla mappa;
+- nessun geofence rigido.
+
+La UI usa debounce, soglia minima di 3 caratteri e massimo 5 risultati. La posizione finale viene inviata al dominio come coordinate interne, mantenendo compatibile `CreateReportUseCase` e il rilevamento duplicati VC-010.
+
+Limite operativo:
+il servizio pubblico Photon va bene per MVP e sviluppo con carico basso. Prima della produzione con traffico significativo va rivalutata la policy d'uso e, se necessario, un provider con piano dedicato o un'istanza self-hosted.

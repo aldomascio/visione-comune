@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
+import type { PublicMapConfig } from "@/shared/config/map";
 import {
   Badge,
   Button,
@@ -19,25 +20,23 @@ import {
 import { createReportAction } from "./actions";
 import { initialCreateReportActionState } from "./form-state";
 import { CopyPublicCodeButton } from "./copy-public-code-button";
+import { LocationPicker } from "./location-picker";
 
 type ReportFormProps = {
   categories: CategoryOption[];
+  mapConfig: PublicMapConfig;
 };
 
-export function ReportForm({ categories }: ReportFormProps) {
+export function ReportForm({ categories, mapConfig }: ReportFormProps) {
   const [actionState, formAction, pending] = useActionState(
     createReportAction,
     initialCreateReportActionState
   );
   const state = actionState ?? initialCreateReportActionState;
-  const latitudeInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const longitudeInputRef = useRef<HTMLInputElement>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState<string | null>(null);
-  const [geolocationStatus, setGeolocationStatus] = useState<
-    { type: "idle" } | { type: "success"; message: string } | { type: "error"; message: string }
-  >({ type: "idle" });
+
 
   useEffect(() => {
     return () => {
@@ -212,139 +211,18 @@ export function ReportForm({ categories }: ReportFormProps) {
         <FieldError id="categoryId-error" message={state.fieldErrors.categoryId} />
       </Field>
 
-      <Field
-        hint="Scrivi un indirizzo, un incrocio o un riferimento riconoscibile. La conversione automatica indirizzo-coordinate arrivera in una task successiva."
-        htmlFor="address"
-        label="Inserisci indirizzo"
-      >
-        <Input
-          aria-describedby={state.fieldErrors.address ? "address-error" : undefined}
-          aria-invalid={Boolean(state.fieldErrors.address)}
-          defaultValue={state.values.address}
-          disabled={formDisabled}
-          id="address"
-          name="address"
-          placeholder="Es. Via Roma, vicino alla scuola"
-        />
-        <FieldError id="address-error" message={state.fieldErrors.address} />
-      </Field>
-
-      <div className="grid gap-2 rounded-lg border border-border bg-muted/40 p-4">
-        <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Posizione precisa</p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Puoi compilare le coordinate usando la posizione del browser. Il permesso viene
-              chiesto solo dopo il click.
-            </p>
-          </div>
-          <Button
-            disabled={formDisabled}
-            onClick={() => {
-              if (!navigator.geolocation) {
-                setGeolocationStatus({
-                  type: "error",
-                  message:
-                    "Il browser non supporta la geolocalizzazione. Puoi inserire le coordinate manualmente."
-                });
-                return;
-              }
-
-              setGeolocationStatus({ type: "idle" });
-              navigator.geolocation.getCurrentPosition(
-                (position) => {
-                  const latitude = position.coords.latitude.toFixed(6);
-                  const longitude = position.coords.longitude.toFixed(6);
-
-                  if (latitudeInputRef.current) {
-                    latitudeInputRef.current.value = latitude;
-                  }
-
-                  if (longitudeInputRef.current) {
-                    longitudeInputRef.current.value = longitude;
-                  }
-
-
-                  setGeolocationStatus({
-                    type: "success",
-                    message: "Posizione rilevata. Puoi inviare la segnalazione o correggere le coordinate."
-                  });
-                },
-                (error) => {
-                  const message =
-                    error.code === error.PERMISSION_DENIED
-                      ? "Permesso negato. Puoi continuare inserendo le coordinate manualmente."
-                      : error.code === error.TIMEOUT
-                        ? "Rilevamento scaduto. Puoi continuare inserendo le coordinate manualmente."
-                        : "Non siamo riusciti a rilevare la posizione. Puoi continuare inserendo le coordinate manualmente.";
-
-                  setGeolocationStatus({ type: "error", message });
-                },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
-              );
-            }}
-            type="button"
-            variant="secondary"
-          >
-            Usa la mia posizione
-          </Button>
-        </div>
-
-        {geolocationStatus.type !== "idle" ? (
-          <p
-            className={
-              geolocationStatus.type === "success"
-                ? "text-sm font-medium text-primary"
-                : "text-sm font-medium text-destructive"
-            }
-            role="status"
-          >
-            {geolocationStatus.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          hint="Campo temporaneo finche non saranno disponibili geocoding e mappa."
-          htmlFor="latitude"
-          label="Latitudine"
-        >
-          <Input
-            aria-describedby={state.fieldErrors.latitude ? "latitude-error" : undefined}
-            aria-invalid={Boolean(state.fieldErrors.latitude)}
-            defaultValue={state.values.latitude}
-            disabled={formDisabled}
-            id="latitude"
-            inputMode="decimal"
-            name="latitude"
-            placeholder="41.4821"
-            ref={latitudeInputRef}
-            required
-          />
-          <FieldError id="latitude-error" message={state.fieldErrors.latitude} />
-        </Field>
-
-        <Field
-          hint="Campo temporaneo finche non saranno disponibili geocoding e mappa."
-          htmlFor="longitude"
-          label="Longitudine"
-        >
-          <Input
-            aria-describedby={state.fieldErrors.longitude ? "longitude-error" : undefined}
-            aria-invalid={Boolean(state.fieldErrors.longitude)}
-            defaultValue={state.values.longitude}
-            disabled={formDisabled}
-            id="longitude"
-            inputMode="decimal"
-            name="longitude"
-            placeholder="14.0474"
-            ref={longitudeInputRef}
-            required
-          />
-          <FieldError id="longitude-error" message={state.fieldErrors.longitude} />
-        </Field>
-      </div>
+      <LocationPicker
+        disabled={formDisabled}
+        fieldErrors={{
+          address: state.fieldErrors.address,
+          latitude: state.fieldErrors.latitude,
+          longitude: state.fieldErrors.longitude
+        }}
+        initialAddress={state.values.address}
+        initialLatitude={state.values.latitude}
+        initialLongitude={state.values.longitude}
+        mapConfig={mapConfig}
+      />
 
       <Field
         hint="Non inserire dati personali non necessari. La descrizione sara verificata prima della pubblicazione."
@@ -474,8 +352,8 @@ function getVisibleFieldErrors(
   const labels = {
     categoryId: { fieldId: "categoryId", label: "Categoria" },
     address: { fieldId: "address", label: "Indirizzo" },
-    latitude: { fieldId: "latitude", label: "Latitudine" },
-    longitude: { fieldId: "longitude", label: "Longitudine" },
+    latitude: { fieldId: "address", label: "Posizione" },
+    longitude: { fieldId: "address", label: "Posizione" },
     description: { fieldId: "description", label: "Descrizione" },
     photo: { fieldId: "photo", label: "Foto" }
   } as const;

@@ -197,3 +197,17 @@ La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Dal VC-017B
 Lo stile editoriale resta leggibile e aderente ai token: larghezza massima del testo, heading serif per H2, spaziatura verticale ampia, link `primary` sottolineati e citazioni con bordo derivato da `primary`. Non viene usato Tailwind Typography e non viene renderizzato HTML raw.
 
 Le immagini in evidenza sono opzionali, usano percorsi locali sotto `public/`, hanno rapporto 16:9 e richiedono testo alternativo.
+
+## Selezione posizione nel form segnalazione
+
+VC-021B sostituisce i campi tecnici latitudine/longitudine con una UX orientata al cittadino.
+
+Il form `/segnala` mostra:
+
+- campo `Inserisci indirizzo` con ricerca assistita;
+- pulsante `Usa la mia posizione` che chiede il permesso solo dopo click esplicito;
+- mini mappa MapLibre centrata su Venafro per selezionare o correggere il punto.
+
+Latitudine e longitudine restano dati interni inviati come campi nascosti solo dopo una selezione confermata. Se l'indirizzo viene modificato manualmente dopo una selezione, la posizione torna non confermata e l'utente deve scegliere nuovamente un suggerimento, usare la geolocalizzazione o cliccare sulla mappa.
+
+La ricerca indirizzo usa debounce, soglia minima di 3 caratteri e massimo 5 risultati. Gli stati di errore spiegano che, se la ricerca non funziona, il punto puo essere selezionato direttamente sulla mappa.

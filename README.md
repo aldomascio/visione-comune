@@ -132,6 +132,17 @@ Mappa pubblica:
 
 `/mappa` usa MapLibre GL JS. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato, in locale viene usato lo style raster OpenStreetMap, adatto allo sviluppo ma non scelto come provider definitivo di produzione.
 
+Geocoding nel form segnalazione:
+
+`/segnala` usa un adapter `GeocodingProvider` dietro API route server-side interne. Per l'MVP il provider predefinito e Photon:
+
+```bash
+GEOCODING_PROVIDER=photon
+PHOTON_GEOCODING_BASE_URL=https://photon.komoot.io
+```
+
+Il cittadino non inserisce coordinate manuali: puo cercare un indirizzo, usare la geolocalizzazione del browser o selezionare il punto sulla mini mappa. Se il provider geocoding non risponde, il form resta utilizzabile tramite selezione sulla mappa.
+
 Produzione:
 
 Per l'MVP è prevista una strategia PostgreSQL self-hosted sul VPS già disponibile, con database e utente dedicati, accesso non pubblico quando app e DB sono sullo stesso VPS, backup periodici e restore testabile prima del go-live.

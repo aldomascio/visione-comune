@@ -191,6 +191,17 @@ permette di proteggere il backoffice senza introdurre account cittadini, OAuth o
 Conseguenza:
 la creazione iniziale degli admin avviene tramite comando CLI locale `pnpm admin:create`. Le sessioni usano JWT Auth.js con durata esplicita di 8 ore. Le pagine admin verificano server-side che l'utente esista ancora e sia attivo, cosi un admin disattivato non puo continuare a usare il backoffice anche se possiede un token precedente.
 
+### ADR-023 — Moderazione admin tramite dominio Report
+
+Decisione:
+la moderazione amministrativa approva o rifiuta una segnalazione passando sempre dal dominio `Report`. Le Server Action admin verificano la sessione server-side, chiamano use case applicativi e non aggiornano direttamente gli stati nel database.
+
+Motivo:
+mantiene centralizzate le business rule su pubblicazione, stati e transizioni, evitando scorciatoie nella UI o nelle action.
+
+Conseguenza:
+approvare imposta `moderationStatus = approved`, `publicStatus = reported`, `publishedAt` e persiste `ReportApproved`. Rifiutare imposta `moderationStatus = rejected`, lascia la segnalazione non pubblica e persiste `ReportRejected`. Il salvataggio di moderazione usa lo stato atteso `pending_review` per intercettare doppie moderazioni concorrenti.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

@@ -328,6 +328,33 @@ Restano fuori scope:
 - MFA;
 - audit completo degli accessi.
 
+## VC-006 — Moderazione amministratori
+
+Il primo backoffice operativo permette a un admin autenticato e attivo di vedere le segnalazioni `pending_review`, aprirne il dettaglio e approvarle o rifiutarle.
+
+La separazione resta:
+
+`UI admin -> Server Action -> application use case -> dominio Report -> repository -> PostgreSQL`
+
+Scelte operative:
+
+- `/admin` mostra il conteggio delle segnalazioni da verificare e le ultime pending;
+- `/admin/segnalazioni` mostra lista e filtri semplici: da verificare, approvate, rifiutate, tutte;
+- `/admin/segnalazioni/[publicCode]` mostra descrizione, categoria, indirizzo, coordinate, stato e azioni di moderazione;
+- `ApproveReportUseCase` e `RejectReportUseCase` applicano le transizioni tramite `Report.approve` e `Report.reject`;
+- `ReportApproved` e `ReportRejected` vengono persistiti in `report_events`;
+- la nota interna opzionale di rifiuto viene salvata come `metadata.internalNote` su `ReportRejected`;
+- il repository salva la moderazione solo se lo stato precedente e ancora `pending_review`, cosi una doppia moderazione concorrente produce errore controllato;
+- le Server Action admin verificano sempre la sessione e l'admin attivo lato server.
+
+Restano fuori scope:
+
+- pagina pubblica dettaglio segnalazione;
+- tracking tramite codice;
+- mappa pubblica;
+- comunicazione agli enti, PEC, stato `Comunicata` e stato `Risolta`;
+- modifica completa dei contenuti e gestione categorie da UI.
+
 ## Ambiente PostgreSQL locale
 
 La fondazione database usa due database locali separati:

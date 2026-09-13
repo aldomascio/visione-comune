@@ -1,5 +1,7 @@
 import type { PublicReportStatus } from "./report-status";
 
+export type ReportEventMetadata = Record<string, string | number | boolean | null>;
+
 export type ReportEventType =
   | "ReportCreated"
   | "ReportApproved"
@@ -15,5 +17,6 @@ export type ReportDomainEvent = {
   occurredAt: Date;
   visibility: ReportEventVisibility;
   publicStatus?: PublicReportStatus;
+  metadata?: ReportEventMetadata;
 };
 

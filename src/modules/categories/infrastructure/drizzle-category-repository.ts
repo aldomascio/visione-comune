@@ -14,6 +14,16 @@ export class DrizzleCategoryRepository implements CategoryRepository {
       .orderBy(asc(categories.name));
   }
 
+  async findById(categoryId: string): Promise<CategoryOption | null> {
+    const [category] = await this.db
+      .select({ id: categories.id, name: categories.name, slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.id, categoryId))
+      .limit(1);
+
+    return category ?? null;
+  }
+
   async findActiveById(categoryId: string): Promise<CategoryOption | null> {
     const [category] = await this.db
       .select({ id: categories.id, name: categories.name, slug: categories.slug })

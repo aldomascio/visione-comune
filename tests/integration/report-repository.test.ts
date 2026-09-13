@@ -9,7 +9,13 @@ import { Location, PublicCode, Report } from "@/modules/reports/domain";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const testCategoryId = "test-roads";
-const testReportIds = ["test-report-1", "test-report-2", "test-report-missing-category"];
+const testReportIds = [
+  "test-report-1",
+  "test-report-2",
+  "test-report-approve",
+  "test-report-reject",
+  "test-report-missing-category"
+];
 
 maybeDescribe("DrizzleReportRepository", () => {
   let connection: DatabaseConnection;
@@ -46,6 +52,73 @@ maybeDescribe("DrizzleReportRepository", () => {
     const foundReport = await repository.findByPublicCode(PublicCode.create("VC-ABC12345"));
 
     expect(foundReport?.toSnapshot()).toEqual(report.toSnapshot());
+  });
+
+  it("lists pending reports for moderation", async () => {
+    await repository.save(createReport("test-report-1", "VC-ABC12345"));
+    const approvedReport = createReport("test-report-2", "VC-ABC12346");
+    approvedReport.pullDomainEvents();
+    approvedReport.approve(new Date("2026-01-02T10:00:00.000Z"));
+    await repository.save(approvedReport, approvedReport.pullDomainEvents());
+
+    const pendingReports = await repository.listForModeration({ status: "pending_review" });
+    const pendingCodes = pendingReports.map((report) => report.publicCode);
+
+    expect(pendingCodes).toContain("VC-ABC12345");
+    expect(pendingCodes).not.toContain("VC-ABC12346");
+    expect(await repository.countByModerationStatus("pending_review")).toBeGreaterThanOrEqual(1);
+  });
+
+  it("persists approval moderation state and ReportApproved event", async () => {
+    const report = createReport("test-report-approve", "VC-APPROVE1");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const foundReport = await repository.findByPublicCode(PublicCode.create("VC-APPROVE1"));
+    expect(foundReport?.toSnapshot()).toMatchObject({
+      moderationStatus: "approved",
+      publicStatus: "reported",
+      publishedAt: new Date("2026-01-04T10:00:00.000Z")
+    });
+
+    const savedEvents = await connection.db
+      .select({ type: reportEvents.type, publicStatus: reportEvents.publicStatus })
+      .from(reportEvents)
+      .where(sql`${reportEvents.reportId} = ${"test-report-approve"}`);
+    expect(savedEvents).toContainEqual({ type: "ReportApproved", publicStatus: "reported" });
+  });
+
+  it("persists rejection moderation state and ReportRejected event", async () => {
+    const report = createReport("test-report-reject", "VC-REJECT01");
+    await repository.save(report, report.pullDomainEvents());
+    report.reject(new Date("2026-01-05T10:00:00.000Z"));
+    const events = report.pullDomainEvents().map((event) =>
+      event.type === "ReportRejected"
+        ? { ...event, metadata: { internalNote: "Test note" } }
+        : event
+    );
+
+    await repository.save(report, events, { expectedModerationStatus: "pending_review" });
+
+    const foundReport = await repository.findByPublicCode(PublicCode.create("VC-REJECT01"));
+    expect(foundReport?.toSnapshot()).toMatchObject({
+      moderationStatus: "rejected"
+    });
+    expect(foundReport?.toSnapshot().publicStatus).toBeUndefined();
+    expect(foundReport?.toSnapshot().publishedAt).toBeUndefined();
+
+    const savedEvents = await connection.db
+      .select({ type: reportEvents.type, metadata: reportEvents.metadata })
+      .from(reportEvents)
+      .where(sql`${reportEvents.reportId} = ${"test-report-reject"}`);
+    expect(savedEvents).toContainEqual({
+      type: "ReportRejected",
+      metadata: { internalNote: "Test note" }
+    });
   });
 
   it("persists report status dates and events", async () => {

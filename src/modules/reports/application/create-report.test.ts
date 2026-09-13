@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { CategoryOption, CategoryRepository } from "@/modules/categories/application/category-repository";
 import {
   PublicCode,
+  type ModerationStatus,
   type PublicCode as PublicCodeValue,
   type Report,
   type ReportDomainEvent
 } from "../domain";
 import {
   DuplicatePublicCodePersistenceError,
+  type ReportModerationFilter,
+  type ReportModerationSummary,
   type ReportRepository
 } from "./report-repository";
 import type { PublicCodeGenerator } from "./public-code-generator";
@@ -185,6 +188,10 @@ type CreateReportUseCaseDependenciesForTest = {
 class FakeCategoryRepository implements CategoryRepository {
   constructor(private readonly category: CategoryOption | null) {}
 
+  async findById(categoryId: string): Promise<CategoryOption | null> {
+    return this.category?.id === categoryId ? this.category : null;
+  }
+
   async listActive(): Promise<CategoryOption[]> {
     return this.category ? [this.category] : [];
   }
@@ -201,7 +208,7 @@ class InMemoryReportRepository implements ReportRepository {
 
   constructor(private readonly options: { duplicateCodes?: string[] } = {}) {}
 
-  async save(report: Report, events: Parameters<ReportRepository["save"]>[1] = []): Promise<void> {
+  async save(report: Report, events: ReportDomainEvent[] = []): Promise<void> {
     this.saveAttempts += 1;
     const publicCode = report.toSnapshot().publicCode;
 
@@ -213,8 +220,30 @@ class InMemoryReportRepository implements ReportRepository {
     this.savedEvents.push(...events);
   }
 
-  async findByPublicCode(): Promise<Report | null> {
-    return null;
+  async findByPublicCode(publicCode: PublicCodeValue): Promise<Report | null> {
+    return this.savedReports.find((report) => report.toSnapshot().publicCode === publicCode.toString()) ?? null;
+  }
+
+  async listForModeration(input: { status?: ReportModerationFilter; limit?: number } = {}): Promise<ReportModerationSummary[]> {
+    const status = input.status ?? "pending_review";
+    return this.savedReports
+      .filter((report) => status === "all" || report.toSnapshot().moderationStatus === status)
+      .slice(0, input.limit ?? 100)
+      .map((report) => {
+        const snapshot = report.toSnapshot();
+        return {
+          publicCode: snapshot.publicCode,
+          title: snapshot.title,
+          categoryName: "Categoria test",
+          createdAt: snapshot.createdAt,
+          moderationStatus: snapshot.moderationStatus,
+          ...(snapshot.location.address ? { address: snapshot.location.address } : {})
+        };
+      });
+  }
+
+  async countByModerationStatus(status: ModerationStatus): Promise<number> {
+    return this.savedReports.filter((report) => report.toSnapshot().moderationStatus === status).length;
   }
 }
 

@@ -1,26 +1,53 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
-import { reportEvents, reports } from "@/shared/db/schema";
+import { categories, reportEvents, reports } from "@/shared/db/schema";
 import {
+  ConcurrentReportModerationError,
   DuplicatePublicCodePersistenceError,
-  type ReportRepository
+  type ReportModerationFilter,
+  type ReportModerationSummary,
+  type ReportRepository,
+  type ReportSaveOptions
 } from "../application/report-repository";
-import { PublicCode, type Report, type ReportDomainEvent } from "../domain";
+import { PublicCode, type ModerationStatus, type Report, type ReportDomainEvent } from "../domain";
 import { recordToReport, reportEventToRecord, reportToRecord } from "./report-mapper";
 
 export class DrizzleReportRepository implements ReportRepository {
   constructor(private readonly db: Database) {}
 
-  async save(report: Report, events: ReportDomainEvent[] = []): Promise<void> {
+  async save(
+    report: Report,
+    events: ReportDomainEvent[] = [],
+    options: ReportSaveOptions = {}
+  ): Promise<void> {
     try {
       await this.db.transaction(async (tx) => {
-        await tx
-          .insert(reports)
-          .values(reportToRecord(report))
-          .onConflictDoUpdate({
-            target: reports.id,
-            set: reportToRecord(report)
-          });
+        const record = reportToRecord(report);
+
+        if (options.expectedModerationStatus) {
+          const updatedRows = await tx
+            .update(reports)
+            .set(record)
+            .where(
+              and(
+                eq(reports.id, record.id),
+                eq(reports.moderationStatus, options.expectedModerationStatus)
+              )
+            )
+            .returning({ id: reports.id });
+
+          if (updatedRows.length === 0) {
+            throw new ConcurrentReportModerationError(record.id);
+          }
+        } else {
+          await tx
+            .insert(reports)
+            .values(record)
+            .onConflictDoUpdate({
+              target: reports.id,
+              set: record
+            });
+        }
 
         if (events.length > 0) {
           await tx.insert(reportEvents).values(events.map(reportEventToRecord));
@@ -43,6 +70,49 @@ export class DrizzleReportRepository implements ReportRepository {
       .limit(1);
 
     return record ? recordToReport(record) : null;
+  }
+
+  async listForModeration(input: {
+    status?: ReportModerationFilter;
+    limit?: number;
+  } = {}): Promise<ReportModerationSummary[]> {
+    const status = input.status ?? "pending_review";
+    const limit = input.limit ?? 50;
+    const whereClause = status === "all" ? undefined : eq(reports.moderationStatus, status);
+
+    const query = this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        categoryName: categories.name,
+        createdAt: reports.createdAt,
+        moderationStatus: reports.moderationStatus,
+        address: reports.address
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .orderBy(desc(reports.createdAt))
+      .limit(limit);
+
+    const rows = whereClause ? await query.where(whereClause) : await query;
+
+    return rows.map((row) => ({
+      publicCode: row.publicCode,
+      title: row.title,
+      categoryName: row.categoryName,
+      createdAt: row.createdAt,
+      moderationStatus: row.moderationStatus,
+      ...(row.address ? { address: row.address } : {})
+    }));
+  }
+
+  async countByModerationStatus(status: ModerationStatus): Promise<number> {
+    const [row] = await this.db
+      .select({ value: sql<number>`count(*)` })
+      .from(reports)
+      .where(eq(reports.moderationStatus, status));
+
+    return Number(row?.value ?? 0);
   }
 }
 

@@ -86,3 +86,20 @@ il generatore produce un codice pubblico gia presente nel database.
 Gestione prevista:
 il layer applicativo ritenta la generazione fino a un limite esplicito. Se il limite viene esaurito, l'utente riceve un errore controllato e non dettagli tecnici.
 
+## VC-006 — Moderazione amministratori
+
+### EC-VC006-001 — Doppia moderazione concorrente
+
+Caso:
+due amministratori aprono la stessa segnalazione ancora `Da verificare` e tentano di approvarla o rifiutarla quasi nello stesso momento.
+
+Gestione prevista:
+il dominio impedisce transizioni incoerenti su segnalazioni gia moderate. Il repository salva la moderazione solo se lo stato precedente nel database e ancora `pending_review`; se lo stato e cambiato, l'azione fallisce con messaggio controllato e l'admin deve aggiornare la pagina.
+
+### EC-VC006-002 — Nota interna di rifiuto
+
+Caso:
+un amministratore rifiuta una segnalazione e vuole lasciare un motivo operativo sintetico.
+
+Gestione prevista:
+la nota e opzionale, interna, non pubblica, e viene salvata nei metadata dell'evento `ReportRejected`. Non introduce un sistema di commenti o note generiche.

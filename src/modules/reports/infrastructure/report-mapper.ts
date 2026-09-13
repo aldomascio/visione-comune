@@ -66,7 +66,7 @@ export function reportEventToRecord(event: ReportDomainEvent): NewReportEventRec
     type: event.type,
     visibility: event.visibility,
     publicStatus: event.publicStatus ?? null,
-    metadata: null,
+    metadata: event.metadata ?? null,
     createdAt: event.occurredAt
   };
 }
@@ -77,7 +77,12 @@ export function recordToReportEvent(record: ReportEventRecord): ReportDomainEven
     reportId: record.reportId,
     occurredAt: record.createdAt,
     visibility: record.visibility,
-    ...(record.publicStatus ? { publicStatus: record.publicStatus } : {})
+    ...(record.publicStatus ? { publicStatus: record.publicStatus } : {}),
+    ...(isReportEventMetadata(record.metadata) ? { metadata: record.metadata } : {})
   };
+}
+
+function isReportEventMetadata(value: unknown): value is NonNullable<ReportDomainEvent["metadata"]> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

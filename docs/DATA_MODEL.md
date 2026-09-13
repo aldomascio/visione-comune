@@ -44,6 +44,12 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - metadata
 - createdAt
 
+Note implementative MVP:
+
+- `metadata` puo contenere dati operativi interni legati all'evento.
+- In VC-006 la nota opzionale di rifiuto viene salvata come `metadata.internalNote` sull'evento interno `ReportRejected`.
+- Le note salvate negli eventi interni non devono essere esposte nelle future viste pubbliche.
+
 ## Category
 
 - id

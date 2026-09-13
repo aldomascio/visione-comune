@@ -106,6 +106,12 @@ pnpm admin:create
 
 Il comando chiede email e password, normalizza l'email e salva solo l'hash Argon2id nel database. Non usare credenziali reali nei file versionati.
 
+Pagine admin disponibili in locale:
+
+- `/admin` dashboard operativa minimale;
+- `/admin/segnalazioni` lista segnalazioni da moderare;
+- `/admin/segnalazioni/[publicCode]` dettaglio con azioni Approva/Rifiuta.
+
 Produzione:
 
 Per l'MVP è prevista una strategia PostgreSQL self-hosted sul VPS già disponibile, con database e utente dedicati, accesso non pubblico quando app e DB sono sullo stesso VPS, backup periodici e restore testabile prima del go-live.

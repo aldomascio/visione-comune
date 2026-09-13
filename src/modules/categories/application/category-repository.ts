@@ -7,4 +7,5 @@ export type CategoryOption = {
 export type CategoryRepository = {
   listActive(): Promise<CategoryOption[]>;
   findActiveById(categoryId: string): Promise<CategoryOption | null>;
+  findById(categoryId: string): Promise<CategoryOption | null>;
 };

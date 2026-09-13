@@ -14,8 +14,16 @@ export class ConcurrentReportModerationError extends Error {
   }
 }
 
+export class ConcurrentReportStateError extends Error {
+  constructor(reportId: string) {
+    super(`Report state changed before save: ${reportId}`);
+    this.name = "ConcurrentReportStateError";
+  }
+}
+
 export type ReportSaveOptions = {
   expectedModerationStatus?: ModerationStatus;
+  expectedPublicStatus?: PublicReportStatus;
 };
 
 export type ReportModerationFilter = ModerationStatus | "all";
@@ -64,6 +72,8 @@ export type PublicReportDetail = {
   publicStatus: PublicReportStatus;
   createdAt: Date;
   publishedAt: Date;
+  communicatedAt?: Date;
+  resolvedAt?: Date;
   attachment?: PublicReportAttachment;
 };
 

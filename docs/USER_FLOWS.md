@@ -56,9 +56,14 @@
 ## FLOW-005 — Risoluzione
 
 1. Visione Comune verifica che il problema sia risolto.
-2. L'amministratore imposta lo stato `Risolta`.
-3. Viene registrato l'evento in timeline.
-4. La scheda pubblica viene aggiornata.
+2. La segnalazione deve essere gia `Comunicata`.
+3. L'amministratore apre il dettaglio admin e usa `Segna come risolta`.
+4. Prima della conferma puo inserire una nota interna opzionale sul metodo di verifica.
+5. Il sistema chiede conferma esplicita per evitare click accidentali.
+6. Il dominio imposta lo stato `Risolta`, valorizza `resolvedAt` e registra `ReportResolved`.
+7. La timeline pubblica mostra `Problema risolto` senza note interne.
+8. La timeline admin mostra anche l'eventuale nota interna.
+9. La scheda pubblica e la mappa continuano a mostrare la segnalazione con stato `Risolta`.
 
 ## FLOW-006 — Tracking tramite codice
 

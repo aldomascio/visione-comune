@@ -403,3 +403,38 @@ il cittadino apre la pagina pubblica dopo la consegna confermata.
 
 Gestione prevista:
 vede solo stato `Comunicata` e testo timeline pubblico generico. Non vede PEC, email, destinatario, oggetto, corpo, externalMessageId o errori.
+
+
+## VC-016 — Risoluzione segnalazione
+
+### EC-VC016-001 — Risoluzione prima della comunicazione
+
+Caso:
+un admin prova a marcare come risolta una segnalazione ancora `Segnalata`, pending o rifiutata.
+
+Gestione prevista:
+il server rifiuta la transizione. La CTA admin e visibile solo per report approvati con stato pubblico `Comunicata`, ma la regola resta verificata dal dominio e dal layer applicativo.
+
+### EC-VC016-002 — Doppio click o modifica concorrente
+
+Caso:
+due invii quasi simultanei provano a risolvere la stessa segnalazione.
+
+Gestione prevista:
+il salvataggio richiede che lo stato pubblico atteso sia ancora `Comunicata`. Se lo stato e gia cambiato, viene restituito un errore controllato e non viene duplicato `ReportResolved`.
+
+### EC-VC016-003 — Nota interna di risoluzione
+
+Caso:
+l'admin aggiunge una nota su come la risoluzione e stata verificata.
+
+Gestione prevista:
+la nota viene normalizzata, limitata a 1000 caratteri e salvata in `metadata.internalNote` dell'evento `ReportResolved`. La timeline admin la mostra come nota interna; la timeline pubblica mostra solo label, descrizione e data dell'evento.
+
+### EC-VC016-004 — Report risolto sulla mappa
+
+Caso:
+una segnalazione passa a `Risolta`.
+
+Gestione prevista:
+resta visibile nella mappa pubblica e puo essere distinta dal filtro stato `Risolta`, cosi rimane memoria pubblica dei problemi risolti.

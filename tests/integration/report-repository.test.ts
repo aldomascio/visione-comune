@@ -6,6 +6,7 @@ import { categories, reportAttachments, reportEvents, reports } from "@/shared/d
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DuplicatePublicCodePersistenceError } from "@/modules/reports/application/report-repository";
 import { GetAdminReportTimelineUseCase, GetPublicReportTimelineUseCase } from "@/modules/reports/application/report-timeline";
+import { ReportResolutionNotAllowedError, ResolveReportUseCase } from "@/modules/reports/application/resolve-report";
 import { Location, PublicCode, Report } from "@/modules/reports/domain";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
@@ -28,7 +29,9 @@ const testReportIds = [
   "test-report-duplicate-category",
   "test-report-duplicate-far",
   "test-report-duplicate-old",
-  "test-report-timeline"
+  "test-report-timeline",
+  "test-report-resolution",
+  "test-report-resolution-reported"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -190,6 +193,91 @@ maybeDescribe("DrizzleReportRepository", () => {
         occurredAt: new Date("2026-01-06T10:00:00.000Z")
       }
     ]);
+  });
+
+
+  it("persists report resolution state, public event and internal note safely", async () => {
+    const report = createReport("test-report-resolution", "VC-RESINT01");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    report.markCommunicated(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const useCase = new ResolveReportUseCase({
+      reportRepository: repository,
+      now: () => new Date("2026-01-06T10:00:00.000Z")
+    });
+
+    await useCase.execute({
+      publicCode: "VC-RESINT01",
+      internalNote: "Sopralluogo completato"
+    });
+
+    const foundReport = await repository.findByPublicCode(PublicCode.create("VC-RESINT01"));
+    expect(foundReport?.toSnapshot()).toMatchObject({
+      publicStatus: "resolved",
+      resolvedAt: new Date("2026-01-06T10:00:00.000Z")
+    });
+
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-RESINT01"))).resolves.toMatchObject({
+      publicCode: "VC-RESINT01",
+      publicStatus: "resolved",
+      communicatedAt: new Date("2026-01-05T10:00:00.000Z"),
+      resolvedAt: new Date("2026-01-06T10:00:00.000Z")
+    });
+
+    const savedEvents = await connection.db
+      .select({ type: reportEvents.type, visibility: reportEvents.visibility, publicStatus: reportEvents.publicStatus, metadata: reportEvents.metadata })
+      .from(reportEvents)
+      .where(sql`${reportEvents.reportId} = ${"test-report-resolution"}`);
+    expect(savedEvents).toContainEqual({
+      type: "ReportResolved",
+      visibility: "public",
+      publicStatus: "resolved",
+      metadata: { internalNote: "Sopralluogo completato" }
+    });
+
+    const publicItems = await new GetPublicReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ publicCode: "VC-RESINT01" });
+    expect(publicItems).toContainEqual({
+      id: expect.any(String),
+      occurredAt: new Date("2026-01-06T10:00:00.000Z"),
+      label: "Problema risolto",
+      description: "Visione Comune ha verificato la risoluzione del problema."
+    });
+    expect(JSON.stringify(publicItems)).not.toContain("Sopralluogo completato");
+
+    const adminItems = await new GetAdminReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ reportId: "test-report-resolution" });
+    expect(adminItems).toContainEqual(
+      expect.objectContaining({
+        label: "Problema risolto",
+        visibility: "public",
+        note: "Sopralluogo completato"
+      })
+    );
+  });
+
+  it("does not resolve a report that is still only Segnalata", async () => {
+    const report = createReport("test-report-resolution-reported", "VC-RESINT02");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const useCase = new ResolveReportUseCase({ reportRepository: repository });
+
+    await expect(useCase.execute({ publicCode: "VC-RESINT02" })).rejects.toThrow(
+      ReportResolutionNotAllowedError
+    );
+
+    const foundReport = await repository.findByPublicCode(PublicCode.create("VC-RESINT02"));
+    expect(foundReport?.toSnapshot().publicStatus).toBe("reported");
   });
 
 

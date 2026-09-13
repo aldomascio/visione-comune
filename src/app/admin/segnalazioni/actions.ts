@@ -10,6 +10,13 @@ import {
   ReportForModerationNotFoundError,
   ReportModerationConflictError
 } from "@/modules/reports/application/moderate-report";
+import {
+  InvalidResolutionPublicCodeError,
+  ReportForResolutionNotFoundError,
+  ReportResolutionConflictError,
+  ReportResolutionNotAllowedError,
+  ResolveReportUseCase
+} from "@/modules/reports/application/resolve-report";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import {
   CreateManualCommunicationUseCase,
@@ -107,6 +114,30 @@ export async function rejectReportAction(formData: FormData): Promise<void> {
   await moderateReport({ formData, action: "reject" });
 }
 
+export async function resolveReportAction(formData: FormData): Promise<void> {
+  await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  const internalNote = getOptionalString(formData, "internalNote");
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    await new ResolveReportUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db)
+    }).execute({ publicCode, internalNote });
+
+    revalidateReportPaths(publicCode);
+    redirectTo = `${redirectTo}?resolution=resolved`;
+  } catch (error) {
+    redirectTo = `${redirectTo}?resolutionError=${mapResolutionErrorToCode(error)}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
 async function moderateReport(input: { formData: FormData; action: "approve" | "reject" }): Promise<void> {
   await requireActiveAdmin();
   const publicCode = getPublicCode(input.formData);
@@ -180,5 +211,22 @@ function mapModerationErrorToCode(error: unknown): string {
   }
 
   console.error("Unable to moderate report", error);
+  return "generic";
+}
+
+function mapResolutionErrorToCode(error: unknown): string {
+  if (error instanceof ReportResolutionNotAllowedError) {
+    return "not-allowed";
+  }
+
+  if (error instanceof ReportResolutionConflictError) {
+    return "conflict";
+  }
+
+  if (error instanceof ReportForResolutionNotFoundError || error instanceof InvalidResolutionPublicCodeError) {
+    return "not-found";
+  }
+
+  console.error("Unable to resolve report", error);
   return "generic";
 }

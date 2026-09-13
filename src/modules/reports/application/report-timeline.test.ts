@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PublicCode, type ReportEventMetadata, type ReportEventType, type ReportEventVisibility } from "../domain";
+import { PublicCode, type PublicReportStatus, type ReportEventMetadata, type ReportEventType, type ReportEventVisibility } from "../domain";
 import {
   GetAdminReportTimelineUseCase,
   GetPublicReportTimelineUseCase,
@@ -39,6 +39,41 @@ describe("report timeline", () => {
     expect(
       presentPublicTimelineEvent(createTimelineEvent({ type: "ReportRejected", visibility: "internal" }))
     ).toBeNull();
+  });
+
+  it("presents ReportResolved publicly without exposing internal note metadata", () => {
+    const publicItem = presentPublicTimelineEvent(
+      createTimelineEvent({
+        id: "resolved",
+        type: "ReportResolved",
+        visibility: "public",
+        publicStatus: "resolved",
+        metadata: { internalNote: "Sopralluogo completato" }
+      })
+    );
+
+    expect(publicItem).toEqual({
+      id: "resolved",
+      occurredAt: new Date("2026-01-01T10:00:00.000Z"),
+      label: "Problema risolto",
+      description: "Visione Comune ha verificato la risoluzione del problema."
+    });
+    expect(publicItem).not.toHaveProperty("metadata");
+
+    expect(
+      presentAdminTimelineEvent(
+        createTimelineEvent({
+          type: "ReportResolved",
+          visibility: "public",
+          publicStatus: "resolved",
+          metadata: { internalNote: "Sopralluogo completato" }
+        })
+      )
+    ).toMatchObject({
+      label: "Problema risolto",
+      visibility: "public",
+      note: "Sopralluogo completato"
+    });
   });
 
   it("presents internal notes and known metadata only in the admin timeline", () => {
@@ -125,6 +160,7 @@ function createTimelineEvent(input: {
   id?: string;
   type?: ReportEventType;
   visibility?: ReportEventVisibility;
+  publicStatus?: PublicReportStatus;
   metadata?: ReportEventMetadata;
   occurredAt?: Date;
 }): ReportTimelineEvent {
@@ -133,7 +169,7 @@ function createTimelineEvent(input: {
     reportId,
     type: input.type ?? "ReportApproved",
     visibility: input.visibility ?? "public",
-    publicStatus: "reported",
+    ...(input.publicStatus ? { publicStatus: input.publicStatus } : {}),
     ...(input.metadata ? { metadata: input.metadata } : {}),
     occurredAt: input.occurredAt ?? new Date("2026-01-01T10:00:00.000Z")
   };

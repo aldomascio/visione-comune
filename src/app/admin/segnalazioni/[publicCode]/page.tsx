@@ -22,12 +22,13 @@ import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
 import { approveReportAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, rejectReportAction } from "../actions";
+import { ResolveReportForm } from "./resolve-report-form";
 import { formatAdminDate } from "../format";
 import { ModerationStatusBadge, PublicStatusBadge } from "../status-badge";
 
 type ReportDetailPageProps = {
   params: Promise<{ publicCode: string }>;
-  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string }>;
+  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -56,8 +57,10 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
 
         {query?.moderation ? <SuccessMessage type={query.moderation} /> : null}
         {query?.communication ? <CommunicationSuccessMessage type={query.communication} /> : null}
+        {query?.resolution ? <ResolutionSuccessMessage type={query.resolution} /> : null}
         {query?.error ? <ErrorMessage code={query.error} /> : null}
         {query?.communicationError ? <CommunicationErrorMessage message={query.communicationError} /> : null}
+        {query?.resolutionError ? <ResolutionErrorMessage code={query.resolutionError} /> : null}
 
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <Card>
@@ -148,6 +151,13 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
               </CardContent>
             </Card>
 
+            <ResolutionCard
+              communicatedAt={report.communicatedAt}
+              publicCode={report.publicCode}
+              publicStatus={report.publicStatus}
+              resolvedAt={report.resolvedAt}
+            />
+
             <Card>
             <CardHeader>
               <CardTitle>Moderazione</CardTitle>
@@ -161,6 +171,8 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
               <InfoBlock label="Stato moderazione" value={statusText(report.moderationStatus)} />
               <InfoBlock label="Stato pubblico" value={report.publicStatus ? statusText(report.publicStatus) : "Non pubblica"} />
               {report.publishedAt ? <InfoBlock label="Pubblicata il" value={formatAdminDate(report.publishedAt)} /> : null}
+              {report.communicatedAt ? <InfoBlock label="Comunicata il" value={formatAdminDate(report.communicatedAt)} /> : null}
+              {report.resolvedAt ? <InfoBlock label="Risolta il" value={formatAdminDate(report.resolvedAt)} /> : null}
 
               {canModerate ? (
                 <div className="grid gap-4">
@@ -337,6 +349,51 @@ function CommunicationsSection({
   );
 }
 
+function ResolutionCard({
+  communicatedAt,
+  publicCode,
+  publicStatus,
+  resolvedAt
+}: {
+  communicatedAt?: Date;
+  publicCode: string;
+  publicStatus?: string;
+  resolvedAt?: Date;
+}) {
+  const canResolve = publicStatus === "communicated";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Risoluzione</CardTitle>
+        <CardDescription>
+          La risoluzione viene impostata solo dopo verifica di Visione Comune. Per VC-016 e uno stato finale.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {communicatedAt ? <InfoBlock label="Comunicata il" value={formatAdminDate(communicatedAt)} /> : null}
+        {resolvedAt ? <InfoBlock label="Risolta il" value={formatAdminDate(resolvedAt)} /> : null}
+
+        {canResolve ? (
+          <ResolveReportForm publicCode={publicCode} />
+        ) : publicStatus === "resolved" ? (
+          <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm leading-6">
+            Stato finale raggiunto: questa segnalazione e gia marcata come Risolta.
+          </div>
+        ) : publicStatus === "reported" ? (
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
+            La CTA di risoluzione sara disponibile dopo che una comunicazione sara marcata come consegnata e la segnalazione diventera Comunicata.
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
+            La risoluzione e disponibile solo per segnalazioni approvate, pubbliche e gia Comunicate.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function CommunicationListItem({ communication, publicCode }: { communication: OutboundCommunication; publicCode: string }) {
   const canChangeStatus = communication.status !== "delivered" && communication.status !== "failed";
 
@@ -426,6 +483,33 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-border bg-background p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
+    </div>
+  );
+}
+
+function ResolutionSuccessMessage({ type }: { type: string }) {
+  const messages: Record<string, string> = {
+    resolved: "Segnalazione marcata come risolta."
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+      {messages[type] ?? "Risoluzione aggiornata."}
+    </div>
+  );
+}
+
+function ResolutionErrorMessage({ code }: { code: string }) {
+  const messages: Record<string, string> = {
+    "not-allowed": "La segnalazione puo essere risolta solo quando e Comunicata.",
+    conflict: "La segnalazione e stata modificata da un altro amministratore. Aggiorna la pagina.",
+    "not-found": "Segnalazione non trovata.",
+    generic: "Non e stato possibile marcare la segnalazione come risolta. Riprova."
+  };
+
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+      {messages[code] ?? messages.generic}
     </div>
   );
 }

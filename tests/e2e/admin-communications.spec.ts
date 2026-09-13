@@ -67,7 +67,11 @@ test("admin marks a communication as failed and the report remains Segnalata", a
   await expect(page.getByText("Comunicazione marcata come fallita.")).toBeVisible();
   await expect(page.getByText("Fallita").first()).toBeVisible();
   await expect(page.getByText("Segnalata").first()).toBeVisible();
-  await expect(page.getByText("Comunicata")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Segna come risolta" })).toHaveCount(0);
+
+  await page.goto(`/segnalazioni/${failedCode}`);
+  await expect(page.getByText("Segnalata").first()).toBeVisible();
+  await expect(page.getByText("Segnalazione comunicata all'ente competente")).toHaveCount(0);
 });
 
 test("communication history keeps the original recipient snapshot after recipient changes", async ({ page }) => {

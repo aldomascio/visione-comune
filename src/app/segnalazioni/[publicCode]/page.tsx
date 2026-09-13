@@ -76,6 +76,8 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
                 <InfoBlock label="Stato" value={PUBLIC_REPORT_STATUS_LABELS[report.publicStatus]} />
                 <InfoBlock label="Data segnalazione" value={formatPublicDate(report.createdAt)} />
                 <InfoBlock label="Data pubblicazione" value={formatPublicDate(report.publishedAt)} />
+                {report.communicatedAt ? <InfoBlock label="Data comunicazione" value={formatPublicDate(report.communicatedAt)} /> : null}
+                {report.resolvedAt ? <InfoBlock label="Data risoluzione" value={formatPublicDate(report.resolvedAt)} /> : null}
                 <InfoBlock label="Indirizzo" value={report.address ?? "Non indicato"} />
                 <InfoBlock label="Posizione" value={`${report.latitude}, ${report.longitude}`} />
               </section>

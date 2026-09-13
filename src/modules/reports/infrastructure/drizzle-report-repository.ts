@@ -3,6 +3,7 @@ import type { Database } from "@/shared/db/client";
 import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
   ConcurrentReportModerationError,
+  ConcurrentReportStateError,
   DuplicatePublicCodePersistenceError,
   type ReportModerationFilter,
   type NewReportAttachment,
@@ -32,19 +33,28 @@ export class DrizzleReportRepository implements ReportRepository {
       await this.db.transaction(async (tx) => {
         const record = reportToRecord(report);
 
-        if (options.expectedModerationStatus) {
+        if (options.expectedModerationStatus || options.expectedPublicStatus) {
+          const conditions = [eq(reports.id, record.id)];
+
+          if (options.expectedModerationStatus) {
+            conditions.push(eq(reports.moderationStatus, options.expectedModerationStatus));
+          }
+
+          if (options.expectedPublicStatus) {
+            conditions.push(eq(reports.publicStatus, options.expectedPublicStatus));
+          }
+
           const updatedRows = await tx
             .update(reports)
             .set(record)
-            .where(
-              and(
-                eq(reports.id, record.id),
-                eq(reports.moderationStatus, options.expectedModerationStatus)
-              )
-            )
+            .where(and(...conditions))
             .returning({ id: reports.id });
 
           if (updatedRows.length === 0) {
+            if (options.expectedPublicStatus) {
+              throw new ConcurrentReportStateError(record.id);
+            }
+
             throw new ConcurrentReportModerationError(record.id);
           }
         } else {
@@ -209,6 +219,8 @@ export class DrizzleReportRepository implements ReportRepository {
         publicStatus: reports.publicStatus,
         createdAt: reports.createdAt,
         publishedAt: reports.publishedAt,
+        communicatedAt: reports.communicatedAt,
+        resolvedAt: reports.resolvedAt,
         attachmentStorageKey: reportAttachments.storageKey,
         attachmentMimeType: reportAttachments.mimeType,
         attachmentSize: reportAttachments.size
@@ -239,6 +251,8 @@ export class DrizzleReportRepository implements ReportRepository {
       publicStatus: row.publicStatus,
       createdAt: row.createdAt,
       publishedAt: row.publishedAt,
+      ...(row.communicatedAt ? { communicatedAt: row.communicatedAt } : {}),
+      ...(row.resolvedAt ? { resolvedAt: row.resolvedAt } : {}),
       ...(row.attachmentStorageKey && row.attachmentMimeType && row.attachmentSize
         ? {
             attachment: {

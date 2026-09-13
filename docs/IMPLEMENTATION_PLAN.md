@@ -681,3 +681,21 @@ L'ordine consigliato punta a raggiungere rapidamente una prima vertical slice fu
 10. comunicazioni e integrazioni future.
 
 PEC, AI e newsletter non devono bloccare le prime slice: vanno isolate con adapter e implementate quando le decisioni provider saranno pronte.
+
+
+## VC-016 — Risoluzione segnalazione
+
+Implementazione prevista/completata per la slice:
+
+- use case applicativo `ResolveReportUseCase` nel modulo `reports`;
+- transizione sempre tramite `Report.markResolved`, senza update diretto degli stati dal layer UI o infrastruttura;
+- salvataggio con stato atteso `approved` + `communicated` per intercettare doppio click o modifiche concorrenti;
+- CTA admin `Segna come risolta` visibile solo su report `Comunicata`;
+- conferma browser prima della submit per evitare azioni accidentali;
+- nota interna opzionale salvata come `metadata.internalNote` sull'evento pubblico `ReportResolved`;
+- timeline pubblica con evento `Problema risolto` senza metadata;
+- timeline admin con nota interna separata;
+- pagina pubblica con stato `Risolta` e data risoluzione;
+- mappa pubblica mantiene i report risolti visibili e filtrabili per stato `Risolta`.
+
+Restano fuori scope: riapertura, regressione di stato, solleciti, PEC reale, email reale, risposta cittadino o prova fotografica di risoluzione.

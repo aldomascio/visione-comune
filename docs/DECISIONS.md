@@ -303,6 +303,17 @@ preparare il workflow operativo senza integrare ancora provider PEC/email, prese
 Conseguenza:
 registrare una comunicazione come `sent` non cambia lo stato pubblico della segnalazione. Solo una comunicazione marcata manualmente `delivered` puo portare il report da `Segnalata` a `Comunicata`, passando da `Report.markCommunicated` e generando l'evento pubblico `ReportCommunicated`. Gli eventi tecnici `CommunicationRecorded`, `CommunicationSent`, `CommunicationDelivered` e `CommunicationFailed` restano interni.
 
+### ADR-033 — Risoluzione verificata manualmente da Visione Comune
+
+Decisione:
+in VC-016 solo un admin autenticato puo marcare una segnalazione come `Risolta`, e solo quando lo stato pubblico corrente e `Comunicata`.
+
+Motivo:
+la risoluzione rappresenta una verifica operativa di Visione Comune, non una risposta automatica da PEC/email e non una dichiarazione del cittadino.
+
+Conseguenza:
+la transizione passa sempre dal dominio `Report.markResolved`, valorizza `resolvedAt` e registra un evento pubblico `ReportResolved`. L'admin puo aggiungere una nota interna opzionale salvata in `report_events.metadata.internalNote`: la timeline admin la mostra, la timeline pubblica non la espone. Per l'MVP `Risolta` e uno stato finale; riapertura e regressioni restano fuori scope.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

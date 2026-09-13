@@ -1,4 +1,4 @@
-import type { ModerationStatus, Report, ReportDomainEvent, PublicCode } from "../domain";
+import type { ModerationStatus, PublicReportStatus, Report, ReportDomainEvent, PublicCode } from "../domain";
 
 export class DuplicatePublicCodePersistenceError extends Error {
   constructor(publicCode: string) {
@@ -29,6 +29,25 @@ export type ReportModerationSummary = {
   address?: string;
 };
 
+export type PublicReportDetail = {
+  publicCode: string;
+  title: string;
+  description: string;
+  categoryName: string;
+  address?: string;
+  latitude: number;
+  longitude: number;
+  publicStatus: PublicReportStatus;
+  createdAt: Date;
+  publishedAt: Date;
+};
+
+export type PublicReportTimelineEvent = {
+  type: ReportDomainEvent["type"];
+  publicStatus?: PublicReportStatus;
+  occurredAt: Date;
+};
+
 export type ReportRepository = {
   save(report: Report, events?: ReportDomainEvent[], options?: ReportSaveOptions): Promise<void>;
   findByPublicCode(publicCode: PublicCode): Promise<Report | null>;
@@ -37,4 +56,6 @@ export type ReportRepository = {
     limit?: number;
   }): Promise<ReportModerationSummary[]>;
   countByModerationStatus(status: ModerationStatus): Promise<number>;
+  findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null>;
+  listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]>;
 };

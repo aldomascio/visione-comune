@@ -112,6 +112,12 @@ Pagine admin disponibili in locale:
 - `/admin/segnalazioni` lista segnalazioni da moderare;
 - `/admin/segnalazioni/[publicCode]` dettaglio con azioni Approva/Rifiuta.
 
+Pagine pubbliche disponibili in locale:
+
+- `/segnala` invio segnalazione senza account;
+- `/segnalazione` tracking tramite codice pubblico;
+- `/segnalazioni/[publicCode]` dettaglio pubblico solo per segnalazioni approvate.
+
 Produzione:
 
 Per l'MVP è prevista una strategia PostgreSQL self-hosted sul VPS già disponibile, con database e utente dedicati, accesso non pubblico quando app e DB sono sullo stesso VPS, backup periodici e restore testabile prima del go-live.

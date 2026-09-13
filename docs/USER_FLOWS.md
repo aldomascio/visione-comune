@@ -58,4 +58,6 @@
 
 1. L'utente inserisce il codice univoco.
 2. Il sistema recupera la segnalazione.
-3. Mostra stato e timeline pubblica.
+3. Se la segnalazione e ancora da verificare, mostra un messaggio di verifica in corso senza esporre la scheda pubblica.
+4. Se la segnalazione e approvata, mostra la scheda pubblica con stato e timeline pubblica.
+5. Se la segnalazione e rifiutata, mostra un messaggio generico di mancata pubblicazione senza note interne o motivazioni operative.

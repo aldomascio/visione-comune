@@ -355,6 +355,35 @@ Restano fuori scope:
 - comunicazione agli enti, PEC, stato `Comunicata` e stato `Risolta`;
 - modifica completa dei contenuti e gestione categorie da UI.
 
+## VC-007 — Dettaglio pubblico e tracking tramite codice
+
+Il tracking pubblico usa `/segnalazione` come pagina di ricerca codice e `/segnalazioni/[publicCode]` come route stabile della scheda pubblica approvata.
+
+La separazione resta:
+
+`UI pubblica -> application use case -> repository -> PostgreSQL`
+
+Scelte operative:
+
+- `TrackReportByPublicCodeUseCase` distingue codice invalido, non trovato, pending, rejected e published;
+- `GetPublicReportUseCase` restituisce solo segnalazioni approvate con stato pubblico;
+- `GetPublicReportTimelineUseCase` restituisce solo eventi pubblici ordinati;
+- la pagina tracking mostra messaggi comprensibili per pending, rejected, not found e invalid code;
+- se il codice appartiene a una segnalazione pubblicata, il tracking porta alla scheda pubblica;
+- la scheda pubblica mostra codice pubblico, titolo, descrizione, categoria, indirizzo, coordinate testuali, stato pubblico, data invio, data pubblicazione e timeline pubblica;
+- eventi interni, metadata e note di rifiuto non vengono restituiti al pubblico;
+- la conferma di invio segnalazione include CTA verso il tracking.
+
+Restano fuori scope:
+
+- mappa pubblica;
+- geocoding;
+- foto;
+- conferme;
+- duplicati;
+- PEC e destinatari;
+- stati `Comunicata` e `Risolta` come flussi operativi nuovi.
+
 ## Ambiente PostgreSQL locale
 
 La fondazione database usa due database locali separati:

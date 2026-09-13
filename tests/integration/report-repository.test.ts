@@ -121,6 +121,63 @@ maybeDescribe("DrizzleReportRepository", () => {
     });
   });
 
+  it("does not expose pending or rejected reports as public reports", async () => {
+    const pendingReport = createReport("test-report-1", "VC-ABC12345");
+    await repository.save(pendingReport, pendingReport.pullDomainEvents());
+
+    const rejectedReport = createReport("test-report-reject", "VC-REJECT01");
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents());
+    rejectedReport.reject(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-ABC12345"))).resolves.toBeNull();
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-REJECT01"))).resolves.toBeNull();
+  });
+
+  it("returns approved public reports and only public timeline events ordered by date", async () => {
+    const report = createReport("test-report-approve", "VC-APPROVE1");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    report.markCommunicated(new Date("2026-01-06T10:00:00.000Z"));
+    const publicEvents = report.pullDomainEvents();
+
+    await repository.save(report, publicEvents, {
+      expectedModerationStatus: "pending_review"
+    });
+    await connection.db.insert(reportEvents).values({
+      id: "test-report-approve-internal-event",
+      reportId: "test-report-approve",
+      type: "ReportRejected",
+      visibility: "internal",
+      publicStatus: null,
+      metadata: { internalNote: "Non deve essere restituita" },
+      createdAt: new Date("2026-01-05T10:00:00.000Z")
+    });
+
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-APPROVE1"))).resolves.toMatchObject({
+      publicCode: "VC-APPROVE1",
+      title: "Buche in strada",
+      categoryName: "Categoria test strade",
+      publicStatus: "communicated",
+      publishedAt: new Date("2026-01-04T10:00:00.000Z")
+    });
+
+    await expect(repository.listPublicEventsByPublicCode(PublicCode.create("VC-APPROVE1"))).resolves.toEqual([
+      {
+        type: "ReportApproved",
+        publicStatus: "reported",
+        occurredAt: new Date("2026-01-04T10:00:00.000Z")
+      },
+      {
+        type: "ReportCommunicated",
+        publicStatus: "communicated",
+        occurredAt: new Date("2026-01-06T10:00:00.000Z")
+      }
+    ]);
+  });
+
   it("persists report status dates and events", async () => {
     const report = createReport("test-report-1", "VC-ABC12345");
     report.pullDomainEvents();

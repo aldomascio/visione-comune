@@ -5,6 +5,8 @@ import {
   ConcurrentReportModerationError,
   DuplicatePublicCodePersistenceError,
   type ReportModerationFilter,
+  type PublicReportDetail,
+  type PublicReportTimelineEvent,
   type ReportModerationSummary,
   type ReportRepository,
   type ReportSaveOptions
@@ -103,6 +105,73 @@ export class DrizzleReportRepository implements ReportRepository {
       createdAt: row.createdAt,
       moderationStatus: row.moderationStatus,
       ...(row.address ? { address: row.address } : {})
+    }));
+  }
+
+  async findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null> {
+    const [row] = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        description: reports.description,
+        categoryName: categories.name,
+        address: reports.address,
+        latitude: reports.latitude,
+        longitude: reports.longitude,
+        publicStatus: reports.publicStatus,
+        createdAt: reports.createdAt,
+        publishedAt: reports.publishedAt
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .where(
+        and(
+          eq(reports.publicCode, publicCode.toString()),
+          eq(reports.moderationStatus, "approved")
+        )
+      )
+      .limit(1);
+
+    if (!row?.publicStatus || !row.publishedAt) {
+      return null;
+    }
+
+    return {
+      publicCode: row.publicCode,
+      title: row.title,
+      description: row.description,
+      categoryName: row.categoryName,
+      ...(row.address ? { address: row.address } : {}),
+      latitude: row.latitude,
+      longitude: row.longitude,
+      publicStatus: row.publicStatus,
+      createdAt: row.createdAt,
+      publishedAt: row.publishedAt
+    };
+  }
+
+  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+    const rows = await this.db
+      .select({
+        type: reportEvents.type,
+        publicStatus: reportEvents.publicStatus,
+        occurredAt: reportEvents.createdAt
+      })
+      .from(reportEvents)
+      .innerJoin(reports, eq(reportEvents.reportId, reports.id))
+      .where(
+        and(
+          eq(reports.publicCode, publicCode.toString()),
+          eq(reports.moderationStatus, "approved"),
+          eq(reportEvents.visibility, "public")
+        )
+      )
+      .orderBy(reportEvents.createdAt);
+
+    return rows.map((row) => ({
+      type: row.type,
+      ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
+      occurredAt: row.occurredAt
     }));
   }
 

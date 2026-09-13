@@ -103,3 +103,29 @@ un amministratore rifiuta una segnalazione e vuole lasciare un motivo operativo 
 
 Gestione prevista:
 la nota e opzionale, interna, non pubblica, e viene salvata nei metadata dell'evento `ReportRejected`. Non introduce un sistema di commenti o note generiche.
+
+## VC-007 — Tracking pubblico
+
+### EC-VC007-001 — Codice valido ma segnalazione non ancora approvata
+
+Caso:
+il cittadino usa il codice di una segnalazione ancora `Da verificare`.
+
+Gestione prevista:
+il tracking conferma che la segnalazione e stata ricevuta e che e in verifica, ma non mostra titolo, descrizione, posizione o pagina pubblica completa.
+
+### EC-VC007-002 — Codice valido ma segnalazione rifiutata
+
+Caso:
+il cittadino usa il codice di una segnalazione rifiutata.
+
+Gestione prevista:
+il tracking mostra un messaggio generico di mancata pubblicazione. Note interne, motivazioni operative ed eventi interni non sono esposti.
+
+### EC-VC007-003 — Accesso diretto a dettaglio non pubblico
+
+Caso:
+qualcuno prova ad aprire direttamente `/segnalazioni/[publicCode]` per una segnalazione pending o rejected.
+
+Gestione prevista:
+la pagina pubblica non viene renderizzata. Solo segnalazioni approvate con stato pubblico sono accessibili come dettaglio pubblico.

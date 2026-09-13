@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import {
@@ -54,11 +55,16 @@ export function ReportForm({ categories }: ReportFormProps) {
             </p>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">
-            Salva questo codice: ti servira per seguire la segnalazione quando il tracking
-            pubblico sara disponibile. La segnalazione non viene pubblicata automaticamente.
+            Salva questo codice: ti servira per seguire la segnalazione. La segnalazione non viene pubblicata automaticamente.
           </p>
-          <div>
+          <div className="flex flex-col gap-3 sm:flex-row">
             <CopyPublicCodeButton publicCode={state.publicCode} />
+            <Link
+              className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              href={`/segnalazione?codice=${state.publicCode}`}
+            >
+              Controlla lo stato della segnalazione
+            </Link>
           </div>
         </CardContent>
       </Card>

@@ -199,6 +199,14 @@ class InMemoryModerationReportRepository implements ReportRepository {
   async countByModerationStatus(status: ModerationStatus): Promise<number> {
     return this.reports.filter((report) => report.toSnapshot().moderationStatus === status).length;
   }
+
+  async findPublicByPublicCode(): Promise<null> {
+    return null;
+  }
+
+  async listPublicEventsByPublicCode(): Promise<[]> {
+    return [];
+  }
 }
 
 function createPendingReport(id: string, publicCode: string): Report {

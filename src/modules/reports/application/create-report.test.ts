@@ -245,6 +245,14 @@ class InMemoryReportRepository implements ReportRepository {
   async countByModerationStatus(status: ModerationStatus): Promise<number> {
     return this.savedReports.filter((report) => report.toSnapshot().moderationStatus === status).length;
   }
+
+  async findPublicByPublicCode(): Promise<null> {
+    return null;
+  }
+
+  async listPublicEventsByPublicCode(): Promise<[]> {
+    return [];
+  }
 }
 
 class SequencePublicCodeGenerator implements PublicCodeGenerator {

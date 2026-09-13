@@ -202,6 +202,17 @@ mantiene centralizzate le business rule su pubblicazione, stati e transizioni, e
 Conseguenza:
 approvare imposta `moderationStatus = approved`, `publicStatus = reported`, `publishedAt` e persiste `ReportApproved`. Rifiutare imposta `moderationStatus = rejected`, lascia la segnalazione non pubblica e persiste `ReportRejected`. Il salvataggio di moderazione usa lo stato atteso `pending_review` per intercettare doppie moderazioni concorrenti.
 
+### ADR-024 — Tracking pubblico tramite codice
+
+Decisione:
+il tracking pubblico usa solo il `publicCode`. La route `/segnalazione` permette di controllare il codice; la route `/segnalazioni/[publicCode]` mostra la scheda pubblica solo se la segnalazione e approvata e ha uno stato pubblico.
+
+Motivo:
+mantiene il principio di nessun account cittadino e impedisce che segnalazioni pending o rifiutate diventino consultabili come pagine pubbliche.
+
+Conseguenza:
+le segnalazioni `pending_review` mostrano solo un messaggio di verifica in corso. Le segnalazioni `rejected` mostrano solo un messaggio generico di mancata pubblicazione. La timeline pubblica legge solo eventi `report_events.visibility = public` e non restituisce metadata, note interne o eventi interni.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

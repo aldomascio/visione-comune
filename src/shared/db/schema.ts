@@ -55,6 +55,8 @@ export const outboundCommunicationStatusEnum = pgEnum("outbound_communication_st
   "failed"
 ]);
 
+export const newsPostStatusEnum = pgEnum("news_post_status", ["draft", "published"]);
+
 export const categories = pgTable(
   "categories",
   {
@@ -280,6 +282,31 @@ export const outboundCommunications = pgTable(
     check("outbound_communications_sent_at_required", sql`${table.status} not in ('sent', 'delivered') or ${table.sentAt} is not null`)
   ]
 );
+export const newsPosts = pgTable(
+  "news_posts",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    title: varchar("title", { length: 180 }).notNull(),
+    slug: varchar("slug", { length: 160 }).notNull(),
+    excerpt: varchar("excerpt", { length: 320 }),
+    content: varchar("content", { length: 12000 }).notNull(),
+    status: newsPostStatusEnum("status").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("news_posts_slug_unique").on(table.slug),
+    index("news_posts_status_idx").on(table.status),
+    index("news_posts_published_at_idx").on(table.publishedAt),
+    check("news_posts_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("news_posts_title_not_empty", sql`length(trim(${table.title})) > 0`),
+    check("news_posts_slug_not_empty", sql`length(trim(${table.slug})) > 0`),
+    check("news_posts_slug_format", sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+    check("news_posts_content_not_empty", sql`length(trim(${table.content})) > 0`),
+    check("news_posts_published_requires_published_at", sql`${table.status} <> 'published' or ${table.publishedAt} is not null`)
+  ]
+);
 
 export const adminUsers = pgTable(
   "admin_users",
@@ -318,5 +345,7 @@ export type ReportConfirmationRecord = typeof reportConfirmations.$inferSelect;
 export type NewReportConfirmationRecord = typeof reportConfirmations.$inferInsert;
 export type OutboundCommunicationRecord = typeof outboundCommunications.$inferSelect;
 export type NewOutboundCommunicationRecord = typeof outboundCommunications.$inferInsert;
+export type NewsPostRecord = typeof newsPosts.$inferSelect;
+export type NewNewsPostRecord = typeof newsPosts.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;

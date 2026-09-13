@@ -170,6 +170,26 @@ Note implementative MVP:
 - `failed` non cambia lo stato del report e resta informazione interna admin.
 - subject, body, destinatario, indirizzi, externalMessageId e dettagli tecnici non devono comparire nella scheda pubblica.
 
+## NewsPost
+
+- id
+- title
+- slug
+- excerpt
+- content
+- status
+- publishedAt
+- createdAt
+- updatedAt
+
+Note implementative MVP:
+
+- `status` supporta solo `draft` e `published`.
+- `slug` e URL-safe, lowercase e univoco. Puo essere generato dal titolo e modificato dall'admin.
+- `content` e testo semplice, non Markdown e non HTML. React lo renderizza come testo, preservando gli a capo con CSS.
+- `publishedAt` rappresenta la prima pubblicazione: quando una notizia torna bozza non viene cancellato.
+- le query pubbliche restituiscono solo notizie `published` con `publishedAt` valorizzato, ordinate per `publishedAt DESC`.
+
 ## InboundCommunication
 
 - id

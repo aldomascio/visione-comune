@@ -326,6 +326,17 @@ il prodotto deve essere navigabile senza mescolare UX pubblica e backoffice, e s
 Conseguenza:
 header, footer e menu mobile pubblici non compaiono nel backoffice. Il menu admin mostra utente autenticato, logout e link operativi, ma non sostituisce i controlli server-side gia presenti sulle pagine admin.
 
+### ADR-035 — Notizie editoriali semplici
+
+Decisione:
+in VC-017 le notizie sono gestite con una tabella `news_posts`, stati `draft` e `published`, slug univoco URL-safe e contenuto testuale semplice. Non viene introdotto Markdown, HTML raw, editor WYSIWYG, categorie/tag o workflow editoriale complesso.
+
+Motivo:
+la sezione deve permettere aggiornamenti pubblici utili senza trasformare l'MVP in un CMS complesso o introdurre rischi XSS legati a rendering HTML/Markdown.
+
+Conseguenza:
+solo gli admin autenticati e attivi possono creare, modificare e pubblicare notizie. Il pubblico vede solo post `published` con `publishedAt` valorizzato. `publishedAt` rappresenta la prima pubblicazione e resta conservato se una notizia torna bozza.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

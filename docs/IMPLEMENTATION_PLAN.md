@@ -709,9 +709,27 @@ Implementazione prevista/completata per la slice:
 - menu mobile accessibile senza librerie esterne;
 - footer pubblico con link principali, area contatti placeholder e privacy placeholder;
 - shell admin sotto `/admin/layout.tsx`, mostrata solo con sessione admin attiva;
-- navigazione admin per Dashboard, Segnalazioni, Categorie, Destinatari e Smistamento;
+- navigazione admin per Dashboard, Segnalazioni, Categorie, Notizie, Destinatari e Smistamento;
 - home temporanea semplificata con CTA verso segnalazione e mappa;
-- placeholder `/notizie`, `/newsletter` e `/privacy` senza CMS, form o provider esterni;
+- placeholder `/newsletter` e `/privacy` senza form o provider esterni;
 - test E2E per navigazione pubblica, mobile e admin.
 
-Restano fuori scope: home editoriale definitiva, contenuti news reali, form newsletter, provider email/newsletter, ricerca globale e dashboard statistiche avanzate.
+Restano fuori scope: home editoriale definitiva, form newsletter, provider email/newsletter, ricerca globale e dashboard statistiche avanzate.
+
+## VC-017 — Notizie e aggiornamenti
+
+Implementazione prevista/completata per la slice:
+
+- modello `news_posts` con `draft` e `published`;
+- slug URL-safe, lowercase, univoco, generabile dal titolo e modificabile dall'admin;
+- contenuto testuale semplice, senza Markdown, HTML raw o editor WYSIWYG;
+- use case applicativi per lista admin, creazione, modifica, lista pubblica e dettaglio pubblico;
+- repository Drizzle dedicato sotto `modules/news/infrastructure`;
+- backoffice `/admin/notizie`, `/admin/notizie/nuova`, `/admin/notizie/[postId]`;
+- lista pubblica `/notizie` e dettaglio `/notizie/[slug]`;
+- bozze escluse dalla lista pubblica e 404 su accesso diretto allo slug;
+- `publishedAt` valorizzato alla prima pubblicazione e conservato se il post torna bozza;
+- navigazione admin aggiornata con `Notizie`;
+- test unit, integration e E2E dedicati.
+
+Restano fuori scope: categorie/tag news, autore pubblico, immagini copertina, SEO avanzata, scheduling, revision history, newsletter automatica e notifiche.

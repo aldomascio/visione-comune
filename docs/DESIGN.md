@@ -158,10 +158,10 @@ VC-016B introduce una shell di navigazione coerente senza definire ancora la hom
 
 La shell pubblica include:
 
-- logo testuale temporaneo `VC` e nome Visione Comune;
-- link Home, Segnala, Mappa, Controlla segnalazione, Notizie, Newsletter;
-- CTA primaria `Segnala un problema`;
-- footer con link principali, contatti placeholder e privacy placeholder.
+- logo SVG in `public/logo.svg`, colorato con il token `foreground` e usato come link alla Home;
+- menu principale con `Mappa`, `Manifesto`, `Notizie`, `Newsletter`;
+- CTA primaria separata `Segnala un problema`;
+- footer con link principali, tracking segnalazione, contatti placeholder e privacy placeholder.
 
 Lo stato attivo usa `aria-current="page"` e classi basate sui token `primary`, `accent`, `muted`, `border`, `background` e `foreground`.
 
@@ -176,16 +176,20 @@ La shell admin e distinta dalla navigazione pubblica e compare solo per sessioni
 - indicazione `Area amministrativa`;
 - email dell'admin autenticato;
 - logout;
-- link Dashboard, Segnalazioni, Categorie, Destinatari, Smistamento.
+- link Dashboard, Segnalazioni, Categorie, Notizie, Destinatari, Smistamento.
 
 Le route admin restano protette server-side: la shell e un aiuto di navigazione, non un controllo di sicurezza.
 
 ### Logo
 
-Il logo definitivo non e ancora stato integrato. Il mark `VC` e un placeholder grafico temporaneo. Quando disponibile, l'SVG puo essere inserito in `public/logo.svg` e usato dalla shell pubblica/admin senza cambiare la navigazione.
+Il logo SVG e disponibile in `public/logo.svg`. La shell lo mostra come mark grafico senza testo affiancato, usando una maschera CSS colorata con il token `foreground`, cosi resta coerente con il tema.
 
 
 ### Menu pubblico principale
 
 Il menu pubblico principale contiene solo i link editoriali e di consultazione: `Mappa`, `Manifesto`, `Notizie`, `Newsletter`. Il logo resta il collegamento alla Home. La creazione segnalazione rimane una CTA separata, non una voce del menu principale.
 
+
+### Notizie editoriali
+
+La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Il contenuto e testo semplice, non HTML e non Markdown: gli a capo sono preservati con `white-space`, mentre React mantiene escaping automatico del testo.

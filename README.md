@@ -123,7 +123,8 @@ Pagine pubbliche disponibili in locale:
 - `/segnalazioni/[publicCode]` dettaglio pubblico solo per segnalazioni approvate;
 - `/mappa` mappa pubblica delle segnalazioni approvate;
 - `/manifesto` placeholder manifesto;
-- `/notizie` placeholder sezione notizie;
+- `/notizie` elenco notizie pubblicate;
+- `/notizie/[slug]` dettaglio pubblico di una notizia pubblicata;
 - `/newsletter` placeholder sezione newsletter;
 - `/privacy` placeholder privacy/policy.
 

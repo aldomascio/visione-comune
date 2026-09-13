@@ -208,3 +208,66 @@
     cursor: not-allowed;
   }
 }
+
+@layer components {
+  .ProseMirror {
+    min-height: 18rem;
+  }
+
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: "Scrivi il contenuto della notizia...";
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .ProseMirror :where(h2) {
+    font-family: var(--font-serif);
+    font-size: 1.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-block: 1rem 0.5rem;
+  }
+
+  .ProseMirror :where(h3) {
+    font-size: 1.25rem;
+    font-weight: 650;
+    line-height: 1.35;
+    margin-block: 0.75rem 0.25rem;
+  }
+
+  .ProseMirror :where(p) {
+    margin-block: 0.5rem;
+  }
+
+  .ProseMirror :where(ul, ol) {
+    margin-block: 0.75rem;
+    padding-left: 1.5rem;
+  }
+
+  .ProseMirror :where(ul) {
+    list-style: disc;
+  }
+
+  .ProseMirror :where(ol) {
+    list-style: decimal;
+  }
+
+  .ProseMirror :where(blockquote) {
+    border-left: 4px solid color-mix(in oklab, var(--primary) 32%, transparent);
+    color: var(--muted-foreground);
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    line-height: 1.6;
+    margin-block: 1rem;
+    padding-left: 1rem;
+  }
+
+  .ProseMirror :where(a) {
+    color: var(--primary);
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+}

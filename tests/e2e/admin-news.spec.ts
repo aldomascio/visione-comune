@@ -13,6 +13,7 @@ const publishedTitle = "Notizia pubblicata E2E";
 const publishedSlug = "notizia-pubblicata-e2e";
 const privateDraftTitle = "Bozza privata E2E";
 const privateDraftSlug = "bozza-privata-e2e";
+const emptyDraftSlug = "notizia-senza-contenuto-e2e";
 
 test.describe.configure({ mode: "serial" });
 
@@ -35,7 +36,7 @@ test("admin creates a draft, publishes it, and public pages show only published 
   await page.getByLabel("Titolo").fill(draftTitle);
   await expect(page.getByLabel("Slug")).toHaveValue(draftSlug);
   await page.getByLabel("Estratto").fill("Estratto bozza E2E");
-  await page.getByLabel("Contenuto").fill("Contenuto iniziale della bozza E2E.");
+  await fillEditor(page, "Contenuto iniziale della bozza E2E.");
   await page.getByLabel("Stato").selectOption("draft");
   await page.getByRole("button", { name: "Salva notizia" }).click();
 
@@ -50,7 +51,8 @@ test("admin creates a draft, publishes it, and public pages show only published 
   await page.getByLabel("Estratto").fill("Estratto pubblico E2E");
   await page.getByLabel("Immagine in evidenza").fill("/news/territorio.svg");
   await page.getByLabel("Testo alternativo immagine").fill("Illustrazione test notizia E2E");
-  await page.getByLabel("Contenuto").fill("Contenuto pubblico aggiornato E2E.");
+  await expect(page.getByRole("toolbar", { name: "Toolbar editor notizia" })).toBeVisible();
+  await setRichTextDocument(page);
   await page.getByLabel("Stato").selectOption("published");
   await page.getByRole("button", { name: "Salva modifiche" }).click();
 
@@ -67,11 +69,68 @@ test("admin creates a draft, publishes it, and public pages show only published 
   await expect(page).toHaveURL(new RegExp(`/notizie/${publishedSlug}$`));
   await expect(page.getByRole("heading", { name: publishedTitle })).toBeVisible();
   await expect(page.getByRole("img", { name: "Illustrazione test notizia E2E" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Titolo sezione E2E" })).toBeVisible();
   await expect(page.getByText("Contenuto pubblico aggiornato E2E.")).toBeVisible();
+  await expect(page.getByText("Secondo punto E2E")).toBeVisible();
+  await expect(page.getByRole("link", { name: "E2E" })).toHaveAttribute("href", "https://example.com/visione-comune");
 
   const draftResponse = await page.goto(`/notizie/${privateDraftSlug}`);
   expect(draftResponse?.status()).toBe(404);
 });
+
+
+test("admin cannot save a news post with empty rich text content", async ({ page }) => {
+  await loginAdmin(page);
+
+  await page.goto("/admin/notizie/nuova");
+  await page.getByLabel("Titolo").fill("Notizia senza contenuto E2E");
+  await page.getByLabel("Stato").selectOption("draft");
+  await page.getByRole("button", { name: "Salva notizia" }).click();
+
+  await expect(page.getByText("Controlla i campi evidenziati.")).toBeVisible();
+  await expect(page.getByText("Inserisci il contenuto della notizia.")).toBeVisible();
+});
+
+async function fillEditor(page: Page, text: string): Promise<void> {
+  const editor = page.getByRole("textbox", { name: "Contenuto della notizia" });
+  await editor.click();
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+  await page.keyboard.type(text);
+}
+
+async function setRichTextDocument(page: Page): Promise<void> {
+  const document = {
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Titolo sezione E2E" }] },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Contenuto ", marks: [{ type: "bold" }] },
+          { type: "text", text: "pubblico aggiornato E2E." }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Primo punto E2E" }] }] },
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Secondo punto E2E" }] }] }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Link utile " },
+          { type: "text", text: "E2E", marks: [{ type: "link", attrs: { href: "https://example.com/visione-comune" } }] }
+        ]
+      }
+    ]
+  };
+
+  await page.locator('input[name="contentJson"]').evaluate((input, value) => {
+    (input as HTMLInputElement).value = JSON.stringify(value);
+  }, document);
+}
 
 async function loginAdmin(page: Page): Promise<void> {
   await page.goto("/admin/login");
@@ -94,13 +153,14 @@ async function createAdmin(): Promise<void> {
 async function createDraftNewsPost(): Promise<void> {
   await withDatabase(async (sql) => {
     await sql`
-      insert into news_posts (id, title, slug, excerpt, content, status, created_at, updated_at)
+      insert into news_posts (id, title, slug, excerpt, content, content_json, status, created_at, updated_at)
       values (
         'e2e-news-private-draft',
         ${privateDraftTitle},
         ${privateDraftSlug},
         'Estratto bozza privata',
         'Contenuto bozza privata.',
+        ${sql.json(contentDocumentFromText('Contenuto bozza privata.'))},
         'draft',
         now(),
         now()
@@ -109,9 +169,13 @@ async function createDraftNewsPost(): Promise<void> {
   });
 }
 
+function contentDocumentFromText(value: string): postgres.JSONValue {
+  return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: value }] }] };
+}
+
 async function cleanupE2eData(): Promise<void> {
   await withDatabase(async (sql) => {
-    await sql`delete from news_posts where slug in ${sql([draftSlug, publishedSlug, privateDraftSlug])} or id in ${sql(["e2e-news-private-draft"])}`;
+    await sql`delete from news_posts where slug in ${sql([draftSlug, publishedSlug, privateDraftSlug, emptyDraftSlug])} or id in ${sql(["e2e-news-private-draft"])}`;
     await sql`delete from admin_users where email = ${adminEmail} or id = ${adminId}`;
   });
 }

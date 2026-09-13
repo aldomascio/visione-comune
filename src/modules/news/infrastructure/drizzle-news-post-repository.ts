@@ -1,6 +1,7 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
-import { newsPosts } from "@/shared/db/schema";
+import { newsPosts, type NewsPostRecord } from "@/shared/db/schema";
+import { normalizeNewsPostContentDocument, newsPostContentDocumentFromText } from "../application/news-post-content";
 import {
   DuplicateNewsPostSlugPersistenceError,
   type NewsPostDetails,
@@ -21,7 +22,7 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
         throw new Error("News post insert did not return a row.");
       }
 
-      return createdPost;
+      return mapNewsPostRecord(createdPost);
     } catch (error) {
       if (isNewsPostSlugUniqueViolation(error)) {
         throw new DuplicateNewsPostSlugPersistenceError(post.slug);
@@ -42,6 +43,7 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
           featuredImageUrl: post.featuredImageUrl,
           featuredImageAlt: post.featuredImageAlt,
           content: post.content,
+          contentJson: post.contentJson,
           status: post.status,
           publishedAt: post.publishedAt,
           updatedAt: post.updatedAt
@@ -49,7 +51,7 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
         .where(eq(newsPosts.id, post.id))
         .returning();
 
-      return updatedPost ?? null;
+      return updatedPost ? mapNewsPostRecord(updatedPost) : null;
     } catch (error) {
       if (isNewsPostSlugUniqueViolation(error)) {
         throw new DuplicateNewsPostSlugPersistenceError(post.slug);
@@ -61,16 +63,17 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
 
   async findById(postId: string): Promise<NewsPostDetails | null> {
     const [post] = await this.db.select().from(newsPosts).where(eq(newsPosts.id, postId)).limit(1);
-    return post ?? null;
+    return post ? mapNewsPostRecord(post) : null;
   }
 
   async findBySlug(slug: string): Promise<NewsPostDetails | null> {
     const [post] = await this.db.select().from(newsPosts).where(eq(newsPosts.slug, slug)).limit(1);
-    return post ?? null;
+    return post ? mapNewsPostRecord(post) : null;
   }
 
   async listAdmin(): Promise<NewsPostListItem[]> {
-    return this.db.select().from(newsPosts).orderBy(desc(newsPosts.createdAt));
+    const posts = await this.db.select().from(newsPosts).orderBy(desc(newsPosts.createdAt));
+    return posts.map(mapNewsPostRecord);
   }
 
   async listPublished(limit?: number): Promise<NewsPostListItem[]> {
@@ -82,10 +85,12 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
       .$dynamic();
 
     if (typeof limit === "number") {
-      return query.limit(limit);
+      const posts = await query.limit(limit);
+      return posts.map(mapNewsPostRecord);
     }
 
-    return query;
+    const posts = await query;
+    return posts.map(mapNewsPostRecord);
   }
 
   async findPublishedBySlug(slug: string): Promise<NewsPostDetails | null> {
@@ -95,7 +100,7 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
       .where(and(eq(newsPosts.slug, slug), eq(newsPosts.status, "published"), isNotNull(newsPosts.publishedAt)))
       .limit(1);
 
-    return post ?? null;
+    return post ? mapNewsPostRecord(post) : null;
   }
 }
 
@@ -128,4 +133,13 @@ type PostgresError = {
 
 function isPostgresError(error: unknown): error is PostgresError {
   return typeof error === "object" && error !== null && "code" in error;
+}
+
+function mapNewsPostRecord(record: NewsPostRecord): NewsPostDetails {
+  return {
+    ...record,
+    contentJson: record.contentJson
+      ? normalizeNewsPostContentDocument(record.contentJson)
+      : newsPostContentDocumentFromText(record.content)
+  };
 }

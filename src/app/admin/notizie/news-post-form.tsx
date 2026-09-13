@@ -5,6 +5,7 @@ import { useActionState, useMemo, useState } from "react";
 import type { NewsPostDetails } from "@/modules/news/application/news-post-repository";
 import { normalizeNewsPostSlug } from "@/modules/news/application/manage-news-posts";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input, Select, Textarea } from "@/shared/ui";
+import { RichTextEditor } from "./rich-text-editor";
 import type { NewsPostActionState } from "./form-state";
 
 type NewsPostFormProps = {
@@ -122,16 +123,12 @@ export function NewsPostForm({ action, initialState, mode, post }: NewsPostFormP
             </Field>
           </div>
 
-          <Field htmlFor="content" label="Contenuto" hint="Testo semplice. Non viene interpretato come HTML.">
-            <Textarea
-              aria-describedby={state.fieldErrors.content ? "content-error" : undefined}
-              aria-invalid={Boolean(state.fieldErrors.content)}
-              id="content"
-              maxLength={12000}
-              name="content"
-              required
-              rows={12}
-              defaultValue={state.values.content}
+          <Field htmlFor="content-editor" label="Contenuto" hint="Editor semplice: paragrafi, H2/H3, grassetto, corsivo, link, liste e citazioni. Non salva HTML raw.">
+            <RichTextEditor
+              describedBy={state.fieldErrors.content ? "content-error" : undefined}
+              initialValue={state.values.contentJson || state.values.content}
+              inputName="contentJson"
+              invalid={Boolean(state.fieldErrors.content)}
             />
             {state.fieldErrors.content ? <p className="text-sm font-medium text-destructive" id="content-error">{state.fieldErrors.content}</p> : null}
           </Field>

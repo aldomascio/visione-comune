@@ -82,7 +82,7 @@ pnpm db:seed:dev
 pnpm test:integration
 ```
 
-`pnpm db:migrate:dev` usa `.env.local`. `pnpm db:seed:dev` inserisce categorie provvisorie di sviluppo e 8 notizie pubblicate di esempio con immagini locali in `public/news/`; questi contenuti non sono definitivi. Per provare `/segnala` in locale servono migration applicate e almeno una categoria attiva nel database.
+`pnpm db:migrate:dev` usa `.env.local`. `pnpm db:seed:dev` inserisce categorie provvisorie di sviluppo e 8 notizie pubblicate di esempio con immagini locali in `public/news/` e contenuto rich text JSONB; questi contenuti non sono definitivi. Per provare `/segnala` in locale servono migration applicate e almeno una categoria attiva nel database.
 
 `pnpm test:integration` usa `.env.test.local` ed esegue test reali contro PostgreSQL. Gli integration test dentro `pnpm test` restano saltati se `TEST_DATABASE_URL` non è configurata nell'ambiente corrente.
 

@@ -292,6 +292,7 @@ export const newsPosts = pgTable(
     featuredImageUrl: varchar("featured_image_url", { length: 500 }),
     featuredImageAlt: varchar("featured_image_alt", { length: 180 }),
     content: varchar("content", { length: 12000 }).notNull(),
+    contentJson: jsonb("content_json").notNull(),
     status: newsPostStatusEnum("status").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -306,6 +307,7 @@ export const newsPosts = pgTable(
     check("news_posts_slug_not_empty", sql`length(trim(${table.slug})) > 0`),
     check("news_posts_slug_format", sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
     check("news_posts_content_not_empty", sql`length(trim(${table.content})) > 0`),
+    check("news_posts_content_json_object", sql`jsonb_typeof(${table.contentJson}) = 'object'`),
     check(
       "news_posts_featured_image_alt_required",
       sql`${table.featuredImageUrl} is null or length(trim(${table.featuredImageAlt})) > 0`

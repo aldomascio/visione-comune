@@ -27,6 +27,20 @@ const provisionalCategories = [
   }
 ];
 
+function contentDocumentFromText(value) {
+  const paragraphs = value
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => ({
+      type: "paragraph",
+      content: [{ type: "text", text: paragraph }]
+    }));
+
+  return { type: "doc", content: paragraphs.length > 0 ? paragraphs : [{ type: "paragraph" }] };
+}
+
 const newsPosts = [
   {
     id: "seed-news-territorio-ascolto",
@@ -159,6 +173,7 @@ try {
         featured_image_url,
         featured_image_alt,
         content,
+        content_json,
         status,
         published_at,
         created_at,
@@ -171,6 +186,7 @@ try {
         ${post.image},
         ${post.imageAlt},
         ${post.content},
+        ${contentDocumentFromText(post.content)},
         'published',
         ${publishedAt},
         ${publishedAt},
@@ -183,6 +199,7 @@ try {
         featured_image_url = excluded.featured_image_url,
         featured_image_alt = excluded.featured_image_alt,
         content = excluded.content,
+        content_json = excluded.content_json,
         status = excluded.status,
         published_at = excluded.published_at,
         updated_at = now()

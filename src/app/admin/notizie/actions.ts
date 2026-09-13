@@ -107,6 +107,7 @@ function readNewsPostFormValues(formData: FormData): NewsPostActionState["values
     featuredImageUrl: getFormValue(formData, "featuredImageUrl"),
     featuredImageAlt: getFormValue(formData, "featuredImageAlt"),
     content: getFormValue(formData, "content"),
+    contentJson: getFormValue(formData, "contentJson"),
     status: getFormValue(formData, "status")
   };
 }

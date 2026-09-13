@@ -1,5 +1,14 @@
 import { randomUUID } from "node:crypto";
 import {
+  InvalidNewsPostContentDocumentError,
+  getNewsPostContentText,
+  isNewsPostContentEmpty,
+  newsPostContentDocumentFromText,
+  parseNewsPostContentDocument,
+  serializeNewsPostContentDocument,
+  type NewsPostContentDocument
+} from "./news-post-content";
+import {
   DuplicateNewsPostSlugPersistenceError,
   NEWS_POST_STATUSES,
   type NewsPostDetails,
@@ -53,7 +62,8 @@ export type NewsPostFormInput = {
   excerpt?: string;
   featuredImageUrl?: string;
   featuredImageAlt?: string;
-  content: string;
+  content?: string;
+  contentJson?: string;
   status: string;
 };
 
@@ -127,7 +137,8 @@ export class CreateNewsPostUseCase {
         excerpt: values.excerpt,
         featuredImageUrl: values.featuredImageUrl,
         featuredImageAlt: values.featuredImageAlt,
-        content: values.content,
+        content: values.contentText,
+        contentJson: values.contentJson,
         status: values.status,
         publishedAt: values.status === "published" ? now : null,
         createdAt: now,
@@ -175,7 +186,8 @@ export class UpdateNewsPostUseCase {
         excerpt: values.excerpt,
         featuredImageUrl: values.featuredImageUrl,
         featuredImageAlt: values.featuredImageAlt,
-        content: values.content,
+        content: values.contentText,
+        contentJson: values.contentJson,
         status: values.status,
         publishedAt,
         updatedAt: now
@@ -203,6 +215,8 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   content: string;
+  contentText: string;
+  contentJson: NewsPostContentDocument;
   status: NewsPostStatus;
 } {
   const title = normalizeNewsPostTitle(input.title);
@@ -210,7 +224,9 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
   const excerpt = normalizeOptionalText(input.excerpt);
   const featuredImageUrl = normalizeOptionalText(input.featuredImageUrl);
   const featuredImageAlt = normalizeOptionalText(input.featuredImageAlt);
-  const content = normalizeNewsPostContent(input.content);
+  const contentJson = normalizeNewsPostContentInput(input);
+  const contentText = getNewsPostContentText(contentJson);
+  const content = serializeNewsPostContentDocument(contentJson);
   const status = parseNewsPostStatus(input.status);
   const fieldErrors: NewsPostFieldErrors = {};
 
@@ -244,10 +260,10 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
     fieldErrors.featuredImageAlt = `Il testo alternativo non puo superare ${NEWS_POST_FEATURED_IMAGE_ALT_MAX_LENGTH} caratteri.`;
   }
 
-  if (!content) {
+  if (isNewsPostContentEmpty(contentJson)) {
     fieldErrors.content = "Inserisci il contenuto della notizia.";
-  } else if (content.length > NEWS_POST_CONTENT_MAX_LENGTH) {
-    fieldErrors.content = `Il contenuto non puo superare ${NEWS_POST_CONTENT_MAX_LENGTH} caratteri.`;
+  } else if (contentText.length > NEWS_POST_CONTENT_MAX_LENGTH) {
+    fieldErrors.content = `Il contenuto non puo superare ${NEWS_POST_CONTENT_MAX_LENGTH} caratteri di testo.`;
   }
 
   if (!status) {
@@ -258,7 +274,7 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
     throw new NewsPostValidationError(fieldErrors);
   }
 
-  return { title, slug, excerpt, featuredImageUrl, featuredImageAlt, content, status };
+  return { title, slug, excerpt, featuredImageUrl, featuredImageAlt, content, contentText, contentJson, status };
 }
 
 export function normalizeNewsPostTitle(value: string): string {
@@ -297,8 +313,20 @@ function normalizeOptionalText(value: string | undefined): string | null {
   return normalized || null;
 }
 
-function normalizeNewsPostContent(value: string): string {
-  return value.trim().replace(/\r\n/g, "\n");
+function normalizeNewsPostContentInput(input: NewsPostFormInput): NewsPostContentDocument {
+  try {
+    if (input.contentJson?.trim()) {
+      return parseNewsPostContentDocument(input.contentJson);
+    }
+
+    return newsPostContentDocumentFromText(input.content ?? "");
+  } catch (error) {
+    if (error instanceof InvalidNewsPostContentDocumentError) {
+      throw new NewsPostValidationError({ content: error.message });
+    }
+
+    throw error;
+  }
 }
 
 function parseNewsPostStatus(value: string): NewsPostStatus | null {

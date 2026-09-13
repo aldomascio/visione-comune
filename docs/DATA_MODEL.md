@@ -179,6 +179,7 @@ Note implementative MVP:
 - featuredImageUrl
 - featuredImageAlt
 - content
+- contentJson
 - status
 - publishedAt
 - createdAt
@@ -188,7 +189,10 @@ Note implementative MVP:
 
 - `status` supporta solo `draft` e `published`.
 - `slug` e URL-safe, lowercase e univoco. Puo essere generato dal titolo e modificato dall'admin.
-- `content` e testo semplice, non Markdown e non HTML. React lo renderizza come testo, preservando gli a capo con CSS.
+- `contentJson` e la fonte primaria del contenuto editoriale: un documento Tiptap salvato come JSONB e validato server-side.
+- `content` resta valorizzato come testo derivato dal documento per compatibilita legacy e usi semplici di lettura/ricerca; non e la fonte primaria.
+- la migration VC-017B converte i contenuti testuali esistenti in un documento Tiptap con paragrafi semplici, senza perdita del testo gia salvato.
+- non viene salvato HTML raw; il rendering pubblico usa un renderer React basato sui nodi consentiti.
 - `featuredImageUrl` e opzionale e, per l'MVP, usa percorsi locali versionati sotto `public/`; non introduce upload o storage esterno per le news.
 - se `featuredImageUrl` e valorizzato, `featuredImageAlt` e obbligatorio per accessibilita.
 - `publishedAt` rappresenta la prima pubblicazione: quando una notizia torna bozza non viene cancellato.

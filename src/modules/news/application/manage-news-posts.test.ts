@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  getNewsPostContentText,
+  newsPostContentDocumentFromText,
+  parseNewsPostContentDocument,
+  serializeNewsPostContentDocument
+} from "./news-post-content";
+import {
   CreateNewsPostUseCase,
   DuplicateNewsPostSlugError,
   ListPublishedNewsPostsUseCase,
@@ -119,6 +125,81 @@ describe("news post management", () => {
   });
 
 
+  it("stores a valid structured rich text document", async () => {
+    const repository = new InMemoryNewsPostRepository();
+    const contentJson = serializeNewsPostContentDocument({
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Titolo sezione" }] },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Testo " },
+            { type: "text", text: "importante", marks: [{ type: "bold" }] },
+            { type: "text", text: " con link", marks: [{ type: "link", attrs: { href: "https://example.com", target: "_blank", rel: "noopener noreferrer" } }] }
+          ]
+        },
+        { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Punto elenco" }] }] }] }
+      ]
+    });
+
+    const post = await new CreateNewsPostUseCase({ newsPostRepository: repository }).execute({
+      title: "Notizia rich text",
+      slug: "notizia-rich-text",
+      contentJson,
+      status: "draft"
+    });
+
+    expect(post.content).toContain("Titolo sezione");
+    expect(getNewsPostContentText(post.contentJson)).toContain("Punto elenco");
+  });
+
+  it("rejects empty structured content", async () => {
+    const repository = new InMemoryNewsPostRepository();
+
+    await expect(
+      new CreateNewsPostUseCase({ newsPostRepository: repository }).execute({
+        title: "Notizia vuota",
+        slug: "notizia-vuota",
+        contentJson: JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] }),
+        status: "draft"
+      })
+    ).rejects.toMatchObject({ fieldErrors: { content: "Inserisci il contenuto della notizia." } });
+  });
+
+  it("rejects unsafe links in structured content", async () => {
+    const repository = new InMemoryNewsPostRepository();
+
+    await expect(
+      new CreateNewsPostUseCase({ newsPostRepository: repository }).execute({
+        title: "Notizia link pericoloso",
+        slug: "notizia-link-pericoloso",
+        contentJson: JSON.stringify({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Click", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }]
+            }
+          ]
+        }),
+        status: "draft"
+      })
+    ).rejects.toMatchObject({ fieldErrors: { content: "Il link contiene un protocollo non consentito." } });
+  });
+
+  it("converts legacy plain text into a structured document", () => {
+    const document = newsPostContentDocumentFromText("Primo paragrafo.\n\nSecondo paragrafo.");
+
+    expect(parseNewsPostContentDocument(JSON.stringify(document))).toMatchObject({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Primo paragrafo." }] },
+        { type: "paragraph", content: [{ type: "text", text: "Secondo paragrafo." }] }
+      ]
+    });
+  });
+
   it("validates featured image alt text when image is provided", async () => {
     const repository = new InMemoryNewsPostRepository();
 
@@ -191,6 +272,7 @@ function makePost(overrides: Partial<NewsPostDetails>): NewsPostDetails {
     featuredImageUrl: null,
     featuredImageAlt: null,
     content: "Contenuto",
+    contentJson: newsPostContentDocumentFromText("Contenuto"),
     status: "draft",
     publishedAt: null,
     createdAt: now,

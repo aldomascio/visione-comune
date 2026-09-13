@@ -1,3 +1,5 @@
+import type { NewsPostContentDocument } from "./news-post-content";
+
 export const NEWS_POST_STATUSES = ["draft", "published"] as const;
 
 export type NewsPostStatus = (typeof NEWS_POST_STATUSES)[number];
@@ -10,6 +12,7 @@ export type NewsPostDetails = {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   content: string;
+  contentJson: NewsPostContentDocument;
   status: NewsPostStatus;
   publishedAt: Date | null;
   createdAt: Date;
@@ -28,6 +31,7 @@ export type NewsPostUpdate = {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   content: string;
+  contentJson: NewsPostContentDocument;
   status: NewsPostStatus;
   publishedAt: Date | null;
   updatedAt: Date;

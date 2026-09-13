@@ -17,6 +17,7 @@ export type NewsPostActionState = {
     featuredImageUrl: string;
     featuredImageAlt: string;
     content: string;
+    contentJson: string;
     status: string;
   };
 };
@@ -31,6 +32,7 @@ export const initialNewsPostActionState: NewsPostActionState = {
     featuredImageUrl: "",
     featuredImageAlt: "",
     content: "",
+    contentJson: "",
     status: "draft"
   }
 };

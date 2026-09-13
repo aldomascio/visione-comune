@@ -192,4 +192,8 @@ Il menu pubblico principale contiene solo i link editoriali e di consultazione: 
 
 ### Notizie editoriali
 
-La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Il contenuto e testo semplice, non HTML e non Markdown: gli a capo sono preservati con `white-space`, mentre React mantiene escaping automatico del testo. Le immagini in evidenza sono opzionali, usano percorsi locali sotto `public/`, hanno rapporto 16:9 e richiedono testo alternativo.
+La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Dal VC-017B il contenuto e rich text controllato tramite Tiptap nell'area admin. Il rendering pubblico supporta solo paragrafi, H2, H3, grassetto, corsivo, link, elenchi puntati/numerati e blockquote.
+
+Lo stile editoriale resta leggibile e aderente ai token: larghezza massima del testo, heading serif per H2, spaziatura verticale ampia, link `primary` sottolineati e citazioni con bordo derivato da `primary`. Non viene usato Tailwind Typography e non viene renderizzato HTML raw.
+
+Le immagini in evidenza sono opzionali, usano percorsi locali sotto `public/`, hanno rapporto 16:9 e richiedono testo alternativo.

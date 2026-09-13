@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GetPublishedNewsPostBySlugUseCase } from "@/modules/news/application/manage-news-posts";
+import { NewsPostContentRenderer } from "@/modules/news/ui/news-post-content-renderer";
 import { DrizzleNewsPostRepository } from "@/modules/news/infrastructure/drizzle-news-post-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 
@@ -44,9 +45,7 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
           </div>
         ) : null}
 
-        <div className="max-w-3xl whitespace-pre-wrap text-base leading-8 text-foreground">
-          {post.content}
-        </div>
+        <NewsPostContentRenderer document={post.contentJson} />
       </article>
     </main>
   );

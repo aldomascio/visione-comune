@@ -1,6 +1,7 @@
 import { inArray, or } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { newsPostContentDocumentFromText } from "@/modules/news/application/news-post-content";
 import {
   CreateNewsPostUseCase,
   DuplicateNewsPostSlugError,
@@ -69,7 +70,8 @@ maybeDescribe("news post repository with PostgreSQL", () => {
       slug: "pubblicata-test",
       status: "published",
       featuredImageUrl: "/news/test.svg",
-      featuredImageAlt: "Immagine test"
+      featuredImageAlt: "Immagine test",
+      contentJson: newsPostContentDocumentFromText("Contenuto pubblicato test.")
     });
   });
 
@@ -142,6 +144,7 @@ async function insertPost(
     slug: input.slug,
     excerpt: null,
     content: `Contenuto per ${input.title}.`,
+    contentJson: newsPostContentDocumentFromText(`Contenuto per ${input.title}.`),
     status: input.status,
     publishedAt: input.publishedAt,
     createdAt: input.publishedAt ?? new Date("2026-01-01T10:00:00.000Z"),

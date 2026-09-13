@@ -329,13 +329,24 @@ header, footer e menu mobile pubblici non compaiono nel backoffice. Il menu admi
 ### ADR-035 — Notizie editoriali semplici
 
 Decisione:
-in VC-017 le notizie sono gestite con una tabella `news_posts`, stati `draft` e `published`, slug univoco URL-safe e contenuto testuale semplice. Non viene introdotto Markdown, HTML raw, editor WYSIWYG, categorie/tag o workflow editoriale complesso.
+in VC-017 le notizie sono gestite con una tabella `news_posts`, stati `draft` e `published`, slug univoco URL-safe e immagine in evidenza opzionale.
 
 Motivo:
-la sezione deve permettere aggiornamenti pubblici utili senza trasformare l'MVP in un CMS complesso o introdurre rischi XSS legati a rendering HTML/Markdown.
+la sezione deve permettere aggiornamenti pubblici utili senza trasformare l'MVP in un CMS complesso.
 
 Conseguenza:
 solo gli admin autenticati e attivi possono creare, modificare e pubblicare notizie. Il pubblico vede solo post `published` con `publishedAt` valorizzato. `publishedAt` rappresenta la prima pubblicazione e resta conservato se una notizia torna bozza. L'immagine in evidenza e un percorso locale opzionale sotto `public/` con testo alternativo obbligatorio quando presente; non introduce upload immagini news o storage esterno.
+
+### ADR-036 — Rich text controllato per le notizie
+
+Decisione:
+in VC-017B il contenuto delle notizie viene scritto dagli admin con Tiptap e salvato come documento JSONB in `news_posts.content_json`. La vecchia colonna `content` resta come testo derivato e fallback legacy, ma non e piu la fonte primaria editoriale.
+
+Motivo:
+serve formattazione editoriale minima senza introdurre CMS esterni, Markdown ambiguo o HTML raw. Il JSON strutturato permette validazione server-side e rendering pubblico controllato.
+
+Conseguenza:
+sono consentiti solo paragrafi, H2, H3, grassetto, corsivo, link, elenchi puntati/numerati, blockquote, undo e redo. Non sono consentiti tabelle, media inline, embed, iframe, code block, HTML raw o plugin AI. I link vengono validati e il rendering pubblico usa componenti React basati sui nodi consentiti, senza `dangerouslySetInnerHTML`. I contenuti testuali gia presenti vengono convertiti dalla migration in paragrafi Tiptap validi.
 
 ## DA DEFINIRE
 

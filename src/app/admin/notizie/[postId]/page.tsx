@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { serializeNewsPostContentDocument } from "@/modules/news/application/news-post-content";
 import { GetAdminNewsPostUseCase, NewsPostNotFoundError } from "@/modules/news/application/manage-news-posts";
 import { DrizzleNewsPostRepository } from "@/modules/news/infrastructure/drizzle-news-post-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
@@ -29,6 +30,7 @@ export default async function EditNewsPostPage({ params }: EditNewsPostPageProps
       featuredImageUrl: post.featuredImageUrl ?? "",
       featuredImageAlt: post.featuredImageAlt ?? "",
       content: post.content,
+      contentJson: serializeNewsPostContentDocument(post.contentJson),
       status: post.status
     }
   };

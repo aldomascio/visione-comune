@@ -235,6 +235,17 @@ la foto aiuta la moderazione e la consultazione pubblica, ma non deve vincolare 
 Conseguenza:
 la produzione dello storage resta da definire. Le foto pending e rejected non sono servite dalla route pubblica; gli admin autenticati possono vederle nel backoffice. Le foto approvate sono servite tramite route applicativa che verifica sempre lo stato pubblico del report.
 
+### ADR-027 — Rilevamento duplicati iniziale deterministico
+
+Decisione:
+in VC-010 il controllo duplicati avviene nel flusso `/segnala` prima della creazione definitiva. Usa solo criteri deterministici: stessa categoria, report approvato e pubblico, pubblicato negli ultimi 90 giorni, distanza massima 100 metri calcolata con formula Haversine. La query filtra nel database per categoria, stato pubblico, finestra temporale e bounding box; il calcolo preciso della distanza resta nel layer applicativo.
+
+Motivo:
+riduce duplicati evidenti senza introdurre AI, embedding, PostGIS o scoring opaco. Il payload mostrato al cittadino contiene solo dati gia pubblici: codice pubblico, titolo, categoria, indirizzo, stato pubblico, distanza stimata e data pubblicazione.
+
+Conseguenza:
+le soglie sono centralizzate in configurazione applicativa e potranno essere modificate. Pending e rejected non vengono mostrati. Se l'utente dichiara che il problema e diverso, puo continuare e creare una nuova segnalazione. La CTA di conferma persistente resta fuori scope e sara completata in VC-011.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

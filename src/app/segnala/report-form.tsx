@@ -84,10 +84,18 @@ export function ReportForm({ categories }: ReportFormProps) {
 
   const formDisabled = categories.length === 0 || pending;
   const visibleFieldErrors = getVisibleFieldErrors(state.fieldErrors);
+  const formStateKey = [
+    state.status,
+    state.values.categoryId,
+    state.values.address,
+    state.values.latitude,
+    state.values.longitude,
+    state.values.description
+  ].join(":");
 
   return (
-    <form action={formAction} className="grid gap-6" noValidate>
-      {state.message ? (
+    <form action={formAction} className="grid gap-6" key={formStateKey} noValidate>
+      {state.status === "error" && state.message ? (
         <div
           className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-foreground"
           role="alert"
@@ -116,6 +124,68 @@ export function ReportForm({ categories }: ReportFormProps) {
           Al momento non ci sono categorie disponibili. Le categorie MVP provvisorie devono
           essere inserite nel database prima di inviare una segnalazione.
         </div>
+      ) : null}
+
+      {state.status === "duplicates_found" && state.duplicateCandidates?.length ? (
+        <Card aria-labelledby="possible-duplicates-title" className="border-primary/40 bg-primary/5">
+          <CardHeader>
+            <Badge className="w-fit">Controllo duplicati</Badge>
+            <CardTitle id="possible-duplicates-title">
+              Potrebbe esistere gia una segnalazione simile
+            </CardTitle>
+            <CardDescription>
+              Abbiamo trovato segnalazioni pubbliche recenti nella stessa categoria e molto vicine alla posizione indicata. Puoi aprire quella esistente oppure continuare se il problema e diverso.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <ul className="grid gap-3">
+              {state.duplicateCandidates.map((candidate) => (
+                <li
+                  className="grid gap-3 rounded-lg border border-border bg-background p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+                  key={candidate.publicCode}
+                >
+                  <div className="grid gap-1">
+                    <p className="font-medium text-foreground">{candidate.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {candidate.categoryName}
+                      {candidate.address ? ` · ${candidate.address}` : ""}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Circa {formatDistance(candidate.distanceMeters)} · Stato {candidate.publicStatusLabel} · pubblicata il {formatDate(candidate.publishedAt)}
+                    </p>
+                  </div>
+                  <Link
+                    className="inline-flex min-h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    href={`/segnalazioni/${candidate.publicCode}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Vedi segnalazione
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {state.photoSelectedBeforeDuplicateCheck ? (
+              <p className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+                Per sicurezza il browser non conserva la foto dopo questo controllo. Se vuoi continuare creando una nuova segnalazione con foto, selezionala di nuovo prima di premere il pulsante sotto.
+              </p>
+            ) : null}
+            <div className="grid gap-2 sm:flex sm:items-center sm:justify-between">
+              <p className="text-sm leading-6 text-muted-foreground">
+                La scelta non registra ancora una conferma: la conferma persistente sara gestita nella prossima vertical slice.
+              </p>
+              <Button
+                className="w-full sm:w-auto"
+                disabled={formDisabled}
+                name="duplicateChoice"
+                type="submit"
+                value="different"
+              >
+                Il mio problema e diverso, continua
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       <Field
@@ -193,6 +263,7 @@ export function ReportForm({ categories }: ReportFormProps) {
                   if (longitudeInputRef.current) {
                     longitudeInputRef.current.value = longitude;
                   }
+
 
                   setGeolocationStatus({
                     type: "success",
@@ -364,11 +435,23 @@ export function ReportForm({ categories }: ReportFormProps) {
           Nessun account richiesto. Non chiediamo nome, email o telefono.
         </p>
         <Button className="w-full sm:w-auto" disabled={formDisabled} type="submit">
-          {pending ? "Invio in corso..." : "Invia segnalazione"}
+          {pending ? "Invio in corso..." : state.status === "duplicates_found" ? "Ricontrolla segnalazione" : "Invia segnalazione"}
         </Button>
       </div>
     </form>
   );
+}
+
+function formatDistance(distanceMeters: number): string {
+  if (distanceMeters < 1000) {
+    return `${distanceMeters} m`;
+  }
+
+  return `${(distanceMeters / 1000).toFixed(1)} km`;
+}
+
+function formatDate(value: Date): string {
+  return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(value));
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {

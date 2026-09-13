@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
 import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
@@ -10,6 +10,8 @@ import {
   type PublicReportMapItem,
   type ReportAttachmentAccess,
   type PublicReportTimelineEvent,
+  type PotentialDuplicateReportQuery,
+  type PotentialDuplicateReportRecord,
   type ReportModerationSummary,
   type ReportRepository,
   type ReportSaveOptions
@@ -265,6 +267,59 @@ export class DrizzleReportRepository implements ReportRepository {
         )
       )
       .orderBy(desc(reports.publishedAt), desc(reports.createdAt));
+
+    return rows.flatMap((row) => {
+      if (!row.publicStatus || !row.publishedAt) {
+        return [];
+      }
+
+      return [
+        {
+          publicCode: row.publicCode,
+          title: row.title,
+          categoryName: row.categoryName,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          ...(row.address ? { address: row.address } : {}),
+          publicStatus: row.publicStatus,
+          publishedAt: row.publishedAt
+        }
+      ];
+    });
+  }
+
+
+  async findPotentialDuplicates(
+    input: PotentialDuplicateReportQuery
+  ): Promise<PotentialDuplicateReportRecord[]> {
+    const rows = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        categoryName: categories.name,
+        latitude: reports.latitude,
+        longitude: reports.longitude,
+        address: reports.address,
+        publicStatus: reports.publicStatus,
+        publishedAt: reports.publishedAt
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .where(
+        and(
+          eq(reports.categoryId, input.categoryId),
+          eq(reports.moderationStatus, "approved"),
+          isNotNull(reports.publicStatus),
+          isNotNull(reports.publishedAt),
+          gte(reports.publishedAt, input.publishedAfter),
+          gte(reports.latitude, input.minLatitude),
+          lte(reports.latitude, input.maxLatitude),
+          gte(reports.longitude, input.minLongitude),
+          lte(reports.longitude, input.maxLongitude)
+        )
+      )
+      .orderBy(desc(reports.publishedAt), desc(reports.createdAt))
+      .limit(input.limit);
 
     return rows.flatMap((row) => {
       if (!row.publicStatus || !row.publishedAt) {

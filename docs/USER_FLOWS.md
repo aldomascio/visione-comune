@@ -10,7 +10,8 @@
 6. Il sistema verifica possibili duplicati.
 7. Se trova corrispondenze:
    - mostra le segnalazioni simili;
-   - permette di confermare una segnalazione esistente;
+   - permette di aprire la scheda pubblica della segnalazione esistente;
+   - prepara la futura conferma persistente;
    - permette di continuare se il problema è diverso.
 8. L'utente invia.
 9. Il sistema genera un codice univoco.

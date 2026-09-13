@@ -75,6 +75,7 @@ function createRepository(reports: PublicReportMapItem[]): ReportRepository {
     countByModerationStatus: async () => 0,
     findPublicByPublicCode: async () => null,
     listPublicForMap: async () => reports,
+    findPotentialDuplicates: async () => [],
     listPublicEventsByPublicCode: async () => []
   };
 }

@@ -4,8 +4,10 @@ import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/d
 import {
   CreateReportUseCase,
   CreateReportValidationError,
-  mapCreateReportErrorToMessage
+  mapCreateReportErrorToMessage,
+  validateCreateReportInput
 } from "@/modules/reports/application/create-report";
+import { FindPotentialDuplicateReportsUseCase } from "@/modules/reports/application/duplicate-detection";
 import { RandomPublicCodeGenerator } from "@/modules/reports/application/public-code-generator";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { LocalStorageProvider } from "@/modules/storage/infrastructure/local-storage-provider";
@@ -22,21 +24,54 @@ export async function createReportAction(
     description: getFormValue(formData, "description"),
     latitude: getFormValue(formData, "latitude"),
     longitude: getFormValue(formData, "longitude"),
-    address: getFormValue(formData, "address"),
-    photo: await getOptionalPhoto(formData, "photo")
+    address: getFormValue(formData, "address")
   };
+  const forceCreation = getFormValue(formData, "duplicateChoice") === "different";
 
   let connection;
 
   try {
     connection = createDatabaseConnection();
+    const reportRepository = new DrizzleReportRepository(connection.db);
+
+    if (!forceCreation) {
+      const validatedInput = validateCreateReportInput(values);
+      const duplicateUseCase = new FindPotentialDuplicateReportsUseCase({ reportRepository });
+      const duplicateCandidates = await duplicateUseCase.execute({
+        categoryId: validatedInput.categoryId,
+        latitude: validatedInput.latitude,
+        longitude: validatedInput.longitude,
+        description: validatedInput.description
+      });
+
+      if (duplicateCandidates.length > 0) {
+        return {
+          status: "duplicates_found",
+          message: "Potrebbe esistere gia una segnalazione simile.",
+          duplicateCandidates,
+          photoSelectedBeforeDuplicateCheck: hasOptionalPhoto(formData, "photo"),
+          fieldErrors: {},
+          values: {
+            categoryId: validatedInput.categoryId,
+            description: validatedInput.description,
+            latitude: String(validatedInput.latitude),
+            longitude: String(validatedInput.longitude),
+            address: validatedInput.address ?? ""
+          }
+        };
+      }
+    }
+
     const useCase = new CreateReportUseCase({
-      reportRepository: new DrizzleReportRepository(connection.db),
+      reportRepository,
       categoryRepository: new DrizzleCategoryRepository(connection.db),
       publicCodeGenerator: new RandomPublicCodeGenerator(),
       storageProvider: new LocalStorageProvider()
     });
-    const result = await useCase.execute(values);
+    const result = await useCase.execute({
+      ...values,
+      photo: await getOptionalPhoto(formData, "photo")
+    });
 
     return {
       status: "success",
@@ -73,6 +108,11 @@ function getFormValue(formData: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+function hasOptionalPhoto(formData: FormData, key: string): boolean {
+  const value = formData.get(key);
+
+  return value instanceof File && value.size > 0;
+}
 
 async function getOptionalPhoto(formData: FormData, key: string): Promise<{ buffer: Buffer; mimeType?: string } | undefined> {
   const value = formData.get(key);

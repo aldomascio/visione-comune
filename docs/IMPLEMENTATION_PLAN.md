@@ -470,6 +470,28 @@ Script utili:
 
 Gli integration test devono usare fixture minime, categorie di test e cleanup dei soli record creati dai test. Non devono cancellare lo schema `public` o dati non appartenenti ai test.
 
+## VC-010 — Rilevamento duplicati iniziale
+
+Il controllo duplicati viene integrato nel flusso `/segnala` prima della creazione definitiva del report. La separazione resta:
+
+`UI pubblica -> application use case -> repository -> PostgreSQL`
+
+Configurazione iniziale:
+
+- stessa categoria;
+- distanza massima 100 metri;
+- finestra temporale 90 giorni;
+- solo report `approved` con stato pubblico e `publishedAt`;
+- massimo 5 candidati mostrati, con limite interno di query piu alto;
+- distanza precisa calcolata con formula Haversine;
+- nessuna AI, embedding, PostGIS o confronto immagini.
+
+Il repository filtra nel database per categoria, stato pubblico, finestra temporale e bounding box geografico, evitando di caricare tutte le segnalazioni. Il use case `FindPotentialDuplicateReportsUseCase` calcola la distanza precisa, ordina i candidati per distanza e poi per recenza, e restituisce solo dati pubblici: codice pubblico, titolo, categoria, indirizzo, stato, distanza stimata e data pubblicazione.
+
+Nel form pubblico, se vengono trovati candidati, l'utente vede una sezione `Potrebbe esistere gia una segnalazione simile` con link alla scheda pubblica. Se il problema e diverso, puo proseguire esplicitamente con `Il mio problema e diverso, continua`; la creazione non viene bloccata. La conferma persistente della segnalazione esistente resta fuori scope e appartiene a VC-011.
+
+Limite noto: se era stata selezionata una foto e compare lo step duplicati, il browser puo perdere il file input dopo il roundtrip. La UI avvisa di riselezionare la foto prima di continuare.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

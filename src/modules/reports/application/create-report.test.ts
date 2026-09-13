@@ -313,6 +313,10 @@ class InMemoryReportRepository implements ReportRepository {
     return [];
   }
 
+  async findPotentialDuplicates(): Promise<[]> {
+    return [];
+  }
+
   async listPublicEventsByPublicCode(): Promise<[]> {
     return [];
   }

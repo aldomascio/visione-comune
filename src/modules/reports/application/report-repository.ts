@@ -84,6 +84,27 @@ export type PublicReportMapItem = {
   publishedAt: Date;
 };
 
+export type PotentialDuplicateReportQuery = {
+  categoryId: string;
+  minLatitude: number;
+  maxLatitude: number;
+  minLongitude: number;
+  maxLongitude: number;
+  publishedAfter: Date;
+  limit: number;
+};
+
+export type PotentialDuplicateReportRecord = {
+  publicCode: string;
+  title: string;
+  categoryName: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  publicStatus: PublicReportStatus;
+  publishedAt: Date;
+};
+
 export type ReportRepository = {
   save(report: Report, events?: ReportDomainEvent[], options?: ReportSaveOptions): Promise<void>;
   saveWithAttachment(report: Report, attachment: NewReportAttachment, events?: ReportDomainEvent[]): Promise<void>;
@@ -97,5 +118,6 @@ export type ReportRepository = {
   countByModerationStatus(status: ModerationStatus): Promise<number>;
   findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null>;
   listPublicForMap(): Promise<PublicReportMapItem[]>;
+  findPotentialDuplicates(input: PotentialDuplicateReportQuery): Promise<PotentialDuplicateReportRecord[]>;
   listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]>;
 };

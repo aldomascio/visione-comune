@@ -9,6 +9,7 @@ import { Location, PublicCode, Report } from "@/modules/reports/domain";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const testCategoryId = "test-roads";
+const otherCategoryId = "test-lighting";
 const testReportIds = [
   "test-report-1",
   "test-report-2",
@@ -19,7 +20,13 @@ const testReportIds = [
   "test-report-map-approved-old",
   "test-report-map-pending",
   "test-report-map-rejected",
-  "test-report-attachment"
+  "test-report-attachment",
+  "test-report-duplicate-valid",
+  "test-report-duplicate-pending",
+  "test-report-duplicate-rejected",
+  "test-report-duplicate-category",
+  "test-report-duplicate-far",
+  "test-report-duplicate-old"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -222,6 +229,72 @@ maybeDescribe("DrizzleReportRepository", () => {
   });
 
 
+
+  it("finds only public duplicate candidates within category, distance and time window", async () => {
+    await connection.db.insert(categories).values({
+      id: otherCategoryId,
+      name: "Categoria test illuminazione",
+      slug: "test-illuminazione"
+    });
+
+    const validDuplicate = createReport("test-report-duplicate-valid", "VC-DUPGOOD1");
+    validDuplicate.pullDomainEvents();
+    validDuplicate.approve(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(validDuplicate, validDuplicate.pullDomainEvents());
+
+    const pendingReport = createReport("test-report-duplicate-pending", "VC-DUPPEND1");
+    await repository.save(pendingReport, pendingReport.pullDomainEvents());
+
+    const rejectedReport = createReport("test-report-duplicate-rejected", "VC-DUPREJ01");
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents());
+    rejectedReport.reject(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const differentCategory = createReport("test-report-duplicate-category", "VC-DUPCAT01", {
+      categoryId: otherCategoryId
+    });
+    differentCategory.pullDomainEvents();
+    differentCategory.approve(new Date("2026-01-06T10:00:00.000Z"));
+    await repository.save(differentCategory, differentCategory.pullDomainEvents());
+
+    const farReport = createReport("test-report-duplicate-far", "VC-DUPFAR01", {
+      latitude: 41.49,
+      longitude: 14.05
+    });
+    farReport.pullDomainEvents();
+    farReport.approve(new Date("2026-01-07T10:00:00.000Z"));
+    await repository.save(farReport, farReport.pullDomainEvents());
+
+    const oldReport = createReport("test-report-duplicate-old", "VC-DUPOLD01");
+    oldReport.pullDomainEvents();
+    oldReport.approve(new Date("2025-09-01T10:00:00.000Z"));
+    await repository.save(oldReport, oldReport.pullDomainEvents());
+
+    const candidates = await repository.findPotentialDuplicates({
+      categoryId: testCategoryId,
+      minLatitude: 41.4815,
+      maxLatitude: 41.4827,
+      minLongitude: 14.0468,
+      maxLongitude: 14.048,
+      publishedAfter: new Date("2025-10-12T10:00:00.000Z"),
+      limit: 20
+    });
+
+    expect(candidates.map((candidate) => candidate.publicCode)).toEqual(["VC-DUPGOOD1"]);
+    expect(candidates[0]).toMatchObject({
+      title: "Buche in strada",
+      categoryName: "Categoria test strade",
+      latitude: 41.4821,
+      longitude: 14.0474,
+      publicStatus: "reported",
+      publishedAt: new Date("2026-01-05T10:00:00.000Z")
+    });
+    expect(candidates[0]).not.toHaveProperty("moderationStatus");
+    expect(candidates[0]).not.toHaveProperty("description");
+  });
+
   it("persists one image attachment and exposes it only after approval", async () => {
     const report = createReport("test-report-attachment", "VC-ATCH0001");
     const events = report.pullDomainEvents();
@@ -350,19 +423,23 @@ async function cleanupTestData(connection: DatabaseConnection): Promise<void> {
   await connection.db.delete(reportEvents).where(inArray(reportEvents.reportId, testReportIds));
   await connection.db.delete(reportAttachments).where(inArray(reportAttachments.reportId, testReportIds));
   await connection.db.delete(reports).where(inArray(reports.id, testReportIds));
-  await connection.db.delete(categories).where(sql`${categories.id} = ${testCategoryId}`);
+  await connection.db.delete(categories).where(inArray(categories.id, [testCategoryId, otherCategoryId]));
 }
 
-function createReport(id: string, publicCode: string): Report {
+function createReport(
+  id: string,
+  publicCode: string,
+  options: { categoryId?: string; latitude?: number; longitude?: number } = {}
+): Report {
   return Report.create({
     id,
     publicCode: PublicCode.create(publicCode),
     title: "Buche in strada",
     description: "Sono presenti buche profonde vicino alla scuola.",
-    categoryId: testCategoryId,
+    categoryId: options.categoryId ?? testCategoryId,
     location: Location.create({
-      latitude: 41.4821,
-      longitude: 14.0474,
+      latitude: options.latitude ?? 41.4821,
+      longitude: options.longitude ?? 14.0474,
       address: "Via Roma"
     }),
     createdAt: new Date("2026-01-01T10:00:00.000Z")

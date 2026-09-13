@@ -189,6 +189,10 @@ class InMemoryPublicReportRepository implements ReportRepository {
     return [];
   }
 
+  async findPotentialDuplicates(): Promise<[]> {
+    return [];
+  }
+
   async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
     const report = await this.findByPublicCode(publicCode);
 

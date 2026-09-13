@@ -9,10 +9,10 @@ Comportamento:
 - valutare ricevuta scaricabile o salvabile.
 
 ## EC-002 — Duplicato molto simile
-Se esiste una segnalazione simile, mostrarla prima della creazione.
+Se esiste una segnalazione simile, mostrarla prima della creazione. In VC-010 vengono mostrati solo report approvati e pubblici entro la soglia configurata.
 
 ## EC-003 — Problema diverso ma geograficamente vicino
-La vicinanza geografica da sola non basta per definire un duplicato.
+La vicinanza geografica da sola non basta per definire un duplicato: in VC-010 servono almeno stessa categoria, vicinanza geografica e recenza. L'utente puo comunque dichiarare che il problema e diverso e continuare.
 
 ## EC-004 — Foto troppo grande
 - validare formato;
@@ -183,3 +183,37 @@ il cittadino carica un file con estensione o MIME ingannevole, vuoto, corrotto o
 
 Gestione prevista:
 la validazione server-side controlla dimensione, signature/magic bytes e processamento immagine. Il form mostra un errore comprensibile e il report non viene creato con attachment incoerente.
+
+## VC-010 — Rilevamento duplicati iniziale
+
+### EC-VC010-001 — Possibile duplicato non pubblico
+
+Caso:
+esiste una segnalazione pending o rejected molto vicina alla nuova segnalazione.
+
+Gestione prevista:
+non viene mostrata nel controllo duplicati pubblico. Il cittadino vede solo dati gia pubblici di report approvati.
+
+### EC-VC010-002 — Falso positivo vicino
+
+Caso:
+una segnalazione pubblica nella stessa categoria e molto vicina, ma il problema dell'utente e diverso.
+
+Gestione prevista:
+il sistema mostra il candidato, ma non blocca la creazione. L'utente puo usare `Il mio problema e diverso, continua`.
+
+### EC-VC010-003 — Foto selezionata prima del controllo duplicati
+
+Caso:
+l'utente seleziona una foto e il controllo duplicati mostra uno step intermedio prima della creazione.
+
+Gestione prevista:
+la foto non viene usata per la deduplica. Poiche il browser non conserva in modo affidabile il file input dopo il roundtrip della Server Action, la UI avvisa di riselezionare la foto se l'utente decide di continuare creando una nuova segnalazione.
+
+### EC-VC010-004 — Report simile oltre soglia o fuori finestra
+
+Caso:
+esiste un report nella stessa categoria, ma oltre 100 metri o pubblicato prima della finestra di 90 giorni.
+
+Gestione prevista:
+non viene mostrato in VC-010. Le soglie restano configurabili per evoluzioni successive.

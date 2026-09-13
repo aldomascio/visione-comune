@@ -22,7 +22,7 @@ export default async function TrackingPage({ searchParams }: TrackingPageProps) 
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto grid w-full max-w-3xl gap-8">
+      <div className="mx-auto grid w-full max-w-6xl gap-8">
         <section className="grid gap-3 text-center">
           <p className="text-sm font-semibold text-primary">Visione Comune</p>
           <h1 className="font-serif text-4xl font-semibold tracking-normal">Controlla una segnalazione</h1>

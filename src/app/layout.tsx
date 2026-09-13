@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { PublicShell } from "@/shared/navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body suppressHydrationWarning><PublicShell>{children}</PublicShell></body>
     </html>
   );
 }

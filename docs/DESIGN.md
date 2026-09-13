@@ -149,3 +149,43 @@ La mappa non e l'unico accesso alle informazioni: sotto la mappa e presente una 
 La foto della segnalazione resta un contenuto secondario rispetto a descrizione, posizione e stato. Nel form viene mostrata una preview con azione `Rimuovi foto`; nel backoffice e nella scheda pubblica la foto usa card e bordi coerenti con il tema.
 
 Alt text e messaggi di errore devono essere comprensibili: la UI indica formati supportati e limite di 10 MB, mentre la validazione definitiva resta server-side.
+
+## App shell e navigazione
+
+VC-016B introduce una shell di navigazione coerente senza definire ancora la home editoriale definitiva.
+
+### Navigazione pubblica
+
+La shell pubblica include:
+
+- logo testuale temporaneo `VC` e nome Visione Comune;
+- link Home, Segnala, Mappa, Controlla segnalazione, Notizie, Newsletter;
+- CTA primaria `Segnala un problema`;
+- footer con link principali, contatti placeholder e privacy placeholder.
+
+Lo stato attivo usa `aria-current="page"` e classi basate sui token `primary`, `accent`, `muted`, `border`, `background` e `foreground`.
+
+### Mobile
+
+Il menu mobile e implementato senza dipendenze esterne. Il pulsante espone `aria-label`, `aria-expanded` e `aria-controls`; le voci hanno target ampi e il menu si chiude dopo la navigazione.
+
+### Navigazione admin
+
+La shell admin e distinta dalla navigazione pubblica e compare solo per sessioni admin attive. Include:
+
+- indicazione `Area amministrativa`;
+- email dell'admin autenticato;
+- logout;
+- link Dashboard, Segnalazioni, Categorie, Destinatari, Smistamento.
+
+Le route admin restano protette server-side: la shell e un aiuto di navigazione, non un controllo di sicurezza.
+
+### Logo
+
+Il logo definitivo non e ancora stato integrato. Il mark `VC` e un placeholder grafico temporaneo. Quando disponibile, l'SVG puo essere inserito in `public/logo.svg` e usato dalla shell pubblica/admin senza cambiare la navigazione.
+
+
+### Menu pubblico principale
+
+Il menu pubblico principale contiene solo i link editoriali e di consultazione: `Mappa`, `Manifesto`, `Notizie`, `Newsletter`. Il logo resta il collegamento alla Home. La creazione segnalazione rimane una CTA separata, non una voce del menu principale.
+

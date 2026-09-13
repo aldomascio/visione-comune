@@ -34,7 +34,7 @@ export default async function EditCategoryPage({ params }: EditCategoryPageProps
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto grid w-full max-w-3xl gap-8">
+      <div className="mx-auto grid w-full max-w-6xl gap-8">
         <section className="grid gap-3">
           <Link className="text-sm font-semibold text-primary hover:underline" href="/admin/categorie">
             ← Torna alle categorie

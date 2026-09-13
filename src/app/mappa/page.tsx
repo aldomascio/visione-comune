@@ -25,7 +25,7 @@ export default async function PublicMapPage() {
               <h1 className="font-serif text-4xl font-semibold tracking-normal sm:text-5xl">
                 Mappa delle segnalazioni
               </h1>
-              <p className="max-w-3xl text-base leading-7 text-muted-foreground">
+              <p className="max-w-6xl text-base leading-7 text-muted-foreground">
                 Consulta le segnalazioni approvate da Visione Comune sul territorio di Venafro.
                 Le segnalazioni ancora in verifica o rifiutate non sono mostrate.
               </p>

@@ -50,6 +50,8 @@ pnpm test:e2e
 pnpm build
 ```
 
+Il server usato manualmente nel browser e `pnpm dev` su `http://localhost:3000`. I test end-to-end riusano questo server se e gia attivo; altrimenti avviano un server isolato su `http://127.0.0.1:3100`. Questo evita che Playwright provi ad accendere un secondo `next dev` mentre stai navigando l'app in locale.
+
 Database locale:
 
 Per l'MVP usiamo PostgreSQL locale in sviluppo, preferibilmente tramite Postgres.app su macOS. Servono due database separati:
@@ -108,6 +110,8 @@ Il comando chiede email e password, normalizza l'email e salva solo l'hash Argon
 
 Pagine admin disponibili in locale:
 
+L'area admin ha una shell dedicata con navigazione interna e logout.
+
 - `/admin` dashboard operativa minimale;
 - `/admin/segnalazioni` lista segnalazioni da moderare;
 - `/admin/segnalazioni/[publicCode]` dettaglio con azioni Approva/Rifiuta.
@@ -117,7 +121,11 @@ Pagine pubbliche disponibili in locale:
 - `/segnala` invio segnalazione senza account;
 - `/segnalazione` tracking tramite codice pubblico;
 - `/segnalazioni/[publicCode]` dettaglio pubblico solo per segnalazioni approvate;
-- `/mappa` mappa pubblica delle segnalazioni approvate.
+- `/mappa` mappa pubblica delle segnalazioni approvate;
+- `/manifesto` placeholder manifesto;
+- `/notizie` placeholder sezione notizie;
+- `/newsletter` placeholder sezione newsletter;
+- `/privacy` placeholder privacy/policy.
 
 Mappa pubblica:
 

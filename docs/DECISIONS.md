@@ -314,6 +314,18 @@ la risoluzione rappresenta una verifica operativa di Visione Comune, non una ris
 Conseguenza:
 la transizione passa sempre dal dominio `Report.markResolved`, valorizza `resolvedAt` e registra un evento pubblico `ReportResolved`. L'admin puo aggiungere una nota interna opzionale salvata in `report_events.metadata.internalNote`: la timeline admin la mostra, la timeline pubblica non la espone. Per l'MVP `Risolta` e uno stato finale; riapertura e regressioni restano fuori scope.
 
+
+### ADR-034 — Shell pubblica e admin separate
+
+Decisione:
+la navigazione pubblica e la navigazione admin sono shell separate. La shell pubblica viene applicata alle route pubbliche e nascosta sotto `/admin`; la shell admin viene applicata sotto `/admin` solo quando esiste una sessione admin attiva.
+
+Motivo:
+il prodotto deve essere navigabile senza mescolare UX pubblica e backoffice, e senza spostare le route gia implementate.
+
+Conseguenza:
+header, footer e menu mobile pubblici non compaiono nel backoffice. Il menu admin mostra utente autenticato, logout e link operativi, ma non sostituisce i controlli server-side gia presenti sulle pagine admin.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

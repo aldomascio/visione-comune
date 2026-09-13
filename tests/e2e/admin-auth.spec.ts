@@ -28,7 +28,7 @@ test("redirects anonymous users, allows login, then protects admin again after l
 
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Area amministrativa" })).toBeVisible();
-  await expect(page.getByText(adminEmail)).toBeVisible();
+  await expect(page.getByRole("banner").getByText(adminEmail)).toBeVisible();
 
   await page.getByRole("button", { name: "Esci" }).click();
   await expect(page).toHaveURL(/\/admin\/login$/);

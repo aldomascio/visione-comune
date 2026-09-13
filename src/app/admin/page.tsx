@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { adminLogoutAction } from "./actions";
 import { requireActiveAdmin } from "./admin-auth";
 import { GetModerationDashboardUseCase } from "@/modules/reports/application/moderate-report";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 import { formatAdminDate } from "./segnalazioni/format";
 import { ModerationStatusBadge } from "./segnalazioni/status-badge";
 
@@ -25,11 +24,6 @@ export default async function AdminPage() {
               Verifica le segnalazioni inviate dai cittadini prima della pubblicazione.
             </p>
           </div>
-          <form action={adminLogoutAction}>
-            <Button type="submit" variant="secondary">
-              Esci
-            </Button>
-          </form>
         </section>
 
         <section className="grid gap-4 md:grid-cols-[1fr_1fr_2fr]">

@@ -699,3 +699,19 @@ Implementazione prevista/completata per la slice:
 - mappa pubblica mantiene i report risolti visibili e filtrabili per stato `Risolta`.
 
 Restano fuori scope: riapertura, regressione di stato, solleciti, PEC reale, email reale, risposta cittadino o prova fotografica di risoluzione.
+
+## VC-016B — App shell e navigazione
+
+Implementazione prevista/completata per la slice:
+
+- shell pubblica globale nel root layout, nascosta per le route `/admin`;
+- header pubblico riutilizzabile con stato attivo e CTA `Segnala un problema`;
+- menu mobile accessibile senza librerie esterne;
+- footer pubblico con link principali, area contatti placeholder e privacy placeholder;
+- shell admin sotto `/admin/layout.tsx`, mostrata solo con sessione admin attiva;
+- navigazione admin per Dashboard, Segnalazioni, Categorie, Destinatari e Smistamento;
+- home temporanea semplificata con CTA verso segnalazione e mappa;
+- placeholder `/notizie`, `/newsletter` e `/privacy` senza CMS, form o provider esterni;
+- test E2E per navigazione pubblica, mobile e admin.
+
+Restano fuori scope: home editoriale definitiva, contenuti news reali, form newsletter, provider email/newsletter, ricerca globale e dashboard statistiche avanzate.

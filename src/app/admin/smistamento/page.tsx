@@ -32,7 +32,7 @@ export default async function RoutingMatrixPage({ searchParams }: RoutingPagePro
             <Link className="text-sm font-semibold text-primary hover:underline" href="/admin">← Torna al backoffice</Link>
             <p className="text-sm font-semibold text-primary">Backoffice</p>
             <h1 className="font-serif text-4xl font-semibold tracking-normal">Matrice di smistamento</h1>
-            <p className="max-w-3xl text-base leading-7 text-muted-foreground">Associa categorie e destinatari. Il primo destinatario selezionato come principale verra proposto per primo nelle future comunicazioni.</p>
+            <p className="max-w-6xl text-base leading-7 text-muted-foreground">Associa categorie e destinatari. Il primo destinatario selezionato come principale verra proposto per primo nelle future comunicazioni.</p>
           </div>
           <Link className="inline-flex min-h-10 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" href="/admin/destinatari">Gestisci destinatari</Link>
         </section>

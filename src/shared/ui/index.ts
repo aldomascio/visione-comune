@@ -5,3 +5,4 @@ export { Field } from "./field";
 export { Input } from "./input";
 export { Select } from "./select";
 export { Textarea } from "./textarea";
+export { cn } from "./cn";

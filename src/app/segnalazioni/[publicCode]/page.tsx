@@ -28,7 +28,7 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto grid w-full max-w-5xl gap-8">
+      <div className="mx-auto grid w-full max-w-6xl gap-8">
         <section className="grid gap-3">
           <Link className="text-sm font-semibold text-primary hover:underline" href="/segnalazione">
             ← Controlla un altro codice
@@ -38,7 +38,7 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
             <Badge>{PUBLIC_REPORT_STATUS_LABELS[report.publicStatus]}</Badge>
           </div>
           <h1 className="font-serif text-4xl font-semibold tracking-normal">{report.title}</h1>
-          <p className="max-w-3xl text-base leading-7 text-muted-foreground">
+          <p className="max-w-6xl text-base leading-7 text-muted-foreground">
             Scheda pubblica della segnalazione verificata da Visione Comune.
           </p>
         </section>

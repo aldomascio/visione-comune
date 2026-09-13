@@ -277,6 +277,25 @@ Porta `AiProvider` con funzioni limitate e non decisionali: suggerire categoria,
 
 Porta `NewsletterProvider` separata dal dominio segnalazioni. Il core deve pubblicare eventi applicativi o viste approvate, non parlare direttamente con un vendor.
 
+## VC-004 — Creazione segnalazione anonima
+
+Il primo flusso reale usa una pagina pubblica `/segnala` e una Server Action che chiama `CreateReportUseCase`. La separazione resta:
+
+`UI -> Server Action -> application service -> dominio -> repository -> PostgreSQL`
+
+Scelte operative:
+
+- categorie lette dal database tramite repository categorie;
+- seed di sviluppo con categorie provvisorie marcate come tali;
+- nessun account cittadino e nessun dato personale obbligatorio;
+- titolo derivato da categoria e localizzazione/testo;
+- indirizzo testuale + Geolocation API opzionale;
+- latitudine/longitudine come fallback temporaneo finche non saranno introdotti geocoding e mappa;
+- generazione server-side di `publicCode` casuale leggibile con retry su collisione;
+- stato iniziale sempre `pending_review` e non pubblico.
+
+La conversione indirizzo-coordinate resta fuori scope e dovra essere risolta in una vertical slice successiva, insieme alla UX definitiva della mappa/geocoding.
+
 ## Ambiente PostgreSQL locale
 
 La fondazione database usa due database locali separati:

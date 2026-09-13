@@ -51,3 +51,38 @@ Da valutare se riaprire la stessa segnalazione o crearne una nuova. Decisione an
 
 ## EC-015 — Indirizzo ambiguo
 La posizione sulla mappa deve prevalere sul solo testo dell'indirizzo quando disponibile.
+
+## VC-004 — Creazione segnalazione
+
+### EC-VC004-001 — Geolocalizzazione negata o non disponibile
+
+Caso:
+l'utente clicca `Usa la mia posizione`, ma nega il permesso oppure il browser non supporta la Geolocation API.
+
+Gestione prevista:
+il form mostra un messaggio comprensibile e resta utilizzabile con inserimento manuale delle coordinate. L'indirizzo resta un campo testuale.
+
+### EC-VC004-002 — Indirizzo senza coordinate
+
+Caso:
+l'utente inserisce solo un indirizzo testuale senza usare geolocalizzazione.
+
+Gestione prevista:
+in VC-004 il sistema non effettua geocoding; le coordinate restano richieste tramite fallback temporaneo. La conversione indirizzo-coordinate sara gestita in una task successiva.
+
+### EC-VC004-003 — Categoria non disponibile
+
+Caso:
+la categoria selezionata non esiste piu o e stata disattivata tra rendering del form e invio.
+
+Gestione prevista:
+la Server Action rifiuta l'invio con messaggio utente sulla categoria disponibile, senza esporre dettagli database.
+
+### EC-VC004-004 — Collisione codice pubblico
+
+Caso:
+il generatore produce un codice pubblico gia presente nel database.
+
+Gestione prevista:
+il layer applicativo ritenta la generazione fino a un limite esplicito. Se il limite viene esaurito, l'utente riceve un errore controllato e non dettagli tecnici.
+

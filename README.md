@@ -75,10 +75,13 @@ Comandi database:
 ```bash
 pnpm db:generate
 pnpm db:migrate:dev
+pnpm db:seed:dev
 pnpm test:integration
 ```
 
-`pnpm db:migrate:dev` usa `.env.local`. `pnpm test:integration` usa `.env.test.local` ed esegue test reali contro PostgreSQL. Gli integration test dentro `pnpm test` restano saltati se `TEST_DATABASE_URL` non è configurata nell'ambiente corrente.
+`pnpm db:migrate:dev` usa `.env.local`. `pnpm db:seed:dev` inserisce categorie provvisorie di sviluppo, non definitive. Per provare `/segnala` in locale servono migration applicate e almeno una categoria attiva nel database.
+
+`pnpm test:integration` usa `.env.test.local` ed esegue test reali contro PostgreSQL. Gli integration test dentro `pnpm test` restano saltati se `TEST_DATABASE_URL` non è configurata nell'ambiente corrente.
 
 Produzione:
 

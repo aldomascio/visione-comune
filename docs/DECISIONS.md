@@ -113,6 +113,7 @@ il dominio resta indipendente dalla persistenza; eventuali collisioni di generaz
 Conseguenza:
 la strategia definitiva di generazione del codice pubblico resta fuori da VC-003 e verra completata nella vertical slice di creazione segnalazione.
 
+
 ### ADR-016 — PostgreSQL locale e produzione self-hosted
 
 Decisione:
@@ -123,6 +124,61 @@ questa scelta mantiene bassi i costi iniziali, resta coerente con il deploy su V
 
 Conseguenza:
 il codice applicativo deve continuare a dipendere solo da `DATABASE_URL` o `TEST_DATABASE_URL`, senza assumere Postgres.app, Homebrew, VPS o uno specifico provider. Un database managed resta possibile in futuro senza riscrivere dominio o repository.
+
+### ADR-017 — Creazione segnalazione anonima
+
+Decisione:
+il primo flusso di creazione segnalazione usa una Server Action Next.js che chiama un application service dedicato. Il cittadino non deve creare account e non vengono richiesti nome, cognome, email o telefono.
+
+Motivo:
+la Server Action mantiene la mutazione lato server, permette validazione server-side e restituisce errori comprensibili al form senza esporre dettagli di database o infrastruttura.
+
+Conseguenza:
+la UI non conosce Drizzle e non crea direttamente entita di dominio. La segnalazione nasce con `moderationStatus = pending_review` e senza stato pubblico.
+
+### ADR-018 — Codice pubblico casuale leggibile
+
+Decisione:
+il codice pubblico viene generato lato server nel formato `VC-XXXXXXXX`, con 8 caratteri casuali non sequenziali presi da un alfabeto leggibile che esclude `0`, `O`, `1`, `I` e `L`.
+
+Motivo:
+riduce errori di lettura e impedisce di dedurre il volume o l'ordine delle segnalazioni.
+
+Conseguenza:
+l'unicita resta garantita dal vincolo database; il caso di collisione viene gestito con retry automatico e limite esplicito.
+
+### ADR-019 — Categorie provvisorie per VC-004
+
+Decisione:
+per VC-004 il form legge le categorie attive dal database. Le categorie iniziali sono seed provvisori marcati come tali e non rappresentano la tassonomia definitiva del progetto.
+
+Motivo:
+il flusso end-to-end richiede categorie selezionabili, ma le categorie definitive sono ancora da deliberare.
+
+Conseguenza:
+la gestione completa categorie resta nelle vertical slice successive.
+
+### ADR-020 — Posizione temporanea senza geocoding
+
+Decisione:
+in VC-004 il form chiede un indirizzo testuale e offre un pulsante opzionale `Usa la mia posizione` basato su Geolocation API. Latitudine e longitudine restano disponibili come campi temporanei per completare il dato richiesto dal dominio e dal database.
+
+Motivo:
+geocoding, reverse geocoding e mappa interattiva sono fuori scope, ma la segnalazione deve comunque avere coordinate persistibili.
+
+Conseguenza:
+la conversione indirizzo-coordinate verra gestita in una task successiva; il form resta utilizzabile anche se la geolocalizzazione viene negata o fallisce.
+
+### ADR-021 — Titolo segnalazione derivato
+
+Decisione:
+il cittadino non inserisce un titolo separato in VC-004. Il titolo viene derivato deterministicamente da categoria e indirizzo, o da categoria e inizio descrizione quando l'indirizzo manca.
+
+Motivo:
+riduce attrito nel form pubblico mantenendo compatibilita con il dominio `Report`, che richiede un titolo.
+
+Conseguenza:
+il titolo potra essere rivisto in moderazione quando sara disponibile il backoffice.
 
 ## DA DEFINIRE
 

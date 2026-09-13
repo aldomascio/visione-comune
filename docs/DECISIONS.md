@@ -410,3 +410,38 @@ associazione tra categorie, enti, uffici, priorita e destinatari.
 
 Da decidere:
 provider/style cartografico definitivo per produzione, incluse licenze, costi, limiti di traffico, attribution e disponibilita.
+
+## PROPOSTA PEC DA APPROVARE
+
+### P-PEC-001 — Strategia iniziale integrazione PEC
+
+Proposta:
+introdurre in VC-019B un adapter PEC sostituibile e usare come prima implementazione reale SMTP + IMAP, con invio SMTP autenticato e polling IMAP conservativo per ricevute e risposte.
+
+Motivo:
+questa soluzione mantiene costi bassi, riduce lock-in, funziona con molti provider PEC italiani e resta coerente con l'architettura modulare gia approvata.
+
+Conseguenza proposta:
+lo stato `OutboundCommunication.delivered` e il passaggio pubblico della segnalazione a `Comunicata` devono avvenire solo dopo ricevuta PEC di avvenuta consegna classificata con confidenza sufficiente. La ricevuta di accettazione porta al massimo a `sent`; l'invio SMTP accettato dal server non basta per comunicare pubblicamente la segnalazione.
+
+### P-PEC-002 — Matching comunicazioni PEC
+
+Proposta:
+usare una combinazione di codice pubblico nel subject, `Message-ID`, `In-Reply-To` / `References`, destinatario e finestra temporale. Il subject generato dovrebbe includere sempre il codice nel formato `[VC-XXXXXXXX]`.
+
+Motivo:
+il codice pubblico resta leggibile anche quando le risposte degli enti perdono header di thread o vengono inoltrate manualmente.
+
+Conseguenza proposta:
+i messaggi non classificabili con certezza non aggiornano automaticamente stati o timeline pubblica e devono restare disponibili per revisione admin.
+
+### P-PEC-003 — Provider da scegliere
+
+Proposta:
+valutare prima provider con SMTP/IMAP documentati e costi bassi, in particolare Aruba PEC e InfoCert Legalmail. OpenAPI.it o API proprietarie vanno rivalutate solo se la documentazione contrattuale conferma invio, ricevute, reply e possibilmente webhook in modo strutturato.
+
+Motivo:
+il progetto non deve assumere API non documentate ne introdurre lock-in prematuro.
+
+Conseguenza proposta:
+la scelta provider resta aperta. Prima di implementare VC-019B reale servono casella PEC dedicata, conferma accesso SMTP/IMAP, piano con invii adeguati e policy retention/conservazione.

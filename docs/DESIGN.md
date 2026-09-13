@@ -211,3 +211,21 @@ Il form `/segnala` mostra:
 Latitudine e longitudine restano dati interni inviati come campi nascosti solo dopo una selezione confermata. Se l'indirizzo viene modificato manualmente dopo una selezione, la posizione torna non confermata e l'utente deve scegliere nuovamente un suggerimento, usare la geolocalizzazione o cliccare sulla mappa.
 
 La ricerca indirizzo usa debounce, soglia minima di 3 caratteri e massimo 5 risultati. Gli stati di errore spiegano che, se la ricerca non funziona, il punto puo essere selezionato direttamente sulla mappa.
+
+## Home pubblica e public experience
+
+VC-021C sostituisce la home tecnica con una Home pubblica definitiva per l'MVP. La pagina usa la stessa larghezza massima della shell pubblica (`max-w-6xl`) e mantiene il linguaggio visivo gia definito dal tema: card con bordo, serif per heading principali, CTA primarie `primary` e CTA secondarie `outline`.
+
+La Home e organizzata in sezioni leggere e server-rendered:
+
+- hero con messaggio progettuale sulla segnalazione, il tracking e la traccia pubblica;
+- accessi rapidi a segnalazione, mappa, tracking, notizie e newsletter;
+- spiegazione in sei passaggi del percorso di una segnalazione;
+- metriche pubbliche aggregate;
+- invito alla mappa senza caricare MapLibre nella Home;
+- ultime notizie pubblicate;
+- blocco tracking;
+- blocco newsletter come rimando alla pagina esistente;
+- ultimi problemi risolti quando disponibili.
+
+La Home non introduce immagini stock, animazioni complesse, caroselli o contenuti politici. Gli stati vuoti restano visibili con card informative e non mostrano valori non validi.

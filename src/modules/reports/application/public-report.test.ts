@@ -3,6 +3,8 @@ import { Location, PublicCode, Report, type ModerationStatus, type ReportDomainE
 import {
   GetPublicReportTimelineUseCase,
   GetPublicReportUseCase,
+  ListRecentResolvedPublicReportsUseCase,
+  normalizeRecentResolvedLimit,
   PublicReportNotFoundError,
   TrackReportByPublicCodeUseCase
 } from "./public-report";
@@ -259,3 +261,41 @@ function createRejectedReport(id: string, publicCode: string): Report {
   report.pullDomainEvents();
   return report;
 }
+
+
+describe("public report homepage use cases", () => {
+  it("normalizes the recent resolved limit", () => {
+    expect(normalizeRecentResolvedLimit(undefined)).toBe(3);
+    expect(normalizeRecentResolvedLimit(0)).toBe(1);
+    expect(normalizeRecentResolvedLimit(2.8)).toBe(2);
+    expect(normalizeRecentResolvedLimit(20)).toBe(6);
+  });
+
+  it("lists recent resolved public reports through the repository contract", async () => {
+    const resolvedAt = new Date("2026-09-10T12:00:00.000Z");
+    const useCase = new ListRecentResolvedPublicReportsUseCase({
+      reportRepository: {
+        async listRecentlyResolvedPublic(limit) {
+          expect(limit).toBe(3);
+          return [
+            {
+              publicCode: "VC-ABCDE234",
+              title: "Problema risolto",
+              categoryName: "Strade",
+              resolvedAt
+            }
+          ];
+        }
+      }
+    });
+
+    await expect(useCase.execute()).resolves.toEqual([
+      {
+        publicCode: "VC-ABCDE234",
+        title: "Problema risolto",
+        categoryName: "Strade",
+        resolvedAt
+      }
+    ]);
+  });
+});

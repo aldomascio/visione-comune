@@ -1,6 +1,7 @@
 import { InvalidPublicCodeError, PublicCode } from "../domain";
 import type {
   PublicReportDetail,
+  RecentResolvedPublicReport,
   ReportRepository
 } from "./report-repository";
 
@@ -78,6 +79,26 @@ export class GetPublicReportUseCase {
 
     return report;
   }
+}
+
+export type RecentResolvedPublicReportRepository = {
+  listRecentlyResolvedPublic(limit: number): Promise<RecentResolvedPublicReport[]>;
+};
+
+export class ListRecentResolvedPublicReportsUseCase {
+  constructor(private readonly dependencies: { reportRepository: RecentResolvedPublicReportRepository }) {}
+
+  execute(input: { limit?: number } = {}): Promise<RecentResolvedPublicReport[]> {
+    return this.dependencies.reportRepository.listRecentlyResolvedPublic(normalizeRecentResolvedLimit(input.limit));
+  }
+}
+
+export function normalizeRecentResolvedLimit(limit: number | undefined): number {
+  if (typeof limit !== "number" || !Number.isFinite(limit)) {
+    return 3;
+  }
+
+  return Math.min(6, Math.max(1, Math.floor(limit)));
 }
 
 export { GetPublicReportTimelineUseCase } from "./report-timeline";

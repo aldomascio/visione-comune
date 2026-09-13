@@ -752,3 +752,20 @@ La UI usa debounce, soglia minima di 3 caratteri e massimo 5 risultati. La posiz
 
 Limite operativo:
 il servizio pubblico Photon va bene per MVP e sviluppo con carico basso. Prima della produzione con traffico significativo va rivalutata la policy d'uso e, se necessario, un provider con piano dedicato o un'istanza self-hosted.
+
+## VC-021C — Home definitiva e Public Experience
+
+Implementata una Home pubblica server-rendered che sostituisce la pagina tecnica temporanea. La pagina riusa `GetPublicPlatformMetricsUseCase`, `ListPublishedNewsPostsUseCase` e un use case pubblico dedicato agli ultimi report risolti, mantenendo il flusso `UI -> application -> repository -> infrastructure`.
+
+Scelte applicate:
+
+- nessuna nuova dipendenza;
+- nessuna modifica alle business rule;
+- metriche pubbliche limitate agli aggregati gia autorizzati;
+- ultime notizie limitate a tre post pubblicati recenti;
+- ultime segnalazioni risolte limitate a tre report pubblici con stato `Risolta`;
+- nessun caricamento MapLibre nella Home;
+- SEO base tramite metadata della pagina;
+- stati vuoti gestiti per metriche, notizie e risolti.
+
+La newsletter resta un rimando alla pagina esistente finche non verra configurato il provider email/newsletter. La Home non introduce contenuti politici o sezioni manifesto non fornite.

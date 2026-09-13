@@ -268,7 +268,9 @@ async function selectAddressSuggestion(page: Page, query: string): Promise<void>
 async function clickLocationMap(page: Page): Promise<void> {
   const map = page.getByTestId("report-location-map");
   await expect(map).toBeVisible();
-  await map.click({ position: { x: 250, y: 160 } });
+  const canvas = map.locator("canvas").first();
+  await expect(canvas).toBeVisible();
+  await canvas.click({ position: { x: 250, y: 160 } });
   await expect(page.getByText(/Posizione confermata/)).toBeVisible();
 }
 

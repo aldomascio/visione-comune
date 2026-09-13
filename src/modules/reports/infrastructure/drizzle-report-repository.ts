@@ -9,6 +9,7 @@ import {
   type NewReportAttachment,
   type PublicReportDetail,
   type PublicReportMapItem,
+  type RecentResolvedPublicReport,
   type ReportAttachmentAccess,
   type PublicReportTimelineEvent,
   type PotentialDuplicateReportQuery,
@@ -308,6 +309,44 @@ export class DrizzleReportRepository implements ReportRepository {
           ...(row.address ? { address: row.address } : {}),
           publicStatus: row.publicStatus,
           publishedAt: row.publishedAt
+        }
+      ];
+    });
+  }
+
+
+  async listRecentlyResolvedPublic(limit: number): Promise<RecentResolvedPublicReport[]> {
+    const rows = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        categoryName: categories.name,
+        resolvedAt: reports.resolvedAt
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .where(
+        and(
+          eq(reports.moderationStatus, "approved"),
+          eq(reports.publicStatus, "resolved"),
+          isNotNull(reports.publishedAt),
+          isNotNull(reports.resolvedAt)
+        )
+      )
+      .orderBy(desc(reports.resolvedAt), desc(reports.createdAt))
+      .limit(limit);
+
+    return rows.flatMap((row) => {
+      if (!row.resolvedAt) {
+        return [];
+      }
+
+      return [
+        {
+          publicCode: row.publicCode,
+          title: row.title,
+          categoryName: row.categoryName,
+          resolvedAt: row.resolvedAt
         }
       ];
     });

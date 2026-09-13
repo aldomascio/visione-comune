@@ -158,3 +158,10 @@ Upload immagini:
 - le foto pending/rejected non sono servite pubblicamente.
 
 PEC, AI e newsletter non sono ancora configurati.
+
+## Esperienza pubblica
+
+La Home pubblica (`/`) e la porta di ingresso dell'MVP: presenta il flusso di segnalazione, i collegamenti principali, metriche aggregate pubbliche, ultime notizie pubblicate, tracking tramite codice, newsletter e ultimi problemi risolti quando disponibili.
+
+La Home riusa application layer e repository esistenti; non carica MapLibre direttamente e non espone metriche interne amministrative.
+

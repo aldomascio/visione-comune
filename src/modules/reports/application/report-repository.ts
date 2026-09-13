@@ -94,6 +94,13 @@ export type PublicReportMapItem = {
   publishedAt: Date;
 };
 
+export type RecentResolvedPublicReport = {
+  publicCode: string;
+  title: string;
+  categoryName: string;
+  resolvedAt: Date;
+};
+
 export type PotentialDuplicateReportQuery = {
   categoryId: string;
   minLatitude: number;

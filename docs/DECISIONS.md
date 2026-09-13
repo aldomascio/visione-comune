@@ -456,3 +456,14 @@ Photon supporta ricerca testuale, search-as-you-type e reverse geocoding su dati
 
 Conseguenza:
 `/segnala` non mostra piu campi latitudine/longitudine al cittadino. La posizione viene confermata tramite suggerimento indirizzo, geolocalizzazione browser o click/drag sulla mappa MapLibre. Se il provider non e disponibile, il cittadino puo continuare selezionando il punto sulla mappa. La scelta provider resta sostituibile tramite adapter e configurazione ambiente; per produzione va rivalutato il carico previsto e l'eventuale uso di un piano/API dedicata o istanza self-hosted.
+
+### ADR-038 — Home pubblica server-rendered con dati aggregati
+
+Decisione:
+la Home pubblica dell'MVP e una pagina server-rendered che riusa application layer e repository esistenti per metriche pubbliche, ultime notizie pubblicate e ultimi problemi risolti.
+
+Motivo:
+la Home deve spiegare rapidamente l'ecosistema digitale senza introdurre CMS, page builder o nuove business rule. L'uso di Server Components evita JavaScript client non necessario e mantiene la pagina leggera.
+
+Conseguenza:
+le metriche mostrate sono solo aggregate pubbliche: pubblicate, comunicate, risolte, conferme totali e tasso di risoluzione. Metriche interne come pending, rifiutate e tempi operativi restano fuori dalla Home pubblica. La mappa viene promossa con CTA, ma MapLibre non viene caricato nella Home.

@@ -94,6 +94,14 @@ Docker non e un requisito per l'MVP. Il progetto deve poter essere sviluppato e 
 Conseguenza:
 lo sviluppo locale parte con Node.js standard; il deploy iniziale su VPS deve poter usare Node.js. Docker resta una possibile opzione futura, non un vincolo.
 
+### ADR-014 — Risoluzione dopo comunicazione
+
+Decisione:
+una segnalazione puo passare allo stato pubblico `Risolta` solo dopo essere stata almeno `Comunicata`.
+
+Motivo:
+la risoluzione richiede verifica di Visione Comune e deve seguire una segnalazione gia pubblicata e comunicata, evitando salti di stato incoerenti nella timeline pubblica.
+
 ## DA DEFINIRE
 
 ### D-001 — Database locale
@@ -155,4 +163,3 @@ categorie MVP e criteri di modifica nel backoffice.
 
 Da decidere:
 associazione tra categorie, enti, uffici, priorita e destinatari.
-

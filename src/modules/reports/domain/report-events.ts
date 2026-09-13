@@ -7,7 +7,11 @@ export type ReportEventType =
   | "ReportApproved"
   | "ReportRejected"
   | "ReportCommunicated"
-  | "ReportResolved";
+  | "ReportResolved"
+  | "CommunicationRecorded"
+  | "CommunicationSent"
+  | "CommunicationDelivered"
+  | "CommunicationFailed";
 
 export type ReportEventVisibility = "public" | "internal";
 

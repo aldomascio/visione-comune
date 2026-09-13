@@ -30,7 +30,11 @@ export const reportEventTypeEnum = pgEnum("report_event_type", [
   "ReportApproved",
   "ReportRejected",
   "ReportCommunicated",
-  "ReportResolved"
+  "ReportResolved",
+  "CommunicationRecorded",
+  "CommunicationSent",
+  "CommunicationDelivered",
+  "CommunicationFailed"
 ]);
 
 export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
@@ -41,6 +45,15 @@ export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
 export const adminRoleEnum = pgEnum("admin_role", ["admin"]);
 
 export const reportAttachmentTypeEnum = pgEnum("report_attachment_type", ["image"]);
+
+export const outboundCommunicationChannelEnum = pgEnum("outbound_communication_channel", ["email", "pec"]);
+
+export const outboundCommunicationStatusEnum = pgEnum("outbound_communication_status", [
+  "draft",
+  "sent",
+  "delivered",
+  "failed"
+]);
 
 export const categories = pgTable(
   "categories",
@@ -228,6 +241,46 @@ export const reportConfirmations = pgTable(
   ]
 );
 
+export const outboundCommunications = pgTable(
+  "outbound_communications",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    reportId: varchar("report_id", { length: 64 })
+      .notNull()
+      .references(() => reports.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    recipientId: varchar("recipient_id", { length: 64 }).references(() => recipients.id, {
+      onDelete: "set null",
+      onUpdate: "cascade"
+    }),
+    recipientNameSnapshot: varchar("recipient_name_snapshot", { length: 160 }).notNull(),
+    recipientOrganizationSnapshot: varchar("recipient_organization_snapshot", { length: 200 }).notNull(),
+    recipientAddressSnapshot: varchar("recipient_address_snapshot", { length: 320 }).notNull(),
+    channel: outboundCommunicationChannelEnum("channel").notNull(),
+    subject: varchar("subject", { length: 240 }).notNull(),
+    body: varchar("body", { length: 6000 }).notNull(),
+    status: outboundCommunicationStatusEnum("status").notNull(),
+    externalMessageId: varchar("external_message_id", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true })
+  },
+  (table) => [
+    index("outbound_communications_report_id_idx").on(table.reportId),
+    index("outbound_communications_recipient_id_idx").on(table.recipientId),
+    index("outbound_communications_status_idx").on(table.status),
+    check("outbound_communications_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("outbound_communications_recipient_name_not_empty", sql`length(trim(${table.recipientNameSnapshot})) > 0`),
+    check("outbound_communications_recipient_organization_not_empty", sql`length(trim(${table.recipientOrganizationSnapshot})) > 0`),
+    check("outbound_communications_recipient_address_not_empty", sql`length(trim(${table.recipientAddressSnapshot})) > 0`),
+    check("outbound_communications_subject_not_empty", sql`length(trim(${table.subject})) > 0`),
+    check("outbound_communications_body_not_empty", sql`length(trim(${table.body})) > 0`),
+    check("outbound_communications_delivered_at_status", sql`${table.deliveredAt} is null or ${table.status} = 'delivered'`),
+    check("outbound_communications_failed_at_status", sql`${table.failedAt} is null or ${table.status} = 'failed'`),
+    check("outbound_communications_sent_at_required", sql`${table.status} not in ('sent', 'delivered') or ${table.sentAt} is not null`)
+  ]
+);
+
 export const adminUsers = pgTable(
   "admin_users",
   {
@@ -263,5 +316,7 @@ export type ReportAttachmentRecord = typeof reportAttachments.$inferSelect;
 export type NewReportAttachmentRecord = typeof reportAttachments.$inferInsert;
 export type ReportConfirmationRecord = typeof reportConfirmations.$inferSelect;
 export type NewReportConfirmationRecord = typeof reportConfirmations.$inferInsert;
+export type OutboundCommunicationRecord = typeof outboundCommunications.$inferSelect;
+export type NewOutboundCommunicationRecord = typeof outboundCommunications.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;

@@ -71,7 +71,8 @@ Note implementative MVP:
 - In VC-006 la nota opzionale di rifiuto viene salvata come `metadata.internalNote` sull'evento interno `ReportRejected`.
 - Chiavi metadata previste per evoluzioni future: `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`.
 - Le note salvate negli eventi interni non devono essere esposte nelle viste pubbliche.
-- Eventi futuri previsti ma non implementati in VC-014: `CommunicationSent`, `CommunicationDelivered`, `CommunicationFailed`, `ReplyReceived`, `ReminderSent`. La loro introduzione richiedera aggiornamento enum e migration.
+- In VC-015 gli eventi `CommunicationRecorded`, `CommunicationSent`, `CommunicationDelivered` e `CommunicationFailed` sono interni. L'unico evento pubblico collegato alla comunicazione resta `ReportCommunicated`.
+- Eventi futuri previsti ma non implementati: `ReplyReceived`, `ReminderSent`. La loro introduzione richiedera aggiornamento enum e migration.
 
 ## Category
 
@@ -146,12 +147,28 @@ Note implementative MVP:
 - id
 - reportId
 - recipientId
+- recipientNameSnapshot
+- recipientOrganizationSnapshot
+- recipientAddressSnapshot
 - channel
 - subject
+- body
 - status
-- externalMessageId
+- createdAt
 - sentAt
 - deliveredAt
+- failedAt
+- externalMessageId
+
+Note implementative MVP:
+
+- `channel` supporta `email` e `pec` solo come informazione storica; non viene effettuato invio reale.
+- `status` supporta `draft`, `sent`, `delivered`, `failed`.
+- `recipientId` mantiene il riferimento configurativo quando disponibile; gli snapshot preservano lo storico se il destinatario viene modificato o disattivato.
+- una comunicazione `sent` non cambia lo stato pubblico del report.
+- solo `delivered` puo portare il report da `Segnalata` a `Comunicata`, passando dal dominio `Report`.
+- `failed` non cambia lo stato del report e resta informazione interna admin.
+- subject, body, destinatario, indirizzi, externalMessageId e dettagli tecnici non devono comparire nella scheda pubblica.
 
 ## InboundCommunication
 

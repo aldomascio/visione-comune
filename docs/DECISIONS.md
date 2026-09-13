@@ -291,6 +291,18 @@ la scheda pubblica deve mostrare lo storico rilevante senza esporre note, metada
 Conseguenza:
 la UI non traduce direttamente gli enum tecnici. Label, descrizioni e metadata ammessi sono centralizzati nel layer applicativo. `ReportCreated` resta interno, `ReportApproved` e pubblico, `ReportRejected` resta interno. Per VC-014 non viene introdotta una visibilita `system`; eventuali eventi tecnici restano interni finche non emerge un bisogno distinto.
 
+
+### ADR-032 — Comunicazioni manuali senza invio automatico
+
+Decisione:
+in VC-015 gli admin possono registrare manualmente comunicazioni in uscita verso destinatari configurati, con canale `email` o `pec`, stato `draft`, `sent`, `delivered` o `failed`, e snapshot del destinatario al momento della registrazione.
+
+Motivo:
+preparare il workflow operativo senza integrare ancora provider PEC/email, preservando lo storico anche se la matrice destinatari cambia.
+
+Conseguenza:
+registrare una comunicazione come `sent` non cambia lo stato pubblico della segnalazione. Solo una comunicazione marcata manualmente `delivered` puo portare il report da `Segnalata` a `Comunicata`, passando da `Report.markCommunicated` e generando l'evento pubblico `ReportCommunicated`. Gli eventi tecnici `CommunicationRecorded`, `CommunicationSent`, `CommunicationDelivered` e `CommunicationFailed` restano interni.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

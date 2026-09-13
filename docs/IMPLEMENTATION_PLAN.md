@@ -579,6 +579,34 @@ Restano fuori scope:
 - cambio stato `Risolta`;
 - sistema generico di note interne indipendente dagli eventi.
 
+
+## VC-015 — Comunicazioni manuali
+
+Le comunicazioni sono registrate manualmente dal backoffice senza invio PEC/email reale. La separazione resta:
+
+`UI admin -> Server Action autenticata -> application use case -> dominio Report -> repository comunicazioni/report -> PostgreSQL`
+
+Scelte MVP:
+
+- nuova tabella `outbound_communications` con riferimento al report, riferimento opzionale al destinatario e snapshot del destinatario;
+- canali supportati: `email`, `pec`;
+- stati supportati: `draft`, `sent`, `delivered`, `failed`;
+- il template oggetto/testo e deterministico e generato nel layer applicativo usando codice, categoria, luogo, data, descrizione e link pubblico;
+- registrare una comunicazione come `sent` crea solo evento interno `CommunicationSent` e non cambia stato report;
+- `delivered` valorizza `deliveredAt`, crea evento interno `CommunicationDelivered` e, se il report e ancora `Segnalata`, passa dal dominio `Report.markCommunicated`;
+- il passaggio a `Comunicata` crea evento pubblico `ReportCommunicated`;
+- `failed` valorizza `failedAt`, crea evento interno `CommunicationFailed` e non cambia stato report;
+- la scheda pubblica non mostra destinatario, indirizzi, oggetto, corpo o dettagli tecnici;
+- doppio delivered sequenziale e gestito in modo idempotente senza duplicare `ReportCommunicated`;
+- una seconda comunicazione consegnata su report gia `Comunicata` non duplica l'evento pubblico.
+
+Restano fuori scope:
+
+- invio SMTP o PEC reale;
+- provider PEC/email;
+- inbox, ricevute automatiche, reply matching e solleciti;
+- AI o routing automatico.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

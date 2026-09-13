@@ -63,6 +63,26 @@ export const REPORT_TIMELINE_EVENT_PRESENTATION: Record<ReportEventType, Timelin
     adminDescription: "Visione Comune ha verificato la risoluzione del problema.",
     publicDescription: "Visione Comune ha verificato la risoluzione del problema.",
     defaultVisibility: "public"
+  },
+  CommunicationRecorded: {
+    label: "Comunicazione registrata",
+    adminDescription: "Una comunicazione manuale e stata registrata nel backoffice.",
+    defaultVisibility: "internal"
+  },
+  CommunicationSent: {
+    label: "Comunicazione segnata come inviata",
+    adminDescription: "La comunicazione manuale risulta inviata secondo registrazione admin.",
+    defaultVisibility: "internal"
+  },
+  CommunicationDelivered: {
+    label: "Consegna comunicazione confermata",
+    adminDescription: "La consegna della comunicazione e stata confermata manualmente.",
+    defaultVisibility: "internal"
+  },
+  CommunicationFailed: {
+    label: "Comunicazione non riuscita",
+    adminDescription: "La comunicazione e stata marcata come non riuscita.",
+    defaultVisibility: "internal"
   }
 };
 
@@ -71,7 +91,9 @@ const ADMIN_METADATA_LABELS: Record<string, string> = {
   recipientOrganization: "Ente",
   recipientAddress: "Indirizzo destinatario",
   communicationChannel: "Canale",
-  externalMessageId: "ID esterno"
+  externalMessageId: "ID esterno",
+  communicationId: "Comunicazione",
+  communicationStatus: "Stato comunicazione"
 };
 
 export type GetPublicReportTimelineUseCaseDependencies = {

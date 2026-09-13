@@ -46,11 +46,12 @@
 1. La segnalazione è approvata.
 2. Il sistema suggerisce il destinatario.
 3. L'operatore verifica.
-4. Il sistema prepara la comunicazione.
-5. La comunicazione viene inviata via PEC o email.
-6. Se la consegna è confermata:
+4. Il sistema propone un template deterministico modificabile.
+5. L'operatore registra manualmente la comunicazione come bozza o inviata. Nessun invio reale viene effettuato dalla piattaforma.
+6. Se l'operatore conferma manualmente la consegna:
    - lo stato pubblico passa a `Comunicata`;
-   - viene aggiunto un evento in timeline.
+   - viene aggiunto un evento pubblico in timeline.
+7. Se la comunicazione viene marcata fallita, resta visibile solo in admin e lo stato pubblico non cambia.
 
 ## FLOW-005 — Risoluzione
 

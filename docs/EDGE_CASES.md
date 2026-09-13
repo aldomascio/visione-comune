@@ -353,3 +353,53 @@ un evento contiene chiavi metadata non ancora mappate dalla presentazione della 
 
 Gestione prevista:
 la vista admin mostra solo metadata conosciuti e utili. La vista pubblica non espone metadata. Non viene mostrato JSON grezzo.
+
+## VC-015 — Comunicazioni manuali
+
+### EC-VC015-001 — Comunicazione registrata ma non consegnata
+
+Caso:
+un admin registra una comunicazione come `sent`, ma non ne conferma la consegna.
+
+Gestione prevista:
+la comunicazione resta visibile solo in admin e il report resta nello stato pubblico `Segnalata`.
+
+### EC-VC015-002 — Comunicazione fallita
+
+Caso:
+un admin marca una comunicazione come `failed`.
+
+Gestione prevista:
+viene registrato un evento interno `CommunicationFailed`, `failedAt` viene valorizzato e lo stato pubblico del report non cambia.
+
+### EC-VC015-003 — Doppio click su consegnata
+
+Caso:
+un admin prova a marcare come consegnata una comunicazione gia `delivered`.
+
+Gestione prevista:
+il use case restituisce lo stato gia consegnato senza generare un secondo evento `ReportCommunicated`.
+
+### EC-VC015-004 — Seconda comunicazione consegnata su report gia Comunicata
+
+Caso:
+un report e gia nello stato `Comunicata` e una seconda comunicazione viene marcata `delivered`.
+
+Gestione prevista:
+la comunicazione viene aggiornata e resta tracciata in admin, ma non viene duplicato l'evento pubblico `ReportCommunicated`.
+
+### EC-VC015-005 — Destinatario modificato dopo comunicazione
+
+Caso:
+il nome, l'organizzazione o l'indirizzo del destinatario vengono modificati dopo la registrazione della comunicazione.
+
+Gestione prevista:
+lo storico comunicazione continua a mostrare `recipientNameSnapshot`, `recipientOrganizationSnapshot` e `recipientAddressSnapshot` originali.
+
+### EC-VC015-006 — Dettagli comunicazione nella scheda pubblica
+
+Caso:
+il cittadino apre la pagina pubblica dopo la consegna confermata.
+
+Gestione prevista:
+vede solo stato `Comunicata` e testo timeline pubblico generico. Non vede PEC, email, destinatario, oggetto, corpo, externalMessageId o errori.

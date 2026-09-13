@@ -114,6 +114,16 @@ export class DrizzleReportRepository implements ReportRepository {
     return record ? recordToReport(record) : null;
   }
 
+  async findById(reportId: string): Promise<Report | null> {
+    const [record] = await this.db
+      .select()
+      .from(reports)
+      .where(eq(reports.id, reportId))
+      .limit(1);
+
+    return record ? recordToReport(record) : null;
+  }
+
 
   async findAttachmentForModeration(publicCode: PublicCode): Promise<ReportAttachmentAccess | null> {
     const [row] = await this.db

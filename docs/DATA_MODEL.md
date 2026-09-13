@@ -215,3 +215,26 @@ Note implementative MVP:
 - authorAdminId
 - body
 - createdAt
+
+## Metriche operative — VC-021
+
+Le metriche operative non introducono nuove tabelle: sono viste aggregate derivate dai dati gia presenti in `reports`, `categories` e `report_confirmations`.
+
+### Definizioni
+
+- **Segnalazioni ricevute**: tutte le righe di `reports`, indipendentemente dalla moderazione. Timestamp di riferimento: `reports.createdAt`.
+- **Da verificare**: report con `moderationStatus = pending_review`.
+- **Pubblicate**: report con `moderationStatus = approved`, `publicStatus` valorizzato e `publishedAt` valorizzato. Timestamp di riferimento: `reports.publishedAt`.
+- **Comunicate**: report con `publicStatus = communicated` oppure `publicStatus = resolved`. Un report risolto e considerato anche gia comunicato, per non sottostimare le comunicazioni storiche. Timestamp di riferimento: `reports.communicatedAt`.
+- **Risolte**: report con `publicStatus = resolved`. Timestamp di riferimento: `reports.resolvedAt`.
+- **Rifiutate**: report con `moderationStatus = rejected`.
+- **Conferme totali**: numero totale di righe in `report_confirmations`.
+- **Tasso di risoluzione**: `segnalazioni risolte / segnalazioni pubblicate`, espresso in percentuale. Se non esistono segnalazioni pubblicate, il valore e `Non disponibile` e non viene calcolata alcuna divisione.
+- **Tempo mediano di risoluzione**: mediana della durata `resolvedAt - publishedAt` per report risolti.
+- **Tempo mediano di comunicazione**: mediana della durata `communicatedAt - publishedAt` per report comunicati o risolti.
+- **Distribuzione per categoria**: per ogni categoria con almeno una segnalazione pubblicata o risolta, conteggio di pubblicate e risolte.
+- **Andamento ultimi 6 mesi**: serie mensile con segnalazioni ricevute aggregate per `createdAt` e segnalazioni risolte aggregate per `resolvedAt`.
+
+### Privacy
+
+Le metriche pubbliche predisposte espongono solo aggregati: pubblicate, comunicate, risolte, conferme totali e tasso di risoluzione. Non espongono ID interni, chiavi anti-abuso, dati admin, destinatari, dati PEC, note interne o dati individuali di report pending/rejected.

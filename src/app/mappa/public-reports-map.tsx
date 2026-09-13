@@ -29,6 +29,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>(allStatusesOption);
   const [selectedCategory, setSelectedCategory] = useState<string>(allCategoriesOption);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   const categories = useMemo(() => {
     return Array.from(new Set(reports.map((report) => report.categoryName))).sort((a, b) =>
@@ -49,6 +50,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | undefined;
 
     async function initializeMap() {
       if (!containerRef.current || mapRef.current) {
@@ -64,7 +66,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
 
         const map = new maplibregl.Map({
           container: containerRef.current,
-          style: config.styleUrl,
+          style: config.style,
           center: [config.initialCenter.longitude, config.initialCenter.latitude] as LngLatLike,
           zoom: config.initialZoom,
           attributionControl: false
@@ -73,6 +75,14 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ customAttribution: config.attribution }), "bottom-right");
         mapRef.current = map;
+
+        resizeObserver = new ResizeObserver(() => map.resize());
+        resizeObserver.observe(containerRef.current);
+        map.once("load", () => map.resize());
+        requestAnimationFrame(() => map.resize());
+        setTimeout(() => map.resize(), 0);
+
+        setMapReady(true);
       } catch {
         if (!cancelled) {
           setMapError("Non siamo riusciti a caricare la mappa. Puoi usare la lista delle segnalazioni qui sotto.");
@@ -84,12 +94,14 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
       mapRef.current?.remove();
       mapRef.current = null;
+      setMapReady(false);
     };
-  }, [config.attribution, config.initialCenter.latitude, config.initialCenter.longitude, config.initialZoom, config.styleUrl]);
+  }, [config.attribution, config.initialCenter.latitude, config.initialCenter.longitude, config.initialZoom, config.style]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +109,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
     async function renderMarkers() {
       const map = mapRef.current;
 
-      if (!map) {
+      if (!mapReady || !map) {
         return;
       }
 
@@ -107,6 +119,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
         return;
       }
 
+      map.resize();
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = visibleReports.map((report) => {
         const popup = new maplibregl.Popup({ offset: 24, closeButton: true }).setDOMContent(
@@ -139,7 +152,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
     return () => {
       cancelled = true;
     };
-  }, [config.initialCenter.latitude, config.initialCenter.longitude, config.initialZoom, visibleReports]);
+  }, [config.initialCenter.latitude, config.initialCenter.longitude, config.initialZoom, mapReady, visibleReports]);
 
   return (
     <div className="grid gap-6">

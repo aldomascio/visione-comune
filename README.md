@@ -121,7 +121,7 @@ Pagine pubbliche disponibili in locale:
 
 Mappa pubblica:
 
-`/mappa` usa MapLibre GL JS. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato, in locale viene usato lo style demo pubblico di MapLibre, adatto allo sviluppo ma non scelto come provider definitivo di produzione.
+`/mappa` usa MapLibre GL JS. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato, in locale viene usato lo style raster OpenStreetMap, adatto allo sviluppo ma non scelto come provider definitivo di produzione.
 
 Produzione:
 

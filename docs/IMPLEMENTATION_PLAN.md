@@ -397,7 +397,7 @@ Scelte operative:
 - la mappa parte centrata su Venafro;
 - sono disponibili filtri client-side semplici per stato e categoria sui soli dati gia pubblici;
 - la lista accessibile sotto la mappa mostra gli stessi report visibili e consente di aprire `/segnalazioni/[publicCode]`;
-- lo style URL si configura con `NEXT_PUBLIC_MAP_STYLE_URL`; il fallback MapLibre demo e solo per sviluppo locale.
+- lo style URL si configura con `NEXT_PUBLIC_MAP_STYLE_URL`; il fallback raster OpenStreetMap e solo per sviluppo locale.
 
 Restano fuori scope:
 

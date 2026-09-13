@@ -50,6 +50,13 @@
       "when": 1789310490042,
       "tag": "0006_massive_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789311320626,
+      "tag": "0007_concerned_beyonder",
+      "breakpoints": true
     }
   ]
 }

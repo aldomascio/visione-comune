@@ -176,6 +176,8 @@ Note implementative MVP:
 - title
 - slug
 - excerpt
+- featuredImageUrl
+- featuredImageAlt
 - content
 - status
 - publishedAt
@@ -187,6 +189,8 @@ Note implementative MVP:
 - `status` supporta solo `draft` e `published`.
 - `slug` e URL-safe, lowercase e univoco. Puo essere generato dal titolo e modificato dall'admin.
 - `content` e testo semplice, non Markdown e non HTML. React lo renderizza come testo, preservando gli a capo con CSS.
+- `featuredImageUrl` e opzionale e, per l'MVP, usa percorsi locali versionati sotto `public/`; non introduce upload o storage esterno per le news.
+- se `featuredImageUrl` e valorizzato, `featuredImageAlt` e obbligatorio per accessibilita.
 - `publishedAt` rappresenta la prima pubblicazione: quando una notizia torna bozza non viene cancellato.
 - le query pubbliche restituiscono solo notizie `published` con `publishedAt` valorizzato, ordinate per `publishedAt DESC`.
 

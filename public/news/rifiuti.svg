@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="Decoro">
+  <rect width="1200" height="675" fill="#f5ebe4"/>
+  <circle cx="995" cy="130" r="190" fill="#6b3a1a" opacity="0.12"/>
+  <circle cx="170" cy="555" r="260" fill="#6b3a1a" opacity="0.10"/>
+  <path d="M0 520 C190 430 310 620 510 520 S825 435 1200 525 V675 H0 Z" fill="#6b3a1a" opacity="0.16"/>
+  <rect x="96" y="92" width="1008" height="491" rx="36" fill="none" stroke="#6b3a1a" stroke-width="6" opacity="0.42"/>
+  <text x="112" y="176" fill="#6b3a1a" font-family="Public Sans, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="4">VISIONE COMUNE</text>
+  <text x="112" y="390" fill="#6b3a1a" font-family="Newsreader, Georgia, serif" font-size="88" font-weight="700">Decoro</text>
+  <text x="112" y="455" fill="#6b3a1a" font-family="Public Sans, Arial, sans-serif" font-size="28" opacity="0.78">Aggiornamenti dal territorio</text>
+</svg>

@@ -48,6 +48,8 @@ test("admin creates a draft, publishes it, and public pages show only published 
   await page.getByLabel("Titolo").fill(publishedTitle);
   await page.getByLabel("Slug").fill(publishedSlug);
   await page.getByLabel("Estratto").fill("Estratto pubblico E2E");
+  await page.getByLabel("Immagine in evidenza").fill("/news/territorio.svg");
+  await page.getByLabel("Testo alternativo immagine").fill("Illustrazione test notizia E2E");
   await page.getByLabel("Contenuto").fill("Contenuto pubblico aggiornato E2E.");
   await page.getByLabel("Stato").selectOption("published");
   await page.getByRole("button", { name: "Salva modifiche" }).click();
@@ -58,11 +60,13 @@ test("admin creates a draft, publishes it, and public pages show only published 
   await page.goto("/notizie");
   await expect(page.getByRole("heading", { name: "Notizie", exact: true })).toBeVisible();
   await expect(page.getByText(publishedTitle)).toBeVisible();
+  await expect(page.getByRole("img", { name: "Illustrazione test notizia E2E" })).toBeVisible();
   await expect(page.getByText(privateDraftTitle)).toHaveCount(0);
 
   await page.getByRole("link", { name: "Leggi aggiornamento" }).first().click();
   await expect(page).toHaveURL(new RegExp(`/notizie/${publishedSlug}$`));
   await expect(page.getByRole("heading", { name: publishedTitle })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Illustrazione test notizia E2E" })).toBeVisible();
   await expect(page.getByText("Contenuto pubblico aggiornato E2E.")).toBeVisible();
 
   const draftResponse = await page.goto(`/notizie/${privateDraftSlug}`);

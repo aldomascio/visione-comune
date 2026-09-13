@@ -5,7 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Visione Comune",
-  description: "Fondazione tecnica del progetto Visione Comune"
+  description: "Fondazione tecnica del progetto Visione Comune",
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/favicon.png", type: "image/png" }]
+  }
 };
 
 export default function RootLayout({

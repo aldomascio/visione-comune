@@ -57,13 +57,20 @@ maybeDescribe("news post repository with PostgreSQL", () => {
       title: "Pubblicata test",
       slug: "pubblicata-test",
       excerpt: "Estratto pubblico",
+      featuredImageUrl: "/news/test.svg",
+      featuredImageAlt: "Immagine test",
       content: "Contenuto pubblicato test.",
       status: "published"
     });
 
     expect(draft.publishedAt).toBeNull();
     expect(published.publishedAt).toEqual(publishedAt);
-    await expect(repository.findById(postIds[1])).resolves.toMatchObject({ slug: "pubblicata-test", status: "published" });
+    await expect(repository.findById(postIds[1])).resolves.toMatchObject({
+      slug: "pubblicata-test",
+      status: "published",
+      featuredImageUrl: "/news/test.svg",
+      featuredImageAlt: "Immagine test"
+    });
   });
 
   it("enforces unique slugs", async () => {

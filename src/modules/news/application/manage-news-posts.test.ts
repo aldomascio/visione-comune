@@ -118,6 +118,23 @@ describe("news post management", () => {
     expect(posts.map((post) => post.id)).toEqual(["new", "old"]);
   });
 
+
+  it("validates featured image alt text when image is provided", async () => {
+    const repository = new InMemoryNewsPostRepository();
+
+    await expect(
+      new CreateNewsPostUseCase({ newsPostRepository: repository }).execute({
+        title: "Notizia con immagine",
+        slug: "notizia-con-immagine",
+        featuredImageUrl: "/news/test.svg",
+        content: "Contenuto con immagine.",
+        status: "draft"
+      })
+    ).rejects.toMatchObject({
+      fieldErrors: { featuredImageAlt: "Inserisci un testo alternativo per l'immagine." }
+    });
+  });
+
   it("normalizes url-safe slugs", () => {
     expect(normalizeNewsPostSlug("  È arrivata una Novità!  ")).toBe("e-arrivata-una-novita");
   });
@@ -171,6 +188,8 @@ function makePost(overrides: Partial<NewsPostDetails>): NewsPostDetails {
     title: "Titolo",
     slug: "titolo",
     excerpt: null,
+    featuredImageUrl: null,
+    featuredImageAlt: null,
     content: "Contenuto",
     status: "draft",
     publishedAt: null,

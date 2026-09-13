@@ -96,6 +96,32 @@ export function NewsPostForm({ action, initialState, mode, post }: NewsPostFormP
             {state.fieldErrors.excerpt ? <p className="text-sm font-medium text-destructive" id="excerpt-error">{state.fieldErrors.excerpt}</p> : null}
           </Field>
 
+          <div className="grid gap-5 md:grid-cols-2">
+            <Field htmlFor="featuredImageUrl" label="Immagine in evidenza" hint="Opzionale. Usa un percorso locale da public, ad esempio /news/esempio.svg.">
+              <Input
+                aria-describedby={state.fieldErrors.featuredImageUrl ? "featured-image-url-error" : undefined}
+                aria-invalid={Boolean(state.fieldErrors.featuredImageUrl)}
+                id="featuredImageUrl"
+                maxLength={500}
+                name="featuredImageUrl"
+                defaultValue={state.values.featuredImageUrl}
+              />
+              {state.fieldErrors.featuredImageUrl ? <p className="text-sm font-medium text-destructive" id="featured-image-url-error">{state.fieldErrors.featuredImageUrl}</p> : null}
+            </Field>
+
+            <Field htmlFor="featuredImageAlt" label="Testo alternativo immagine" hint="Obbligatorio se imposti un'immagine.">
+              <Input
+                aria-describedby={state.fieldErrors.featuredImageAlt ? "featured-image-alt-error" : undefined}
+                aria-invalid={Boolean(state.fieldErrors.featuredImageAlt)}
+                id="featuredImageAlt"
+                maxLength={180}
+                name="featuredImageAlt"
+                defaultValue={state.values.featuredImageAlt}
+              />
+              {state.fieldErrors.featuredImageAlt ? <p className="text-sm font-medium text-destructive" id="featured-image-alt-error">{state.fieldErrors.featuredImageAlt}</p> : null}
+            </Field>
+          </div>
+
           <Field htmlFor="content" label="Contenuto" hint="Testo semplice. Non viene interpretato come HTML.">
             <Textarea
               aria-describedby={state.fieldErrors.content ? "content-error" : undefined}

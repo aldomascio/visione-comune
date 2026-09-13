@@ -7,6 +7,8 @@ export type NewsPostDetails = {
   title: string;
   slug: string;
   excerpt: string | null;
+  featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
   content: string;
   status: NewsPostStatus;
   publishedAt: Date | null;
@@ -23,6 +25,8 @@ export type NewsPostUpdate = {
   title: string;
   slug: string;
   excerpt: string | null;
+  featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
   content: string;
   status: NewsPostStatus;
   publishedAt: Date | null;

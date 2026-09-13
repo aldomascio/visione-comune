@@ -5,6 +5,8 @@ export type NewsPostActionState = {
     title?: string;
     slug?: string;
     excerpt?: string;
+    featuredImageUrl?: string;
+    featuredImageAlt?: string;
     content?: string;
     status?: string;
   };
@@ -12,6 +14,8 @@ export type NewsPostActionState = {
     title: string;
     slug: string;
     excerpt: string;
+    featuredImageUrl: string;
+    featuredImageAlt: string;
     content: string;
     status: string;
   };
@@ -24,6 +28,8 @@ export const initialNewsPostActionState: NewsPostActionState = {
     title: "",
     slug: "",
     excerpt: "",
+    featuredImageUrl: "",
+    featuredImageAlt: "",
     content: "",
     status: "draft"
   }

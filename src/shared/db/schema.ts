@@ -289,6 +289,8 @@ export const newsPosts = pgTable(
     title: varchar("title", { length: 180 }).notNull(),
     slug: varchar("slug", { length: 160 }).notNull(),
     excerpt: varchar("excerpt", { length: 320 }),
+    featuredImageUrl: varchar("featured_image_url", { length: 500 }),
+    featuredImageAlt: varchar("featured_image_alt", { length: 180 }),
     content: varchar("content", { length: 12000 }).notNull(),
     status: newsPostStatusEnum("status").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
@@ -304,6 +306,10 @@ export const newsPosts = pgTable(
     check("news_posts_slug_not_empty", sql`length(trim(${table.slug})) > 0`),
     check("news_posts_slug_format", sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
     check("news_posts_content_not_empty", sql`length(trim(${table.content})) > 0`),
+    check(
+      "news_posts_featured_image_alt_required",
+      sql`${table.featuredImageUrl} is null or length(trim(${table.featuredImageAlt})) > 0`
+    ),
     check("news_posts_published_requires_published_at", sql`${table.status} <> 'published' or ${table.publishedAt} is not null`)
   ]
 );

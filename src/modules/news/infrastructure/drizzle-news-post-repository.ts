@@ -39,6 +39,8 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
           title: post.title,
           slug: post.slug,
           excerpt: post.excerpt,
+          featuredImageUrl: post.featuredImageUrl,
+          featuredImageAlt: post.featuredImageAlt,
           content: post.content,
           status: post.status,
           publishedAt: post.publishedAt,

@@ -192,4 +192,4 @@ Il menu pubblico principale contiene solo i link editoriali e di consultazione: 
 
 ### Notizie editoriali
 
-La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Il contenuto e testo semplice, non HTML e non Markdown: gli a capo sono preservati con `white-space`, mentre React mantiene escaping automatico del testo.
+La sezione Notizie usa card e pagine dettaglio coerenti con il tema. Il contenuto e testo semplice, non HTML e non Markdown: gli a capo sono preservati con `white-space`, mentre React mantiene escaping automatico del testo. Le immagini in evidenza sono opzionali, usano percorsi locali sotto `public/`, hanno rapporto 16:9 e richiedono testo alternativo.

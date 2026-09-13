@@ -12,12 +12,16 @@ export const NEWS_POST_TITLE_MAX_LENGTH = 180;
 export const NEWS_POST_SLUG_MAX_LENGTH = 160;
 export const NEWS_POST_EXCERPT_MAX_LENGTH = 320;
 export const NEWS_POST_CONTENT_MAX_LENGTH = 12000;
+export const NEWS_POST_FEATURED_IMAGE_URL_MAX_LENGTH = 500;
+export const NEWS_POST_FEATURED_IMAGE_ALT_MAX_LENGTH = 180;
 export const NEWS_POST_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export type NewsPostFieldErrors = {
   title?: string;
   slug?: string;
   excerpt?: string;
+  featuredImageUrl?: string;
+  featuredImageAlt?: string;
   content?: string;
   status?: string;
 };
@@ -47,6 +51,8 @@ export type NewsPostFormInput = {
   title: string;
   slug?: string;
   excerpt?: string;
+  featuredImageUrl?: string;
+  featuredImageAlt?: string;
   content: string;
   status: string;
 };
@@ -119,6 +125,8 @@ export class CreateNewsPostUseCase {
         title: values.title,
         slug: values.slug,
         excerpt: values.excerpt,
+        featuredImageUrl: values.featuredImageUrl,
+        featuredImageAlt: values.featuredImageAlt,
         content: values.content,
         status: values.status,
         publishedAt: values.status === "published" ? now : null,
@@ -165,6 +173,8 @@ export class UpdateNewsPostUseCase {
         title: values.title,
         slug: values.slug,
         excerpt: values.excerpt,
+        featuredImageUrl: values.featuredImageUrl,
+        featuredImageAlt: values.featuredImageAlt,
         content: values.content,
         status: values.status,
         publishedAt,
@@ -190,12 +200,16 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
   title: string;
   slug: string;
   excerpt: string | null;
+  featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
   content: string;
   status: NewsPostStatus;
 } {
   const title = normalizeNewsPostTitle(input.title);
   const slug = normalizeNewsPostSlug(input.slug?.trim() ? input.slug : title);
   const excerpt = normalizeOptionalText(input.excerpt);
+  const featuredImageUrl = normalizeOptionalText(input.featuredImageUrl);
+  const featuredImageAlt = normalizeOptionalText(input.featuredImageAlt);
   const content = normalizeNewsPostContent(input.content);
   const status = parseNewsPostStatus(input.status);
   const fieldErrors: NewsPostFieldErrors = {};
@@ -218,6 +232,18 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
     fieldErrors.excerpt = `L'estratto non puo superare ${NEWS_POST_EXCERPT_MAX_LENGTH} caratteri.`;
   }
 
+  if (featuredImageUrl && featuredImageUrl.length > NEWS_POST_FEATURED_IMAGE_URL_MAX_LENGTH) {
+    fieldErrors.featuredImageUrl = `L'URL immagine non puo superare ${NEWS_POST_FEATURED_IMAGE_URL_MAX_LENGTH} caratteri.`;
+  } else if (featuredImageUrl && !isSafeFeaturedImageUrl(featuredImageUrl)) {
+    fieldErrors.featuredImageUrl = "Usa un percorso locale che inizi con /.";
+  }
+
+  if (featuredImageUrl && !featuredImageAlt) {
+    fieldErrors.featuredImageAlt = "Inserisci un testo alternativo per l'immagine.";
+  } else if (featuredImageAlt && featuredImageAlt.length > NEWS_POST_FEATURED_IMAGE_ALT_MAX_LENGTH) {
+    fieldErrors.featuredImageAlt = `Il testo alternativo non puo superare ${NEWS_POST_FEATURED_IMAGE_ALT_MAX_LENGTH} caratteri.`;
+  }
+
   if (!content) {
     fieldErrors.content = "Inserisci il contenuto della notizia.";
   } else if (content.length > NEWS_POST_CONTENT_MAX_LENGTH) {
@@ -232,7 +258,7 @@ export function validateNewsPostInput(input: NewsPostFormInput): {
     throw new NewsPostValidationError(fieldErrors);
   }
 
-  return { title, slug, excerpt, content, status };
+  return { title, slug, excerpt, featuredImageUrl, featuredImageAlt, content, status };
 }
 
 export function normalizeNewsPostTitle(value: string): string {
@@ -289,4 +315,8 @@ async function ensureSlugAvailable(
   if (postWithSameSlug && postWithSameSlug.id !== allowedPostId) {
     throw new DuplicateNewsPostSlugError(slug);
   }
+}
+
+function isSafeFeaturedImageUrl(value: string): boolean {
+  return value.startsWith("/") && !value.startsWith("//");
 }

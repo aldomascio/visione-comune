@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ListPublishedNewsPostsUseCase } from "@/modules/news/application/manage-news-posts";
 import { DrizzleNewsPostRepository } from "@/modules/news/infrastructure/drizzle-news-post-repository";
@@ -30,7 +31,18 @@ export default async function NewsPage() {
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
             {posts.map((post) => (
-              <Card key={post.id}>
+              <Card className="overflow-hidden" key={post.id}>
+                {post.featuredImageUrl ? (
+                  <div className="relative aspect-[16/9] w-full bg-muted">
+                    <Image
+                      alt={post.featuredImageAlt ?? ""}
+                      className="object-cover"
+                      fill
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      src={post.featuredImageUrl}
+                    />
+                  </div>
+                ) : null}
                 <CardHeader>
                   <p className="text-sm font-medium text-muted-foreground">{formatPublicDate(post.publishedAt)}</p>
                   <CardTitle>{post.title}</CardTitle>

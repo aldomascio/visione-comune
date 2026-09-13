@@ -26,6 +26,8 @@ export default async function EditNewsPostPage({ params }: EditNewsPostPageProps
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt ?? "",
+      featuredImageUrl: post.featuredImageUrl ?? "",
+      featuredImageAlt: post.featuredImageAlt ?? "",
       content: post.content,
       status: post.status
     }

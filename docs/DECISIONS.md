@@ -335,7 +335,7 @@ Motivo:
 la sezione deve permettere aggiornamenti pubblici utili senza trasformare l'MVP in un CMS complesso o introdurre rischi XSS legati a rendering HTML/Markdown.
 
 Conseguenza:
-solo gli admin autenticati e attivi possono creare, modificare e pubblicare notizie. Il pubblico vede solo post `published` con `publishedAt` valorizzato. `publishedAt` rappresenta la prima pubblicazione e resta conservato se una notizia torna bozza.
+solo gli admin autenticati e attivi possono creare, modificare e pubblicare notizie. Il pubblico vede solo post `published` con `publishedAt` valorizzato. `publishedAt` rappresenta la prima pubblicazione e resta conservato se una notizia torna bozza. L'immagine in evidenza e un percorso locale opzionale sotto `public/` con testo alternativo obbligatorio quando presente; non introduce upload immagini news o storage esterno.
 
 ## DA DEFINIRE
 

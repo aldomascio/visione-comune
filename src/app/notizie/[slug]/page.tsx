@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GetPublishedNewsPostBySlugUseCase } from "@/modules/news/application/manage-news-posts";
@@ -29,6 +30,19 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
           <h1 className="max-w-3xl font-serif text-4xl font-semibold tracking-normal sm:text-5xl">{post.title}</h1>
           {post.excerpt ? <p className="max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p> : null}
         </header>
+
+        {post.featuredImageUrl ? (
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-muted">
+            <Image
+              alt={post.featuredImageAlt ?? ""}
+              className="object-cover"
+              fill
+              priority
+              sizes="(min-width: 1024px) 1152px, 100vw"
+              src={post.featuredImageUrl}
+            />
+          </div>
+        ) : null}
 
         <div className="max-w-3xl whitespace-pre-wrap text-base leading-8 text-foreground">
           {post.content}

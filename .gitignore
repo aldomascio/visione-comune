@@ -12,6 +12,7 @@ build/
 .env
 .env.*
 !.env.example
+# .env.local and .env.test.local contain local connection strings and must stay untracked
 
 # Logs
 *.log

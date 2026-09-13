@@ -47,17 +47,44 @@ export class DrizzleReportRepository implements ReportRepository {
 }
 
 function isPublicCodeUniqueViolation(error: unknown): boolean {
-  if (!isPostgresError(error)) {
+  const postgresError = getPostgresError(error);
+
+  if (!postgresError) {
     return false;
   }
 
-  return error.code === "23505" && error.constraint_name === "reports_public_code_unique";
+  return (
+    postgresError.code === "23505" &&
+    postgresError.constraint_name === "reports_public_code_unique"
+  );
 }
 
-function isPostgresError(error: unknown): error is {
+function getPostgresError(error: unknown): PostgresError | null {
+  if (isPostgresError(error)) {
+    return error;
+  }
+
+  if (typeof error === "object" && error !== null && "cause" in error) {
+    const cause = (error as { cause?: unknown }).cause;
+
+    if (isPostgresError(cause)) {
+      return cause;
+    }
+  }
+
+  return null;
+}
+
+type PostgresError = {
   code?: string;
   constraint_name?: string;
-} {
-  return typeof error === "object" && error !== null;
-}
+};
 
+function isPostgresError(error: unknown): error is PostgresError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "constraint_name" in error
+  );
+}

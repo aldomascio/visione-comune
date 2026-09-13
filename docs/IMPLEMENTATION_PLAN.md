@@ -17,13 +17,13 @@ Questo documento recepisce le decisioni tecniche approvate e mantiene esplicitam
 - Architettura: moduli applicativi con adapter sostituibili per PEC, storage, AI, newsletter/email e geocoding.
 - Deploy MVP: deve poter funzionare su VPS con Node.js senza richiedere Docker.
 - Sviluppo locale MVP: standard Node.js, senza Docker come prerequisito.
+- Database locale MVP: PostgreSQL locale, preferibilmente tramite Postgres.app su macOS.
+- Database produzione MVP: PostgreSQL self-hosted sul VPS gia disponibile.
 
 ## Decisioni ancora aperte
 
 Queste decisioni non devono bloccare la progettazione del core, ma vanno risolte prima delle slice che le richiedono:
 
-- database locale: PostgreSQL installato localmente o servizio gestito;
-- database produzione: self-hosted o managed;
 - storage immagini produzione;
 - provider geocoding;
 - provider PEC;
@@ -57,7 +57,7 @@ Non emergono contraddizioni dirette tra i documenti, ma ci sono tensioni progett
 ## Assunzioni rischiose
 
 - Il VPS disponibile ha risorse sufficienti almeno per app Node.js, reverse proxy e gestione operativa minima.
-- PostgreSQL locale o gestito verra scelto prima della fondazione database.
+- PostgreSQL locale e stato scelto per la fondazione database; resta da mantenere ripetibile il setup sulle macchine di sviluppo.
 - Gli amministratori saranno pochi e possono usare un flusso auth semplice.
 - La deduplica iniziale puo essere efficace con regole geografiche e testuali semplici.
 - Le integrazioni PEC saranno disponibili in modo automatizzabile e affidabile, ma non devono bloccare l'MVP iniziale.
@@ -109,7 +109,7 @@ Non emergono contraddizioni dirette tra i documenti, ma ci sono tensioni progett
 
 ### 1. Next.js full-stack su VPS con Node.js
 
-Descrizione: applicazione Next.js unica, con backend applicativo nello stesso progetto, deploy iniziale su VPS come applicazione Node.js. PostgreSQL puo essere locale, sul VPS o gestito: la scelta resta aperta.
+Descrizione: applicazione Next.js unica, con backend applicativo nello stesso progetto, deploy iniziale su VPS come applicazione Node.js. PostgreSQL e locale in sviluppo e self-hosted sul VPS in produzione per l'MVP, mantenendo `DATABASE_URL` come unico contratto applicativo.
 
 Vantaggi:
 
@@ -124,7 +124,7 @@ Vantaggi:
 Svantaggi:
 
 - Il VPS richiede gestione operativa: runtime Node.js, process manager, reverse proxy, log, backup e aggiornamenti.
-- Va definita separatamente la strategia PostgreSQL locale/produzione.
+- Richiede disciplina operativa su PostgreSQL locale e self-hosted: backup, restore, monitoring e aggiornamenti.
 - Storage immagini e backup non sono risolti automaticamente.
 
 Valutazione: opzione consigliata per l'MVP.
@@ -240,7 +240,12 @@ Deploy iniziale previsto su VPS come applicazione Node.js:
 - avvio tramite process manager da definire;
 - reverse proxy da definire;
 - variabili ambiente sul server;
-- backup database/storage secondo decisioni infrastrutturali.
+- PostgreSQL self-hosted sullo stesso VPS o su host privato controllato;
+- utente database dedicato e database dedicato;
+- accesso PostgreSQL non esposto pubblicamente se app e DB sono sullo stesso VPS;
+- backup periodici, copia esterna e restore testabile;
+- aggiornamenti PostgreSQL e monitoring da predisporre prima del go-live;
+- backup storage secondo la decisione futura sul provider immagini.
 
 Docker resta opzione futura e non deve essere introdotto in questa fase.
 
@@ -271,6 +276,27 @@ Porta `AiProvider` con funzioni limitate e non decisionali: suggerire categoria,
 ### Newsletter/email futura
 
 Porta `NewsletterProvider` separata dal dominio segnalazioni. Il core deve pubblicare eventi applicativi o viste approvate, non parlare direttamente con un vendor.
+
+## Ambiente PostgreSQL locale
+
+La fondazione database usa due database locali separati:
+
+- `visione_comune_dev` per sviluppo e migration manuali;
+- `visione_comune_test` per integration test PostgreSQL.
+
+Le variabili locali sono:
+
+- `DATABASE_URL` in `.env.local`;
+- `TEST_DATABASE_URL` in `.env.test.local`.
+
+I file `.env.local` e `.env.test.local` sono ignorati da Git. `.env.example` contiene solo placeholder.
+
+Script utili:
+
+- `pnpm db:migrate:dev` applica le migration al database indicato in `.env.local`;
+- `pnpm test:integration` esegue gli integration test PostgreSQL usando `.env.test.local`.
+
+Gli integration test devono usare fixture minime, categorie di test e cleanup dei soli record creati dai test. Non devono cancellare lo schema `public` o dati non appartenenti ai test.
 
 ## Architettura proposta
 

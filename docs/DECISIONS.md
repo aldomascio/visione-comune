@@ -113,17 +113,18 @@ il dominio resta indipendente dalla persistenza; eventuali collisioni di generaz
 Conseguenza:
 la strategia definitiva di generazione del codice pubblico resta fuori da VC-003 e verra completata nella vertical slice di creazione segnalazione.
 
+### ADR-016 — PostgreSQL locale e produzione self-hosted
+
+Decisione:
+per l'MVP lo sviluppo locale usa PostgreSQL locale, preferibilmente tramite Postgres.app su macOS. La produzione usera PostgreSQL self-hosted sul VPS gia disponibile.
+
+Motivo:
+questa scelta mantiene bassi i costi iniziali, resta coerente con il deploy su VPS e non introduce dipendenze da servizi managed nella fase MVP.
+
+Conseguenza:
+il codice applicativo deve continuare a dipendere solo da `DATABASE_URL` o `TEST_DATABASE_URL`, senza assumere Postgres.app, Homebrew, VPS o uno specifico provider. Un database managed resta possibile in futuro senza riscrivere dominio o repository.
+
 ## DA DEFINIRE
-
-### D-001 — Database locale
-
-Da decidere:
-PostgreSQL installato localmente o servizio gestito.
-
-### D-002 — Database produzione
-
-Da decidere:
-PostgreSQL self-hosted o managed.
 
 ### D-003 — Storage immagini produzione
 

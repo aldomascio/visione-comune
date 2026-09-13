@@ -22,7 +22,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:migrate:dev": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
+    "test:integration": "node --env-file=.env.test.local ./node_modules/vitest/vitest.mjs run tests/integration"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

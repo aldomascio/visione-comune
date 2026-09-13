@@ -49,13 +49,39 @@ pnpm test:e2e
 pnpm build
 ```
 
-Database:
+Database locale:
+
+Per l'MVP usiamo PostgreSQL locale in sviluppo, preferibilmente tramite Postgres.app su macOS. Servono due database separati:
+
+- `visione_comune_dev`
+- `visione_comune_test`
+
+Le connection string reali devono stare solo in file locali ignorati da Git:
+
+- `.env.local` con `DATABASE_URL`
+- `.env.test.local` con `TEST_DATABASE_URL`
+
+`.env.example` contiene solo placeholder.
+
+Se usi Postgres.app e i binari non sono nel `PATH`, puoi creare i database con il percorso dell'app:
+
+```bash
+/Applications/Postgres.app/Contents/Versions/latest/bin/createdb visione_comune_dev
+/Applications/Postgres.app/Contents/Versions/latest/bin/createdb visione_comune_test
+```
+
+Comandi database:
 
 ```bash
 pnpm db:generate
-pnpm db:migrate
+pnpm db:migrate:dev
+pnpm test:integration
 ```
 
-Le migration usano `DATABASE_URL`. Gli integration test PostgreSQL usano `TEST_DATABASE_URL` e vengono saltati se la variabile non è configurata.
+`pnpm db:migrate:dev` usa `.env.local`. `pnpm test:integration` usa `.env.test.local` ed esegue test reali contro PostgreSQL. Gli integration test dentro `pnpm test` restano saltati se `TEST_DATABASE_URL` non è configurata nell'ambiente corrente.
+
+Produzione:
+
+Per l'MVP è prevista una strategia PostgreSQL self-hosted sul VPS già disponibile, con database e utente dedicati, accesso non pubblico quando app e DB sono sullo stesso VPS, backup periodici e restore testabile prima del go-live.
 
 Il progetto non configura Docker. Storage, PEC, AI e newsletter non sono ancora configurati.

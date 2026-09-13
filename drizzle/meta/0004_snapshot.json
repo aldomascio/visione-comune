@@ -1,0 +1,1080 @@
+{
+  "id": "6732f81e-3002-426e-86bf-e48659d9ea27",
+  "prevId": "0da17df3-7e1f-4344-b290-8f3edab9f8e9",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.admin_users": {
+      "name": "admin_users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "admin_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'admin'"
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "admin_users_email_unique": {
+          "name": "admin_users_email_unique",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "admin_users_active_idx": {
+          "name": "admin_users_active_idx",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "admin_users_id_not_empty": {
+          "name": "admin_users_id_not_empty",
+          "value": "length(trim(\"admin_users\".\"id\")) > 0"
+        },
+        "admin_users_email_not_empty": {
+          "name": "admin_users_email_not_empty",
+          "value": "length(trim(\"admin_users\".\"email\")) > 0"
+        },
+        "admin_users_email_normalized": {
+          "name": "admin_users_email_normalized",
+          "value": "\"admin_users\".\"email\" = lower(trim(\"admin_users\".\"email\"))"
+        },
+        "admin_users_password_hash_not_empty": {
+          "name": "admin_users_password_hash_not_empty",
+          "value": "length(trim(\"admin_users\".\"password_hash\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.categories": {
+      "name": "categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "categories_slug_unique": {
+          "name": "categories_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "categories_id_not_empty": {
+          "name": "categories_id_not_empty",
+          "value": "length(trim(\"categories\".\"id\")) > 0"
+        },
+        "categories_name_not_empty": {
+          "name": "categories_name_not_empty",
+          "value": "length(trim(\"categories\".\"name\")) > 0"
+        },
+        "categories_slug_not_empty": {
+          "name": "categories_slug_not_empty",
+          "value": "length(trim(\"categories\".\"slug\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.category_recipients": {
+      "name": "category_recipients",
+      "schema": "",
+      "columns": {
+        "category_id": {
+          "name": "category_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "category_recipients_category_recipient_unique": {
+          "name": "category_recipients_category_recipient_unique",
+          "columns": [
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recipient_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "category_recipients_category_id_idx": {
+          "name": "category_recipients_category_id_idx",
+          "columns": [
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "category_recipients_recipient_id_idx": {
+          "name": "category_recipients_recipient_id_idx",
+          "columns": [
+            {
+              "expression": "recipient_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "category_recipients_category_id_categories_id_fk": {
+          "name": "category_recipients_category_id_categories_id_fk",
+          "tableFrom": "category_recipients",
+          "tableTo": "categories",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "category_recipients_recipient_id_recipients_id_fk": {
+          "name": "category_recipients_recipient_id_recipients_id_fk",
+          "tableFrom": "category_recipients",
+          "tableTo": "recipients",
+          "columnsFrom": [
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "category_recipients_sort_order_non_negative": {
+          "name": "category_recipients_sort_order_non_negative",
+          "value": "\"category_recipients\".\"sort_order\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.recipients": {
+      "name": "recipients",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization": {
+          "name": "organization",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pec": {
+          "name": "pec",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "recipients_email_unique": {
+          "name": "recipients_email_unique",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "recipients_pec_unique": {
+          "name": "recipients_pec_unique",
+          "columns": [
+            {
+              "expression": "pec",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "recipients_active_idx": {
+          "name": "recipients_active_idx",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "recipients_id_not_empty": {
+          "name": "recipients_id_not_empty",
+          "value": "length(trim(\"recipients\".\"id\")) > 0"
+        },
+        "recipients_name_not_empty": {
+          "name": "recipients_name_not_empty",
+          "value": "length(trim(\"recipients\".\"name\")) > 0"
+        },
+        "recipients_organization_not_empty": {
+          "name": "recipients_organization_not_empty",
+          "value": "length(trim(\"recipients\".\"organization\")) > 0"
+        },
+        "recipients_email_normalized": {
+          "name": "recipients_email_normalized",
+          "value": "\"recipients\".\"email\" is null or \"recipients\".\"email\" = lower(trim(\"recipients\".\"email\"))"
+        },
+        "recipients_pec_normalized": {
+          "name": "recipients_pec_normalized",
+          "value": "\"recipients\".\"pec\" is null or \"recipients\".\"pec\" = lower(trim(\"recipients\".\"pec\"))"
+        },
+        "recipients_contact_required": {
+          "name": "recipients_contact_required",
+          "value": "\"recipients\".\"email\" is not null or \"recipients\".\"pec\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.report_attachments": {
+      "name": "report_attachments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "report_attachment_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "varchar(300)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "report_attachments_report_id_unique": {
+          "name": "report_attachments_report_id_unique",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "report_attachments_storage_key_unique": {
+          "name": "report_attachments_storage_key_unique",
+          "columns": [
+            {
+              "expression": "storage_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "report_attachments_report_id_idx": {
+          "name": "report_attachments_report_id_idx",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "report_attachments_report_id_reports_id_fk": {
+          "name": "report_attachments_report_id_reports_id_fk",
+          "tableFrom": "report_attachments",
+          "tableTo": "reports",
+          "columnsFrom": [
+            "report_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "report_attachments_id_not_empty": {
+          "name": "report_attachments_id_not_empty",
+          "value": "length(trim(\"report_attachments\".\"id\")) > 0"
+        },
+        "report_attachments_storage_key_not_empty": {
+          "name": "report_attachments_storage_key_not_empty",
+          "value": "length(trim(\"report_attachments\".\"storage_key\")) > 0"
+        },
+        "report_attachments_mime_type_not_empty": {
+          "name": "report_attachments_mime_type_not_empty",
+          "value": "length(trim(\"report_attachments\".\"mime_type\")) > 0"
+        },
+        "report_attachments_size_positive": {
+          "name": "report_attachments_size_positive",
+          "value": "\"report_attachments\".\"size\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.report_confirmations": {
+      "name": "report_confirmations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anti_abuse_key": {
+          "name": "anti_abuse_key",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "report_confirmations_report_anti_abuse_unique": {
+          "name": "report_confirmations_report_anti_abuse_unique",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "anti_abuse_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "report_confirmations_report_id_idx": {
+          "name": "report_confirmations_report_id_idx",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "report_confirmations_report_id_reports_id_fk": {
+          "name": "report_confirmations_report_id_reports_id_fk",
+          "tableFrom": "report_confirmations",
+          "tableTo": "reports",
+          "columnsFrom": [
+            "report_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "report_confirmations_id_not_empty": {
+          "name": "report_confirmations_id_not_empty",
+          "value": "length(trim(\"report_confirmations\".\"id\")) > 0"
+        },
+        "report_confirmations_anti_abuse_key_not_empty": {
+          "name": "report_confirmations_anti_abuse_key_not_empty",
+          "value": "length(trim(\"report_confirmations\".\"anti_abuse_key\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.report_events": {
+      "name": "report_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "report_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "report_event_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_status": {
+          "name": "public_status",
+          "type": "public_report_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "report_events_report_id_idx": {
+          "name": "report_events_report_id_idx",
+          "columns": [
+            {
+              "expression": "report_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "report_events_visibility_idx": {
+          "name": "report_events_visibility_idx",
+          "columns": [
+            {
+              "expression": "visibility",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "report_events_report_id_reports_id_fk": {
+          "name": "report_events_report_id_reports_id_fk",
+          "tableFrom": "report_events",
+          "tableTo": "reports",
+          "columnsFrom": [
+            "report_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "report_events_id_not_empty": {
+          "name": "report_events_id_not_empty",
+          "value": "length(trim(\"report_events\".\"id\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reports": {
+      "name": "reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "public_code": {
+          "name": "public_code",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(180)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(4000)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "public_status": {
+          "name": "public_status",
+          "type": "public_report_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "moderation_status": {
+          "name": "moderation_status",
+          "type": "moderation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "communicated_at": {
+          "name": "communicated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "reports_public_code_unique": {
+          "name": "reports_public_code_unique",
+          "columns": [
+            {
+              "expression": "public_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_category_id_idx": {
+          "name": "reports_category_id_idx",
+          "columns": [
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_public_status_idx": {
+          "name": "reports_public_status_idx",
+          "columns": [
+            {
+              "expression": "public_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_moderation_status_idx": {
+          "name": "reports_moderation_status_idx",
+          "columns": [
+            {
+              "expression": "moderation_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reports_category_id_categories_id_fk": {
+          "name": "reports_category_id_categories_id_fk",
+          "tableFrom": "reports",
+          "tableTo": "categories",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reports_id_not_empty": {
+          "name": "reports_id_not_empty",
+          "value": "length(trim(\"reports\".\"id\")) > 0"
+        },
+        "reports_public_code_format": {
+          "name": "reports_public_code_format",
+          "value": "\"reports\".\"public_code\" ~ '^VC-[0-9A-Z]{8}$'"
+        },
+        "reports_title_not_empty": {
+          "name": "reports_title_not_empty",
+          "value": "length(trim(\"reports\".\"title\")) > 0"
+        },
+        "reports_description_not_empty": {
+          "name": "reports_description_not_empty",
+          "value": "length(trim(\"reports\".\"description\")) > 0"
+        },
+        "reports_latitude_range": {
+          "name": "reports_latitude_range",
+          "value": "\"reports\".\"latitude\" between -90 and 90"
+        },
+        "reports_longitude_range": {
+          "name": "reports_longitude_range",
+          "value": "\"reports\".\"longitude\" between -180 and 180"
+        },
+        "reports_public_status_requires_approval": {
+          "name": "reports_public_status_requires_approval",
+          "value": "(\"reports\".\"moderation_status\" = 'approved' and \"reports\".\"public_status\" is not null)\n        or (\"reports\".\"moderation_status\" <> 'approved' and \"reports\".\"public_status\" is null)"
+        },
+        "reports_public_status_requires_published_at": {
+          "name": "reports_public_status_requires_published_at",
+          "value": "\"reports\".\"public_status\" is null or \"reports\".\"published_at\" is not null"
+        },
+        "reports_communicated_or_resolved_requires_communicated_at": {
+          "name": "reports_communicated_or_resolved_requires_communicated_at",
+          "value": "\"reports\".\"public_status\" not in ('communicated', 'resolved') or \"reports\".\"communicated_at\" is not null"
+        },
+        "reports_resolved_requires_resolved_at": {
+          "name": "reports_resolved_requires_resolved_at",
+          "value": "\"reports\".\"public_status\" is distinct from 'resolved' or \"reports\".\"resolved_at\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.admin_role": {
+      "name": "admin_role",
+      "schema": "public",
+      "values": [
+        "admin"
+      ]
+    },
+    "public.moderation_status": {
+      "name": "moderation_status",
+      "schema": "public",
+      "values": [
+        "pending_review",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.public_report_status": {
+      "name": "public_report_status",
+      "schema": "public",
+      "values": [
+        "reported",
+        "communicated",
+        "resolved"
+      ]
+    },
+    "public.report_attachment_type": {
+      "name": "report_attachment_type",
+      "schema": "public",
+      "values": [
+        "image"
+      ]
+    },
+    "public.report_event_type": {
+      "name": "report_event_type",
+      "schema": "public",
+      "values": [
+        "ReportCreated",
+        "ReportApproved",
+        "ReportRejected",
+        "ReportCommunicated",
+        "ReportResolved"
+      ]
+    },
+    "public.report_event_visibility": {
+      "name": "report_event_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "internal"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

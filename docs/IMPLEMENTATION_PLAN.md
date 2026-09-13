@@ -529,6 +529,25 @@ Scelte MVP:
 
 Restano fuori scope gerarchie, icone, colori, drag and drop, bulk edit, destinatari, matrice enti e categorie definitive.
 
+## VC-013 — Destinatari e matrice di smistamento
+
+La matrice destinatari viene implementata senza inviare comunicazioni. La separazione resta:
+
+`UI admin -> Server Action autenticata -> application use case -> repository -> PostgreSQL`
+
+Scelte MVP:
+
+- route admin `/admin/destinatari` per lista, creazione, modifica e attivazione/disattivazione;
+- route admin `/admin/smistamento` per associare categorie e destinatari;
+- modello `recipients` con nome, organizzazione, email opzionale, PEC opzionale, stato e timestamp;
+- modello `category_recipients` many-to-many con `sortOrder`;
+- `sortOrder = 0` rappresenta il destinatario principale per una categoria;
+- i destinatari disattivati restano configurabili/storici ma sono esclusi dai suggerimenti operativi;
+- il dettaglio admin report mostra solo suggerimenti in lettura;
+- nessun invio PEC/email, stato `Comunicata`, ricevuta o automazione viene introdotta.
+
+Limite noto: la validazione PEC e solo sintattica. La scelta provider PEC/email e il workflow di consegna restano rimandati a VC-015/VC-019.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

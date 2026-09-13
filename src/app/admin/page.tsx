@@ -52,17 +52,29 @@ export default async function AdminPage() {
           <Card>
             <CardHeader>
               <CardTitle>Categorie</CardTitle>
-              <CardDescription>Gestisci le categorie disponibili per le nuove segnalazioni.</CardDescription>
+              <CardDescription>Gestisci categorie e matrice destinatari.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-3">
               <p className="text-sm leading-6 text-muted-foreground">
-                Attiva o disattiva categorie senza rompere lo storico dei report.
+                Attiva categorie e collega gli uffici competenti senza inviare comunicazioni automatiche.
               </p>
               <Link
                 className="inline-flex min-h-10 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 href="/admin/categorie"
               >
                 Gestisci categorie
+              </Link>
+              <Link
+                className="inline-flex min-h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                href="/admin/destinatari"
+              >
+                Gestisci destinatari
+              </Link>
+              <Link
+                className="inline-flex min-h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                href="/admin/smistamento"
+              >
+                Matrice smistamento
               </Link>
             </CardContent>
           </Card>

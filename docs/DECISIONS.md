@@ -268,6 +268,17 @@ le categorie devono poter evolvere senza deploy e senza interventi manuali sul d
 Conseguenza:
 solo categorie attive compaiono nel form `/segnala` e possono essere usate per nuove segnalazioni. Le categorie disattivate restano visibili nelle pagine admin e nei report pubblici storici. La tassonomia gerarchica, icone/colori, ordinamento manuale e destinatari restano fuori scope. Le categorie definitive restano una decisione da definire da parte di Visione Comune.
 
+### ADR-030 — Matrice destinatari deterministica senza invio automatico
+
+Decisione:
+in VC-013 lo smistamento viene configurato con le tabelle `recipients` e `category_recipients`. Una categoria puo avere zero, uno o piu destinatari. Il destinatario principale e quello con `sortOrder = 0`; gli altri seguono l'ordine configurato.
+
+Motivo:
+prepara il flusso comunicazioni senza introdurre invio PEC/email, AI o routing automatico. La matrice resta amministrabile dal backoffice e deterministica: categoria → configurazione → destinatario suggerito.
+
+Conseguenza:
+il dettaglio admin di una segnalazione mostra solo un suggerimento in lettura. I destinatari disattivati restano nella configurazione ma vengono esclusi dalle proposte operative. Le associazioni non vengono eliminate quando una categoria viene disattivata. L'invio comunicazioni resta fuori scope fino a VC-015/VC-019.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

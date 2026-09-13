@@ -8,6 +8,7 @@ import {
 } from "@/modules/reports/application/moderate-report";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
+import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Textarea } from "@/shared/ui";
 import { approveReportAction, rejectReportAction } from "../actions";
@@ -25,7 +26,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   await requireActiveAdmin();
   const { publicCode } = await params;
   const query = await searchParams;
-  const report = await getReport(publicCode);
+  const { report, recipients } = await getReportPageData(publicCode);
   const canModerate = report.moderationStatus === "pending_review";
 
   return (
@@ -80,6 +81,29 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 <InfoBlock label="Indirizzo" value={report.location.address ?? "Non indicato"} />
                 <InfoBlock label="Coordinate" value={`${report.location.latitude}, ${report.location.longitude}`} />
               </section>
+              <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Smistamento suggerito</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Configurazione letta dalla matrice categoria → destinatari. Nessuna comunicazione viene inviata da questa schermata.</p>
+                </div>
+                {recipients.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">Nessun destinatario configurato per questa categoria.</p>
+                ) : (
+                  <div className="grid gap-3">
+                    <p className="rounded-md border border-primary/30 bg-primary/10 p-4 text-sm font-medium">
+                      Destinatario suggerito: {recipients[0].name} — {recipients[0].organization}
+                    </p>
+                    {recipients.length > 1 ? (
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                        {recipients.slice(1).map((recipient) => (
+                          <li key={recipient.id}>{recipient.name} — {recipient.organization}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                )}
+              </section>
+
             </CardContent>
           </Card>
 
@@ -135,15 +159,18 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   );
 }
 
-async function getReport(publicCode: string) {
+async function getReportPageData(publicCode: string) {
   let connection;
 
   try {
     connection = createDatabaseConnection();
-    return await new GetReportForModerationUseCase({
+    const report = await new GetReportForModerationUseCase({
       reportRepository: new DrizzleReportRepository(connection.db),
       categoryRepository: new DrizzleCategoryRepository(connection.db)
     }).execute({ publicCode });
+    const recipients = await new DrizzleRecipientRepository(connection.db).findActiveByCategory(report.categoryId);
+
+    return { report, recipients };
   } catch (error) {
     if (error instanceof ReportForModerationNotFoundError || error instanceof InvalidModerationPublicCodeError) {
       notFound();

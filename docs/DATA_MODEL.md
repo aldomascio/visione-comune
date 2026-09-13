@@ -91,13 +91,31 @@ Note implementative MVP:
 - email
 - pec
 - active
+- createdAt
+- updatedAt
+
+Note implementative MVP:
+
+- `name` e `organization` sono obbligatori.
+- almeno uno tra `email` e `pec` deve essere presente.
+- email e PEC vengono validate solo sintatticamente e normalizzate lowercase; non viene certificato che un indirizzo sia realmente PEC.
+- `email` e `pec` sono univoche quando valorizzate, per evitare duplicati operativi banali nel backoffice.
+- `active = false` mantiene il destinatario nella configurazione, ma lo esclude dalle proposte operative di smistamento.
 
 ## CategoryRecipient
 
-- id
 - categoryId
 - recipientId
-- priority / order
+- sortOrder
+- createdAt
+- updatedAt
+
+Note implementative MVP:
+
+- relazione many-to-many tra categorie e destinatari.
+- la coppia `(categoryId, recipientId)` e univoca.
+- `sortOrder = 0` indica il destinatario principale/preferenziale per la categoria.
+- categorie o destinatari disattivati non cancellano automaticamente le associazioni.
 
 ## AdminUser
 

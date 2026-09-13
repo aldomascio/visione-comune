@@ -285,3 +285,37 @@ un client invia manualmente a `/segnala` l'ID di una categoria disattivata.
 
 Gestione prevista:
 il use case di creazione rilegge la categoria tramite repository e accetta solo `findActiveById`. La richiesta viene rifiutata come categoria non valida.
+
+## VC-013 — Destinatari e matrice di smistamento
+
+### EC-VC013-001 — Categoria senza destinatari
+
+Caso:
+un admin apre il dettaglio di una segnalazione la cui categoria non ha destinatari associati.
+
+Gestione prevista:
+il backoffice mostra `Nessun destinatario configurato per questa categoria.` e non propone invii o automatismi.
+
+### EC-VC013-002 — Destinatario disattivato ma ancora associato
+
+Caso:
+un destinatario associato a una categoria viene disattivato.
+
+Gestione prevista:
+la relazione resta visibile nella matrice, ma il destinatario non viene proposto come operativo nel dettaglio segnalazione.
+
+### EC-VC013-003 — Categoria disattivata con matrice esistente
+
+Caso:
+una categoria viene disattivata dopo aver configurato destinatari.
+
+Gestione prevista:
+la matrice non viene cancellata. La categoria resta visibile in admin, ma non e usabile per nuove segnalazioni.
+
+### EC-VC013-004 — Duplicato email o PEC
+
+Caso:
+un admin prova a creare o modificare un destinatario usando una email o PEC gia presente.
+
+Gestione prevista:
+la validazione applicativa e il vincolo database rifiutano il duplicato con errore sul campo.

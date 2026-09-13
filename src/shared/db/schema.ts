@@ -60,6 +60,52 @@ export const categories = pgTable(
   ]
 );
 
+export const recipients = pgTable(
+  "recipients",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    name: varchar("name", { length: 160 }).notNull(),
+    organization: varchar("organization", { length: 200 }).notNull(),
+    email: varchar("email", { length: 320 }),
+    pec: varchar("pec", { length: 320 }),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("recipients_email_unique").on(table.email),
+    uniqueIndex("recipients_pec_unique").on(table.pec),
+    index("recipients_active_idx").on(table.active),
+    check("recipients_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("recipients_name_not_empty", sql`length(trim(${table.name})) > 0`),
+    check("recipients_organization_not_empty", sql`length(trim(${table.organization})) > 0`),
+    check("recipients_email_normalized", sql`${table.email} is null or ${table.email} = lower(trim(${table.email}))`),
+    check("recipients_pec_normalized", sql`${table.pec} is null or ${table.pec} = lower(trim(${table.pec}))`),
+    check("recipients_contact_required", sql`${table.email} is not null or ${table.pec} is not null`)
+  ]
+);
+
+export const categoryRecipients = pgTable(
+  "category_recipients",
+  {
+    categoryId: varchar("category_id", { length: 64 })
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    recipientId: varchar("recipient_id", { length: 64 })
+      .notNull()
+      .references(() => recipients.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("category_recipients_category_recipient_unique").on(table.categoryId, table.recipientId),
+    index("category_recipients_category_id_idx").on(table.categoryId),
+    index("category_recipients_recipient_id_idx").on(table.recipientId),
+    check("category_recipients_sort_order_non_negative", sql`${table.sortOrder} >= 0`)
+  ]
+);
+
 export const reports = pgTable(
   "reports",
   {
@@ -205,6 +251,10 @@ export const adminUsers = pgTable(
 
 export type CategoryRecord = typeof categories.$inferSelect;
 export type NewCategoryRecord = typeof categories.$inferInsert;
+export type RecipientRecord = typeof recipients.$inferSelect;
+export type NewRecipientRecord = typeof recipients.$inferInsert;
+export type CategoryRecipientRecord = typeof categoryRecipients.$inferSelect;
+export type NewCategoryRecipientRecord = typeof categoryRecipients.$inferInsert;
 export type ReportRecord = typeof reports.$inferSelect;
 export type NewReportRecord = typeof reports.$inferInsert;
 export type ReportEventRecord = typeof reportEvents.$inferSelect;

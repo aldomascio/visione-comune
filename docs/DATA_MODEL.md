@@ -72,6 +72,16 @@ Note implementative MVP:
 - name
 - slug
 - active
+- createdAt
+- updatedAt
+
+Note implementative MVP:
+
+- `slug` e univoco e normalizzato in formato URL-safe.
+- `active = false` nasconde la categoria dal form di nuova segnalazione.
+- non e previsto hard delete dal backoffice: i report storici mantengono la FK verso `categories.id`.
+- cambiare lo slug non rompe i report esistenti perche i report non usano lo slug come FK.
+- le categorie definitive e la loro matrice con enti/destinatari restano decisioni aperte.
 
 ## Recipient
 

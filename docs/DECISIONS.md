@@ -257,6 +257,17 @@ rispetta l'assenza di account cittadini, email, nome o telefono e limita il dopp
 Conseguenza:
 una conferma e consentita solo per report approvati e pubblici, verificando sempre lato server tramite `publicCode`. Il conteggio pubblico e aggregato. L'anti-abuso resta leggero: cancellare cookie, usare un altro browser o un altro dispositivo puo produrre una nuova conferma. Strategie piu forti restano fuori scope MVP e richiedono valutazione privacy.
 
+### ADR-029 — Categorie gestibili dal backoffice senza hard delete
+
+Decisione:
+in VC-012 le categorie sono gestite dagli amministratori dal backoffice `/admin/categorie`. Ogni categoria ha nome, slug univoco e stato attivo/disattivato. Le nuove categorie nascono attive; gli admin possono modificarne nome, slug e stato, ma non cancellarle fisicamente.
+
+Motivo:
+le categorie devono poter evolvere senza deploy e senza interventi manuali sul database, mantenendo stabile lo storico delle segnalazioni gia create. I report usano `categoryId`, quindi il cambio slug non rompe le associazioni storiche.
+
+Conseguenza:
+solo categorie attive compaiono nel form `/segnala` e possono essere usate per nuove segnalazioni. Le categorie disattivate restano visibili nelle pagine admin e nei report pubblici storici. La tassonomia gerarchica, icone/colori, ordinamento manuale e destinatari restano fuori scope. Le categorie definitive restano una decisione da definire da parte di Visione Comune.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

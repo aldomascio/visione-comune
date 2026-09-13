@@ -251,3 +251,37 @@ un cittadino consulta la scheda pubblica con conteggio conferme.
 
 Gestione prevista:
 la pagina mostra solo il conteggio aggregato. Non espone cookie, chiave anti-abuso, IP, timestamp individuali o metadati tecnici.
+
+## VC-012 — Gestione categorie
+
+### EC-VC012-001 — Categoria disattivata con report storici
+
+Caso:
+un admin disattiva una categoria gia usata da report approvati o da report in moderazione.
+
+Gestione prevista:
+la categoria non compare piu nel form `/segnala` e non puo essere usata per nuove segnalazioni. I report storici continuano a mostrare il nome categoria nelle viste admin, nella scheda pubblica, nella mappa e nei flussi che leggono dati pubblici.
+
+### EC-VC012-002 — Slug duplicato o non valido
+
+Caso:
+un admin crea o modifica una categoria usando uno slug gia esistente, vuoto o non URL-safe.
+
+Gestione prevista:
+la validazione server-side normalizza lo slug e rifiuta duplicati o valori invalidi con errore sul campo. Il vincolo univoco database resta la protezione finale contro condizioni concorrenti.
+
+### EC-VC012-003 — Cambio slug di una categoria esistente
+
+Caso:
+un admin modifica lo slug di una categoria gia usata.
+
+Gestione prevista:
+il cambio e consentito perche i report referenziano `categoryId`, non lo slug. Le URL pubbliche dei report e la mappa non dipendono dallo slug categoria.
+
+### EC-VC012-004 — Creazione report con categoria disattivata via richiesta manuale
+
+Caso:
+un client invia manualmente a `/segnala` l'ID di una categoria disattivata.
+
+Gestione prevista:
+il use case di creazione rilegge la categoria tramite repository e accetta solo `findActiveById`. La richiesta viene rifiutata come categoria non valida.

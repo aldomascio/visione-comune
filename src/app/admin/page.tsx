@@ -32,7 +32,7 @@ export default async function AdminPage() {
           </form>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-[1fr_2fr]">
+        <section className="grid gap-4 md:grid-cols-[1fr_1fr_2fr]">
           <Card>
             <CardHeader>
               <CardTitle>Da verificare</CardTitle>
@@ -45,6 +45,24 @@ export default async function AdminPage() {
                 href="/admin/segnalazioni"
               >
                 Vai alla lista completa
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Categorie</CardTitle>
+              <CardDescription>Gestisci le categorie disponibili per le nuove segnalazioni.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Attiva o disattiva categorie senza rompere lo storico dei report.
+              </p>
+              <Link
+                className="inline-flex min-h-10 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                href="/admin/categorie"
+              >
+                Gestisci categorie
               </Link>
             </CardContent>
           </Card>

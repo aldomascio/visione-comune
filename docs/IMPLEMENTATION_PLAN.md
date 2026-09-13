@@ -510,6 +510,25 @@ Scelte MVP:
 
 Limite noto: la strategia impedisce doppio click e ripetizioni banali dallo stesso browser, ma non impedisce nuove conferme da browser, dispositivi o profili diversi. Non introduce fingerprinting aggressivo.
 
+## VC-012 — Gestione categorie
+
+La gestione categorie viene implementata come modulo applicativo dedicato sopra la tabella `categories` gia presente. La separazione resta:
+
+`UI admin -> Server Action autenticata -> application use case -> CategoryRepository -> PostgreSQL`
+
+Scelte MVP:
+
+- route admin `/admin/categorie`, `/admin/categorie/nuova`, `/admin/categorie/[categoryId]`;
+- ogni Server Action verifica `requireActiveAdmin`;
+- use case espliciti `ListCategoriesUseCase`, `CreateCategoryUseCase`, `UpdateCategoryUseCase`, `SetCategoryActiveStateUseCase`;
+- validazione server-side di nome, slug e stato;
+- slug normalizzato lowercase URL-safe e protetto da vincolo univoco database;
+- nessun hard delete;
+- `active=false` esclude la categoria da `/segnala`, mentre i report storici continuano a leggerla via FK;
+- il conteggio report nella lista admin e informativo e non introduce ranking pubblico.
+
+Restano fuori scope gerarchie, icone, colori, drag and drop, bulk edit, destinatari, matrice enti e categorie definitive.
+
 ## Architettura proposta
 
 Struttura iniziale da creare solo dopo approvazione della prima task implementativa:

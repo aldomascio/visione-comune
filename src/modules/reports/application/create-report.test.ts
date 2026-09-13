@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import type { CategoryOption, CategoryRepository } from "@/modules/categories/application/category-repository";
+import type { CategoryDetails, CategoryListItem, CategoryOption, CategoryRepository, CategoryUpdate, NewCategory } from "@/modules/categories/application/category-repository";
 import type { SaveObjectInput, StorageProvider, StoredObject } from "@/modules/storage/application/storage-provider";
 import {
   PublicCode,
@@ -231,19 +231,59 @@ type CreateReportUseCaseDependenciesForTest = {
 };
 
 class FakeCategoryRepository implements CategoryRepository {
-  constructor(private readonly category: CategoryOption | null) {}
-
-  async findById(categoryId: string): Promise<CategoryOption | null> {
-    return this.category?.id === categoryId ? this.category : null;
-  }
+  constructor(private category: CategoryOption | null) {}
 
   async listActive(): Promise<CategoryOption[]> {
     return this.category ? [this.category] : [];
   }
 
+  async listAll(): Promise<CategoryListItem[]> {
+    const details = this.category ? toCategoryDetails(this.category) : null;
+    return details ? [{ ...details, reportCount: 0 }] : [];
+  }
+
+  async findById(categoryId: string): Promise<CategoryDetails | null> {
+    return this.category?.id === categoryId ? toCategoryDetails(this.category) : null;
+  }
+
+  async findBySlug(slug: string): Promise<CategoryDetails | null> {
+    return this.category?.slug === slug ? toCategoryDetails(this.category) : null;
+  }
+
   async findActiveById(categoryId: string): Promise<CategoryOption | null> {
     return this.category?.id === categoryId ? this.category : null;
   }
+
+  async create(category: NewCategory): Promise<CategoryDetails> {
+    this.category = category;
+    return category;
+  }
+
+  async update(category: CategoryUpdate): Promise<CategoryDetails | null> {
+    const existingCategory = this.category ? toCategoryDetails(this.category) : null;
+
+    if (!existingCategory || existingCategory.id !== category.id) {
+      return null;
+    }
+
+    const updatedCategory = { ...existingCategory, ...category };
+    this.category = updatedCategory;
+
+    return updatedCategory;
+  }
+}
+
+function toCategoryDetails(category: CategoryOption): CategoryDetails {
+  if ("active" in category && "createdAt" in category && "updatedAt" in category) {
+    return category as CategoryDetails;
+  }
+
+  return {
+    ...category,
+    active: true,
+    createdAt: new Date("2026-01-01T10:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T10:00:00.000Z")
+  };
 }
 
 class InMemoryReportRepository implements ReportRepository {

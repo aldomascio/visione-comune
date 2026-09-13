@@ -48,6 +48,17 @@ export type PublicReportTimelineEvent = {
   occurredAt: Date;
 };
 
+export type PublicReportMapItem = {
+  publicCode: string;
+  title: string;
+  categoryName: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  publicStatus: PublicReportStatus;
+  publishedAt: Date;
+};
+
 export type ReportRepository = {
   save(report: Report, events?: ReportDomainEvent[], options?: ReportSaveOptions): Promise<void>;
   findByPublicCode(publicCode: PublicCode): Promise<Report | null>;
@@ -57,5 +68,6 @@ export type ReportRepository = {
   }): Promise<ReportModerationSummary[]>;
   countByModerationStatus(status: ModerationStatus): Promise<number>;
   findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null>;
+  listPublicForMap(): Promise<PublicReportMapItem[]>;
   listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]>;
 };

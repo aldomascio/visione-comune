@@ -131,3 +131,14 @@ Non rappresenta la home definitiva e non implementa il flusso reale di segnalazi
 - empty states.
 
 Questi componenti non sono stati ancora implementati.
+
+
+## Mappa pubblica
+
+La mappa pubblica introdotta in VC-008 usa i token del tema per layout, card, badge, focus state e lista accessibile. I marker usano colori derivati dai token semantici del tema:
+
+- `--primary` per `Segnalata`;
+- `--chart-2` per `Comunicata`;
+- `--chart-5` per `Risolta`.
+
+La mappa non e l'unico accesso alle informazioni: sotto la mappa e presente una lista accessibile con titolo, categoria, stato, indirizzo e link alla scheda pubblica. I filtri minimi per stato e categoria lavorano sui soli report pubblici gia caricati.

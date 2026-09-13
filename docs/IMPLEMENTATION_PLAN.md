@@ -349,9 +349,6 @@ Scelte operative:
 
 Restano fuori scope:
 
-- pagina pubblica dettaglio segnalazione;
-- tracking tramite codice;
-- mappa pubblica;
 - comunicazione agli enti, PEC, stato `Comunicata` e stato `Risolta`;
 - modifica completa dei contenuti e gestione categorie da UI.
 
@@ -383,6 +380,40 @@ Restano fuori scope:
 - duplicati;
 - PEC e destinatari;
 - stati `Comunicata` e `Risolta` come flussi operativi nuovi.
+
+
+## VC-008 — Mappa pubblica delle segnalazioni
+
+La mappa pubblica usa `/mappa` e mostra solo segnalazioni approvate con stato pubblico. La separazione resta:
+
+`UI pubblica -> application use case -> repository -> PostgreSQL`
+
+Scelte operative:
+
+- `ListPublicReportsForMapUseCase` restituisce il payload minimo necessario alla mappa;
+- il repository espone `listPublicForMap()` e filtra nel database `moderationStatus = approved`, `publicStatus` non nullo e `publishedAt` non nullo;
+- il payload pubblico contiene solo `publicCode`, titolo, categoria, latitude, longitude, address opzionale, `publicStatus`, label stato e `publishedAt`;
+- la UI usa MapLibre GL JS in un client component isolato, mentre la pagina server recupera i dati dal layer applicativo;
+- la mappa parte centrata su Venafro;
+- sono disponibili filtri client-side semplici per stato e categoria sui soli dati gia pubblici;
+- la lista accessibile sotto la mappa mostra gli stessi report visibili e consente di aprire `/segnalazioni/[publicCode]`;
+- lo style URL si configura con `NEXT_PUBLIC_MAP_STYLE_URL`; il fallback MapLibre demo e solo per sviluppo locale.
+
+Restano fuori scope:
+
+- geocoding e reverse geocoding;
+- provider tile definitivo di produzione;
+- clustering avanzato, heatmap e ricerca avanzata;
+- upload foto;
+- conferme e duplicati;
+- PEC, destinatari, AI e newsletter;
+- transizioni operative verso `Comunicata` e `Risolta`.
+
+Rischi residui:
+
+- il provider tile definitivo richiedera una decisione su licenze, attribution, limiti e costi;
+- senza geocoding, la qualita della mappa dipende dalle coordinate raccolte in fase di creazione;
+- con molti report serviranno clustering o strategie di semplificazione visuale.
 
 ## Ambiente PostgreSQL locale
 

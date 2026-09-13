@@ -213,6 +213,17 @@ mantiene il principio di nessun account cittadino e impedisce che segnalazioni p
 Conseguenza:
 le segnalazioni `pending_review` mostrano solo un messaggio di verifica in corso. Le segnalazioni `rejected` mostrano solo un messaggio generico di mancata pubblicazione. La timeline pubblica legge solo eventi `report_events.visibility = public` e non restituisce metadata, note interne o eventi interni.
 
+### ADR-025 — Mappa pubblica filtrata e provider tile configurabile
+
+Decisione:
+la route `/mappa` mostra solo segnalazioni approvate con stato pubblico e coordinate, usando MapLibre GL JS. La query pubblica restituisce esclusivamente `publicCode`, titolo, categoria, coordinate, indirizzo opzionale, stato pubblico e data pubblicazione.
+
+Motivo:
+la mappa deve essere utile al cittadino senza esporre dati interni, note di moderazione, identificativi database o segnalazioni non pubbliche.
+
+Conseguenza:
+il provider tile resta sostituibile tramite `NEXT_PUBLIC_MAP_STYLE_URL`. In locale, se la variabile non e impostata, si usa lo style demo pubblico di MapLibre solo come fallback di sviluppo; la scelta del provider cartografico definitivo resta da deliberare prima della produzione.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione
@@ -264,3 +275,8 @@ categorie MVP e criteri di modifica nel backoffice.
 
 Da decidere:
 associazione tra categorie, enti, uffici, priorita e destinatari.
+
+### D-013 — Provider tile mappa produzione
+
+Da decidere:
+provider/style cartografico definitivo per produzione, incluse licenze, costi, limiti di traffico, attribution e disponibilita.

@@ -204,6 +204,10 @@ class InMemoryModerationReportRepository implements ReportRepository {
     return null;
   }
 
+  async listPublicForMap(): Promise<[]> {
+    return [];
+  }
+
   async listPublicEventsByPublicCode(): Promise<[]> {
     return [];
   }

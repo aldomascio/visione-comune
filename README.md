@@ -116,7 +116,12 @@ Pagine pubbliche disponibili in locale:
 
 - `/segnala` invio segnalazione senza account;
 - `/segnalazione` tracking tramite codice pubblico;
-- `/segnalazioni/[publicCode]` dettaglio pubblico solo per segnalazioni approvate.
+- `/segnalazioni/[publicCode]` dettaglio pubblico solo per segnalazioni approvate;
+- `/mappa` mappa pubblica delle segnalazioni approvate.
+
+Mappa pubblica:
+
+`/mappa` usa MapLibre GL JS. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato, in locale viene usato lo style demo pubblico di MapLibre, adatto allo sviluppo ma non scelto come provider definitivo di produzione.
 
 Produzione:
 

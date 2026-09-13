@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
 import { categories, reportEvents, reports } from "@/shared/db/schema";
 import {
@@ -6,6 +6,7 @@ import {
   DuplicatePublicCodePersistenceError,
   type ReportModerationFilter,
   type PublicReportDetail,
+  type PublicReportMapItem,
   type PublicReportTimelineEvent,
   type ReportModerationSummary,
   type ReportRepository,
@@ -148,6 +149,50 @@ export class DrizzleReportRepository implements ReportRepository {
       createdAt: row.createdAt,
       publishedAt: row.publishedAt
     };
+  }
+
+
+  async listPublicForMap(): Promise<PublicReportMapItem[]> {
+    const rows = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        categoryName: categories.name,
+        latitude: reports.latitude,
+        longitude: reports.longitude,
+        address: reports.address,
+        publicStatus: reports.publicStatus,
+        publishedAt: reports.publishedAt
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .where(
+        and(
+          eq(reports.moderationStatus, "approved"),
+          isNotNull(reports.publicStatus),
+          isNotNull(reports.publishedAt)
+        )
+      )
+      .orderBy(desc(reports.publishedAt), desc(reports.createdAt));
+
+    return rows.flatMap((row) => {
+      if (!row.publicStatus || !row.publishedAt) {
+        return [];
+      }
+
+      return [
+        {
+          publicCode: row.publicCode,
+          title: row.title,
+          categoryName: row.categoryName,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          ...(row.address ? { address: row.address } : {}),
+          publicStatus: row.publicStatus,
+          publishedAt: row.publishedAt
+        }
+      ];
+    });
   }
 
   async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {

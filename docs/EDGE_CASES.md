@@ -129,3 +129,30 @@ qualcuno prova ad aprire direttamente `/segnalazioni/[publicCode]` per una segna
 
 Gestione prevista:
 la pagina pubblica non viene renderizzata. Solo segnalazioni approvate con stato pubblico sono accessibili come dettaglio pubblico.
+
+
+## VC-008 — Mappa pubblica
+
+### EC-VC008-001 — Segnalazioni non pubbliche sulla mappa
+
+Caso:
+una segnalazione `pending_review` o `rejected` ha coordinate valide nel database.
+
+Gestione prevista:
+la query della mappa filtra a livello database solo segnalazioni `approved` con stato pubblico e data di pubblicazione. Titolo, descrizione, posizione e note interne di report non pubblici non vengono restituiti alla UI.
+
+### EC-VC008-002 — Mappa non caricabile o provider tile indisponibile
+
+Caso:
+MapLibre o lo style URL non riescono a caricare la mappa.
+
+Gestione prevista:
+la pagina resta utilizzabile tramite lista accessibile delle segnalazioni pubbliche visibili. Il provider tile definitivo resta configurabile e da deliberare per la produzione.
+
+### EC-VC008-003 — Nessuna segnalazione pubblica
+
+Caso:
+non esistono segnalazioni approvate, oppure i filtri non hanno risultati.
+
+Gestione prevista:
+la pagina mostra la mappa centrata su Venafro e un empty state comprensibile, senza errori tecnici.

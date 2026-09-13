@@ -14,7 +14,11 @@ const testReportIds = [
   "test-report-2",
   "test-report-approve",
   "test-report-reject",
-  "test-report-missing-category"
+  "test-report-missing-category",
+  "test-report-map-approved-new",
+  "test-report-map-approved-old",
+  "test-report-map-pending",
+  "test-report-map-rejected"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -176,6 +180,44 @@ maybeDescribe("DrizzleReportRepository", () => {
         occurredAt: new Date("2026-01-06T10:00:00.000Z")
       }
     ]);
+  });
+
+
+  it("lists only approved public reports for the map ordered by publication date", async () => {
+    const olderApproved = createReport("test-report-map-approved-old", "VC-MAPOLD01");
+    olderApproved.pullDomainEvents();
+    olderApproved.approve(new Date("2026-01-03T10:00:00.000Z"));
+    await repository.save(olderApproved, olderApproved.pullDomainEvents());
+
+    const newerApproved = createReport("test-report-map-approved-new", "VC-MAPNEW01");
+    newerApproved.pullDomainEvents();
+    newerApproved.approve(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(newerApproved, newerApproved.pullDomainEvents());
+
+    const pendingReport = createReport("test-report-map-pending", "VC-MAPPEN01");
+    await repository.save(pendingReport, pendingReport.pullDomainEvents());
+
+    const rejectedReport = createReport("test-report-map-rejected", "VC-MAPREJ01");
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents());
+    rejectedReport.reject(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(rejectedReport, rejectedReport.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const mapReports = await repository.listPublicForMap();
+    const testMapReports = mapReports.filter((report) => report.publicCode.startsWith("VC-MAP"));
+
+    expect(testMapReports.map((report) => report.publicCode)).toEqual(["VC-MAPNEW01", "VC-MAPOLD01"]);
+    expect(testMapReports[0]).toMatchObject({
+      title: "Buche in strada",
+      categoryName: "Categoria test strade",
+      latitude: 41.4821,
+      longitude: 14.0474,
+      publicStatus: "reported",
+      publishedAt: new Date("2026-01-05T10:00:00.000Z")
+    });
+    expect(testMapReports[0]).not.toHaveProperty("moderationStatus");
+    expect(testMapReports[0]).not.toHaveProperty("description");
   });
 
   it("persists report status dates and events", async () => {

@@ -8,6 +8,7 @@ import {
 } from "../domain";
 import {
   ConcurrentReportModerationError,
+  type ModerationReportAttachment,
   type ReportModerationFilter,
   type ReportModerationSummary,
   type ReportRepository
@@ -34,7 +35,7 @@ export type ModerationReportDetail = {
   resolvedAt?: Date;
   createdByAdmin?: { id: string; email: string };
   duplicateOf?: { publicCode: string; title: string };
-  attachment?: { url: string; mimeType: string; size: number };
+  attachments: ModerationReportAttachment[];
 };
 
 export type ModerationDashboard = {
@@ -119,9 +120,11 @@ export class GetReportForModerationUseCase {
     }
 
     const snapshot = report.toSnapshot();
-    const [category, attachment, createdByAdmin, duplicateOf] = await Promise.all([
+    const [category, attachments, createdByAdmin, duplicateOf] = await Promise.all([
       this.dependencies.categoryRepository.findById(snapshot.categoryId),
-      this.dependencies.reportRepository.findAttachmentForModeration(publicCode),
+      this.dependencies.reportRepository.listAttachmentsForModeration
+        ? this.dependencies.reportRepository.listAttachmentsForModeration(publicCode)
+        : Promise.resolve([]),
       snapshot.createdByAdminId && this.dependencies.reportRepository.findAdminCreatorByReportId
         ? this.dependencies.reportRepository.findAdminCreatorByReportId(snapshot.id)
         : Promise.resolve(null),
@@ -136,15 +139,7 @@ export class GetReportForModerationUseCase {
       categoryName: category?.name ?? snapshot.categoryId,
       ...(createdByAdmin ? { createdByAdmin } : {}),
       ...(duplicateOfSnapshot ? { duplicateOf: { publicCode: duplicateOfSnapshot.publicCode, title: duplicateOfSnapshot.title } } : {}),
-      ...(attachment
-        ? {
-            attachment: {
-              url: `/admin/segnalazioni/${snapshot.publicCode}/foto`,
-              mimeType: attachment.mimeType,
-              size: attachment.size
-            }
-          }
-        : {})
+      attachments
     };
   }
 }
@@ -182,7 +177,7 @@ export class ApproveReportUseCase {
     const events = report.pullDomainEvents();
     await this.saveModerationTransition(report, events);
 
-    return report.toSnapshot();
+    return { ...report.toSnapshot(), attachments: [] };
   }
 
   private async saveModerationTransition(
@@ -241,7 +236,7 @@ export class RejectReportUseCase {
     );
     await this.saveModerationTransition(report, events);
 
-    return report.toSnapshot();
+    return { ...report.toSnapshot(), attachments: [] };
   }
 
   private async saveModerationTransition(

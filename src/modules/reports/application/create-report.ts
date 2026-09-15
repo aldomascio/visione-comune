@@ -185,18 +185,29 @@ async function createReportWithSource(
         });
         savedStorageKey = storedPhoto.storageKey;
 
+        const attachmentId = options.createId();
         await dependencies.reportRepository.saveWithAttachment(
           report,
           {
-            id: options.createId(),
+            id: attachmentId,
             reportId: snapshot.id,
-            type: "image",
+            type: "report_photo",
             storageKey: storedPhoto.storageKey,
             mimeType: processedPhoto.mimeType,
             size: storedPhoto.size,
+            reviewStatus: "pending_review",
             createdAt: snapshot.createdAt
           },
-          events
+          [
+            ...events,
+            {
+              type: "ReportAttachmentAdded",
+              reportId: snapshot.id,
+              occurredAt: snapshot.createdAt,
+              visibility: "internal",
+              metadata: { attachmentId, attachmentType: "report_photo" }
+            }
+          ]
         );
       } else {
         await dependencies.reportRepository.save(report, events);

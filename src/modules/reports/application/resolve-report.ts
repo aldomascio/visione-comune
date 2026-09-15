@@ -86,7 +86,7 @@ export class ResolveReportUseCase {
       throw error;
     }
 
-    return report.toSnapshot();
+    return { ...report.toSnapshot(), attachments: [] };
   }
 }
 

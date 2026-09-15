@@ -542,3 +542,14 @@ Stato: approvata e implementata in P0-02.
 Decisione: modellare il collegamento duplicato con `reports.duplicate_of_report_id`, FK nullable verso `reports.id`, invece di introdurre una tabella many-to-many. Un duplicato puo puntare a una sola principale; una principale puo avere piu duplicati. Il target selezionabile nel backoffice deve essere approvato, pubblico e non gia duplicato.
 
 Conseguenze: il codice pubblico del duplicato continua a funzionare, la pagina pubblica del duplicato mostra un rimando alla principale senza redirect automatico, le nuove conferme sono disabilitate sul duplicato, la mappa pubblica e le liste aggregate principali escludono duplicati. `totalReceived` resta totale storico, mentre pubblicate/comunicate/risolte escludono duplicati.
+
+### ADR-032 — Attachment model v2 con review esplicita
+
+Decisione:
+in P0-03 `report_attachments` distingue `report_photo` e `resolution_photo` e introduce `reviewStatus` con valori `pending_review`, `approved`, `rejected`. Ogni report puo avere al massimo una foto per tipo. La foto originale caricata dal cittadino e la foto di risoluzione caricata da admin nascono `pending_review`.
+
+Motivo:
+la pubblicazione di un'immagine non deve dipendere solo dall'esistenza del file nello storage o dallo stato della segnalazione. Serve una decisione separata per privacy e qualita dell'allegato.
+
+Conseguenza:
+le route pubbliche servono una foto solo se il report e approvato/pubblico e l'allegato e `approved`. Gli admin possono vedere anche foto pending/rejected nel backoffice. Le foto rifiutate non vengono cancellate automaticamente. Il detector automatico per volti/targhe resta P1 e non e implementato.

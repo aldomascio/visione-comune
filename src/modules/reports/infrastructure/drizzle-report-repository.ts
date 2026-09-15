@@ -29,10 +29,13 @@ import {
   type DuplicateReportSummary,
   type ReportModerationFilter,
   type NewReportAttachment,
+  type ModerationReportAttachment,
   type PublicReportDetail,
   type PublicReportMapItem,
   type RecentResolvedPublicReport,
+  type ReportAttachment,
   type ReportAttachmentAccess,
+  type ReportAttachmentType,
   type PublicReportTimelineEvent,
   type PotentialDuplicateReportQuery,
   type PotentialDuplicateReportRecord,
@@ -198,6 +201,8 @@ export class DrizzleReportRepository implements ReportRepository {
           storageKey: attachment.storageKey,
           mimeType: attachment.mimeType,
           size: attachment.size,
+          reviewStatus: attachment.reviewStatus,
+          reviewedAt: attachment.reviewedAt ?? null,
           createdAt: attachment.createdAt,
         });
       });
@@ -246,8 +251,106 @@ export class DrizzleReportRepository implements ReportRepository {
     return record ? recordToReport(record) : null;
   }
 
+  async saveAttachment(
+    attachment: NewReportAttachment,
+    events: ReportDomainEvent[] = [],
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.insert(reportAttachments).values({
+        id: attachment.id,
+        reportId: attachment.reportId,
+        type: attachment.type,
+        storageKey: attachment.storageKey,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        reviewStatus: attachment.reviewStatus,
+        reviewedAt: attachment.reviewedAt ?? null,
+        createdAt: attachment.createdAt,
+      });
+
+      if (events.length > 0) {
+        await tx.insert(reportEvents).values(events.map(reportEventToRecord));
+      }
+    });
+  }
+
+  async updateAttachmentReview(
+    input: {
+      reportId: string;
+      attachmentType: ReportAttachmentType;
+      reviewStatus: "pending_review" | "approved" | "rejected";
+      reviewedAt: Date;
+    },
+    events: ReportDomainEvent[] = [],
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(reportAttachments)
+        .set({
+          reviewStatus: input.reviewStatus,
+          reviewedAt: input.reviewedAt,
+        })
+        .where(
+          and(
+            eq(reportAttachments.reportId, input.reportId),
+            eq(reportAttachments.type, input.attachmentType),
+          ),
+        );
+
+      if (events.length > 0) {
+        await tx.insert(reportEvents).values(events.map(reportEventToRecord));
+      }
+    });
+  }
+
+  async findAttachmentByReportAndType(
+    reportId: string,
+    type: ReportAttachmentType,
+  ): Promise<ReportAttachment | null> {
+    const [row] = await this.db
+      .select()
+      .from(reportAttachments)
+      .where(
+        and(eq(reportAttachments.reportId, reportId), eq(reportAttachments.type, type)),
+      )
+      .limit(1);
+
+    return row ? attachmentRecordToDomain(row) : null;
+  }
+
+  async listAttachmentsForModeration(
+    publicCode: PublicCode,
+  ): Promise<ModerationReportAttachment[]> {
+    const rows = await this.db
+      .select({
+        id: reportAttachments.id,
+        type: reportAttachments.type,
+        reviewStatus: reportAttachments.reviewStatus,
+        mimeType: reportAttachments.mimeType,
+        size: reportAttachments.size,
+        createdAt: reportAttachments.createdAt,
+        reviewedAt: reportAttachments.reviewedAt,
+      })
+      .from(reportAttachments)
+      .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
+      .where(eq(reports.publicCode, publicCode.toString()))
+      .orderBy(asc(reportAttachments.createdAt));
+
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      reviewStatus: row.reviewStatus,
+      mimeType: row.mimeType,
+      size: row.size,
+      createdAt: row.createdAt,
+      ...(row.reviewedAt ? { reviewedAt: row.reviewedAt } : {}),
+      url: `/admin/segnalazioni/${publicCode.toString()}/foto?type=${row.type}`,
+    }));
+  }
+
   async findAttachmentForModeration(
     publicCode: PublicCode,
+    type: ReportAttachmentType,
   ): Promise<ReportAttachmentAccess | null> {
     const [row] = await this.db
       .select({
@@ -257,7 +360,9 @@ export class DrizzleReportRepository implements ReportRepository {
       })
       .from(reportAttachments)
       .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
-      .where(eq(reports.publicCode, publicCode.toString()))
+      .where(
+        and(eq(reports.publicCode, publicCode.toString()), eq(reportAttachments.type, type)),
+      )
       .limit(1);
 
     return row ?? null;
@@ -265,6 +370,7 @@ export class DrizzleReportRepository implements ReportRepository {
 
   async findPublicAttachmentByPublicCode(
     publicCode: PublicCode,
+    type: ReportAttachmentType,
   ): Promise<ReportAttachmentAccess | null> {
     const [row] = await this.db
       .select({
@@ -277,6 +383,8 @@ export class DrizzleReportRepository implements ReportRepository {
       .where(
         and(
           eq(reports.publicCode, publicCode.toString()),
+          eq(reportAttachments.type, type),
+          eq(reportAttachments.reviewStatus, "approved"),
           eq(reports.moderationStatus, "approved"),
           isNotNull(reports.publicStatus),
           isNotNull(reports.publishedAt),
@@ -431,13 +539,9 @@ export class DrizzleReportRepository implements ReportRepository {
         communicatedAt: reports.communicatedAt,
         resolvedAt: reports.resolvedAt,
         duplicateOfReportId: reports.duplicateOfReportId,
-        attachmentStorageKey: reportAttachments.storageKey,
-        attachmentMimeType: reportAttachments.mimeType,
-        attachmentSize: reportAttachments.size,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
-      .leftJoin(reportAttachments, eq(reportAttachments.reportId, reports.id))
       .where(
         and(
           eq(reports.publicCode, publicCode.toString()),
@@ -450,9 +554,13 @@ export class DrizzleReportRepository implements ReportRepository {
       return null;
     }
 
-    const duplicateOf = row.duplicateOfReportId
-      ? await this.findDuplicatePrimaryPublicSummary(row.duplicateOfReportId)
-      : null;
+    const [duplicateOf, reportPhoto, resolutionPhoto] = await Promise.all([
+      row.duplicateOfReportId
+        ? this.findDuplicatePrimaryPublicSummary(row.duplicateOfReportId)
+        : Promise.resolve(null),
+      this.findPublicAttachmentByPublicCode(publicCode, "report_photo"),
+      this.findPublicAttachmentByPublicCode(publicCode, "resolution_photo"),
+    ]);
 
     return {
       publicCode: row.publicCode,
@@ -468,14 +576,21 @@ export class DrizzleReportRepository implements ReportRepository {
       ...(row.communicatedAt ? { communicatedAt: row.communicatedAt } : {}),
       ...(row.resolvedAt ? { resolvedAt: row.resolvedAt } : {}),
       ...(duplicateOf ? { duplicateOf } : {}),
-      ...(row.attachmentStorageKey &&
-      row.attachmentMimeType &&
-      row.attachmentSize
+      ...(reportPhoto
         ? {
-            attachment: {
-              mimeType: row.attachmentMimeType,
-              size: row.attachmentSize,
-              url: `/api/report-images/${row.publicCode}`,
+            reportPhoto: {
+              mimeType: reportPhoto.mimeType,
+              size: reportPhoto.size,
+              url: `/api/report-images/${row.publicCode}?type=report_photo`,
+            },
+          }
+        : {}),
+      ...(resolutionPhoto
+        ? {
+            resolutionPhoto: {
+              mimeType: resolutionPhoto.mimeType,
+              size: resolutionPhoto.size,
+              url: `/api/report-images/${row.publicCode}?type=resolution_photo`,
             },
           }
         : {}),
@@ -493,13 +608,9 @@ export class DrizzleReportRepository implements ReportRepository {
         address: reports.address,
         publicStatus: reports.publicStatus,
         publishedAt: reports.publishedAt,
-        attachmentStorageKey: reportAttachments.storageKey,
-        attachmentMimeType: reportAttachments.mimeType,
-        attachmentSize: reportAttachments.size,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
-      .leftJoin(reportAttachments, eq(reportAttachments.reportId, reports.id))
       .where(
         and(
           eq(reports.moderationStatus, "approved"),
@@ -707,6 +818,21 @@ export class DrizzleReportRepository implements ReportRepository {
 
     return Number(row?.value ?? 0);
   }
+}
+
+
+function attachmentRecordToDomain(row: typeof reportAttachments.$inferSelect): ReportAttachment {
+  return {
+    id: row.id,
+    reportId: row.reportId,
+    type: row.type,
+    storageKey: row.storageKey,
+    mimeType: row.mimeType,
+    size: row.size,
+    reviewStatus: row.reviewStatus,
+    ...(row.reviewedAt ? { reviewedAt: row.reviewedAt } : {}),
+    createdAt: row.createdAt,
+  };
 }
 
 function isPublicCodeUniqueViolation(error: unknown): boolean {

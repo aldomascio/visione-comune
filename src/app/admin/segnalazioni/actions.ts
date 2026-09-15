@@ -2,6 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { CreateAdminReportUseCase, CreateReportValidationError, mapCreateReportErrorToMessage } from "@/modules/reports/application/create-report";
+import {
+  AddResolutionPhotoUseCase,
+  ApproveReportAttachmentUseCase,
+  RejectReportAttachmentUseCase,
+  mapReportAttachmentErrorToMessage,
+  parseReportAttachmentType
+} from "@/modules/reports/application/attachments/report-attachments";
 import { RandomPublicCodeGenerator } from "@/modules/reports/application/public-code-generator";
 import { LocalStorageProvider } from "@/modules/storage/infrastructure/local-storage-provider";
 import { redirect } from "next/navigation";
@@ -227,6 +234,80 @@ export async function removeReportDuplicateLinkAction(formData: FormData): Promi
   redirect(redirectTo);
 }
 
+
+export async function addResolutionPhotoAction(formData: FormData): Promise<void> {
+  await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    const photo = await getOptionalPhoto(formData, "resolutionPhoto");
+
+    if (!photo) {
+      throw new Error("resolution_photo_required");
+    }
+
+    connection = createDatabaseConnection();
+    await new AddResolutionPhotoUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db),
+      storageProvider: new LocalStorageProvider()
+    }).execute({ publicCode, photo });
+
+    revalidateReportPaths(publicCode);
+    redirectTo = `${redirectTo}?attachment=resolution-added`;
+  } catch (error) {
+    console.error("Unable to add resolution photo", error);
+    redirectTo = `${redirectTo}?attachmentError=${encodeURIComponent(mapReportAttachmentActionError(error))}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
+export async function approveReportAttachmentAction(formData: FormData): Promise<void> {
+  await reviewReportAttachment({ formData, action: "approve" });
+}
+
+export async function rejectReportAttachmentAction(formData: FormData): Promise<void> {
+  await reviewReportAttachment({ formData, action: "reject" });
+}
+
+async function reviewReportAttachment(input: { formData: FormData; action: "approve" | "reject" }): Promise<void> {
+  await requireActiveAdmin();
+  const publicCode = getPublicCode(input.formData);
+  const attachmentType = parseReportAttachmentType(getRequiredString(input.formData, "attachmentType"));
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    if (!attachmentType) {
+      throw new Error("invalid_attachment_type");
+    }
+
+    connection = createDatabaseConnection();
+    const reportRepository = new DrizzleReportRepository(connection.db);
+
+    if (input.action === "approve") {
+      await new ApproveReportAttachmentUseCase({ reportRepository }).execute({ publicCode, attachmentType });
+      redirectTo = `${redirectTo}?attachment=approved`;
+    } else {
+      await new RejectReportAttachmentUseCase({ reportRepository }).execute({ publicCode, attachmentType });
+      redirectTo = `${redirectTo}?attachment=rejected`;
+    }
+
+    revalidateReportPaths(publicCode);
+  } catch (error) {
+    console.error("Unable to review attachment", error);
+    redirectTo = `${redirectTo}?attachmentError=${encodeURIComponent(mapReportAttachmentActionError(error))}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
 export async function approveReportAction(formData: FormData): Promise<void> {
   await moderateReport({ formData, action: "approve" });
 }
@@ -364,6 +445,18 @@ function mapDuplicateErrorToCode(error: unknown): string {
 
   console.error("Unable to update duplicate link", error);
   return "generic";
+}
+
+function mapReportAttachmentActionError(error: unknown): string {
+  if (error instanceof Error && error.message === "resolution_photo_required") {
+    return "Seleziona una foto di risoluzione.";
+  }
+
+  if (error instanceof Error && error.message === "invalid_attachment_type") {
+    return "Tipo foto non valido.";
+  }
+
+  return mapReportAttachmentErrorToMessage(error);
 }
 
 function mapResolutionErrorToCode(error: unknown): string {

@@ -174,7 +174,7 @@ Caso:
 un utente conosce o prova a indovinare la URL pubblica della foto di una segnalazione pending o rejected.
 
 Gestione prevista:
-la route pubblica restituisce 404 finche il report non e approvato e pubblico. Lo storage key e il path filesystem non vengono esposti.
+la route pubblica restituisce 404 finche il report non e approvato/pubblico e l'allegato non ha `reviewStatus = approved`. Lo storage key e il path filesystem non vengono esposti.
 
 ### EC-VC009-003 — File non immagine o corrotto
 
@@ -183,6 +183,39 @@ il cittadino carica un file con estensione o MIME ingannevole, vuoto, corrotto o
 
 Gestione prevista:
 la validazione server-side controlla dimensione, signature/magic bytes e processamento immagine. Il form mostra un errore comprensibile e il report non viene creato con attachment incoerente.
+
+
+### EC-P0-03-001 — Report approvato ma foto ancora pending
+
+Caso:
+l'amministratore approva la segnalazione, ma non ha ancora approvato la foto.
+
+Gestione prevista:
+la segnalazione diventa pubblica, ma la route pubblica della foto restituisce 404 finche l'allegato resta `pending_review`.
+
+### EC-P0-03-002 — Foto di risoluzione su stato incompatibile
+
+Caso:
+un admin prova a caricare una foto di risoluzione su una segnalazione pending, rejected o solo `Segnalata`.
+
+Gestione prevista:
+il use case rifiuta l'upload. La foto di risoluzione e consentita solo su report approvati con stato pubblico `Comunicata` o `Risolta`.
+
+### EC-P0-03-003 — Foto rifiutata
+
+Caso:
+un admin rifiuta una foto gia caricata.
+
+Gestione prevista:
+la foto non viene cancellata fisicamente in modo automatico, resta visibile nel backoffice e non viene servita pubblicamente.
+
+### EC-P0-03-004 — Detector privacy non presente
+
+Caso:
+una foto tecnicamente valida contiene volti, targhe o dati identificativi.
+
+Gestione prevista:
+nel MVP corrente il blocco automatico non e implementato. La mitigazione e la review manuale dell'allegato; il detector resta P1.
 
 ## VC-010 — Rilevamento duplicati iniziale
 

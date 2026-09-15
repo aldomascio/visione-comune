@@ -39,14 +39,21 @@ Note implementative MVP:
 - storageKey
 - mimeType
 - size
+- reviewStatus
+- reviewedAt
 - createdAt
 
 Note implementative MVP:
 
-- `type` supporta `image`.
-- e consentito al massimo un allegato immagine per report.
+- `type` supporta `report_photo` e `resolution_photo`.
+- e consentita al massimo una foto per report e per tipo, tramite vincolo unique su `(reportId, type)`.
+- `reviewStatus` supporta `pending_review`, `approved`, `rejected`.
+- le foto caricate dal cittadino nascono `report_photo` + `pending_review`.
+- le foto di risoluzione sono caricate solo da admin, nascono `resolution_photo` + `pending_review` e richiedono approvazione esplicita.
 - `storageKey` resta interno e non deve essere esposto in HTML pubblico o payload pubblici.
-- la foto puo essere servita pubblicamente solo se il report e approvato e ha stato pubblico.
+- una foto puo essere servita pubblicamente solo se il report e approvato/pubblico e l'allegato e `approved`.
+- le foto `pending_review` e `rejected` sono visibili solo nel backoffice autenticato.
+- il detector automatico privacy per volti/targhe resta P1 e non e implementato.
 
 ## ReportConfirmation
 
@@ -81,9 +88,10 @@ Note implementative MVP:
 - `createdAt` e `id` definiscono l'ordinamento stabile della timeline: `createdAt ASC`, poi `id ASC`.
 - `metadata` puo contenere dati operativi interni legati all'evento. Di default i metadata sono considerati non pubblici.
 - In VC-006 la nota opzionale di rifiuto viene salvata come `metadata.internalNote` sull'evento interno `ReportRejected`.
-- Chiavi metadata previste: `source`, `createdByAdminId`, `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`.
+- Chiavi metadata previste: `source`, `createdByAdminId`, `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`, `attachmentId`, `attachmentType`.
 - Le note salvate negli eventi interni non devono essere esposte nelle viste pubbliche.
 - In VC-015 gli eventi `CommunicationRecorded`, `CommunicationSent`, `CommunicationDelivered` e `CommunicationFailed` sono interni. L'unico evento pubblico collegato alla comunicazione resta `ReportCommunicated`.
+- Eventi interni per allegati: `ReportAttachmentAdded`, `ReportAttachmentApproved`, `ReportAttachmentRejected`. Non vengono esposti nella timeline pubblica.
 - Eventi futuri previsti ma non implementati: `ReplyReceived`, `ReminderSent`. La loro introduzione richiedera aggiornamento enum e migration.
 
 ## Category

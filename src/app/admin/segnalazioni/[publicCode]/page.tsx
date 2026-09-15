@@ -16,7 +16,7 @@ import {
   ReportForModerationNotFoundError
 } from "@/modules/reports/application/moderate-report";
 import { ListReportDuplicatesUseCase, SearchPotentialPrimaryReportsUseCase } from "@/modules/reports/application/report-duplicates";
-import type { DuplicateReportSummary, PotentialPrimaryReport } from "@/modules/reports/application/report-repository";
+import type { DuplicateReportSummary, ModerationReportAttachment, PotentialPrimaryReport } from "@/modules/reports/application/report-repository";
 import { GetAdminReportTimelineUseCase, type AdminTimelineItem } from "@/modules/reports/application/report-timeline";
 import { REPORT_SOURCE_LABELS } from "@/modules/reports/domain";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
@@ -24,14 +24,14 @@ import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzl
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
-import { approveReportAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, removeReportDuplicateLinkAction } from "../actions";
+import { addResolutionPhotoAction, approveReportAction, approveReportAttachmentAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, rejectReportAttachmentAction, removeReportDuplicateLinkAction } from "../actions";
 import { ResolveReportForm } from "./resolve-report-form";
 import { formatAdminDate } from "../format";
 import { ModerationStatusBadge, PublicStatusBadge } from "../status-badge";
 
 type ReportDetailPageProps = {
   params: Promise<{ publicCode: string }>;
-  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string; duplicate?: string; duplicateError?: string; duplicateQuery?: string }>;
+  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string; duplicate?: string; duplicateError?: string; duplicateQuery?: string; attachment?: string; attachmentError?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -62,10 +62,12 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
         {query?.communication ? <CommunicationSuccessMessage type={query.communication} /> : null}
         {query?.resolution ? <ResolutionSuccessMessage type={query.resolution} /> : null}
         {query?.duplicate ? <DuplicateSuccessMessage type={query.duplicate} /> : null}
+        {query?.attachment ? <AttachmentSuccessMessage type={query.attachment} /> : null}
         {query?.error ? <ErrorMessage code={query.error} /> : null}
         {query?.communicationError ? <CommunicationErrorMessage message={query.communicationError} /> : null}
         {query?.resolutionError ? <ResolutionErrorMessage code={query.resolutionError} /> : null}
         {query?.duplicateError ? <DuplicateErrorMessage code={query.duplicateError} /> : null}
+        {query?.attachmentError ? <AttachmentErrorMessage message={query.attachmentError} /> : null}
 
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <Card>
@@ -82,18 +84,11 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
               </section>
 
 
-              {report.attachment ? (
-                <section className="grid gap-2">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Foto allegata</h2>
-                  <div className="overflow-hidden rounded-lg border border-border bg-background">
-                    <img
-                      alt={`Foto allegata alla segnalazione ${report.publicCode}`}
-                      className="h-auto w-full object-cover"
-                      src={report.attachment.url}
-                    />
-                  </div>
-                </section>
-              ) : null}
+              <AttachmentReviewSection
+                attachment={report.attachments.find((attachment) => attachment.type === "report_photo")}
+                publicCode={report.publicCode}
+                type="report_photo"
+              />
 
               <section className="grid gap-4 sm:grid-cols-2">
                 <InfoBlock label="Categoria" value={report.categoryName ?? report.categoryId} />
@@ -166,6 +161,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
             />
 
             <ResolutionCard
+              attachment={report.attachments.find((attachment) => attachment.type === "resolution_photo")}
               communicatedAt={report.communicatedAt}
               publicCode={report.publicCode}
               publicStatus={report.publicStatus}
@@ -463,30 +459,105 @@ function CommunicationsSection({
   );
 }
 
+function AttachmentReviewSection({
+  attachment,
+  publicCode,
+  type
+}: {
+  attachment?: ModerationReportAttachment;
+  publicCode: string;
+  type: "report_photo" | "resolution_photo";
+}) {
+  const title = type === "report_photo" ? "Foto segnalazione" : "Foto risoluzione";
+  const description = type === "report_photo"
+    ? "Foto originale caricata insieme alla segnalazione. La pubblicazione richiede approvazione separata."
+    : "Foto di verifica della risoluzione. Nasce da verificare anche se caricata da admin.";
+
+  return (
+    <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+
+      {attachment ? (
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-full bg-background px-3 py-1 font-semibold">{attachmentTypeLabel(attachment.type)}</span>
+            <span className="rounded-full bg-background px-3 py-1 font-semibold">{attachmentReviewStatusLabel(attachment.reviewStatus)}</span>
+          </div>
+          <div className="overflow-hidden rounded-lg border border-border bg-background">
+            <img
+              alt={`${title} ${publicCode}`}
+              className="h-auto w-full object-cover"
+              src={attachment.url}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">{attachment.mimeType} · {formatFileSize(attachment.size)}</p>
+          {attachment.reviewStatus === "pending_review" ? (
+            <div className="flex flex-wrap gap-3">
+              <form action={approveReportAttachmentAction}>
+                <input name="publicCode" type="hidden" value={publicCode} />
+                <input name="attachmentType" type="hidden" value={type} />
+                <Button type="submit">Approva foto</Button>
+              </form>
+              <form action={rejectReportAttachmentAction}>
+                <input name="publicCode" type="hidden" value={publicCode} />
+                <input name="attachmentType" type="hidden" value={type} />
+                <Button type="submit" variant="destructive">Rifiuta foto</Button>
+              </form>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+          Nessuna foto presente per questa sezione.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function ResolutionCard({
+  attachment,
   communicatedAt,
   publicCode,
   publicStatus,
   resolvedAt
 }: {
+  attachment?: ModerationReportAttachment;
   communicatedAt?: Date;
   publicCode: string;
   publicStatus?: string;
   resolvedAt?: Date;
 }) {
   const canResolve = publicStatus === "communicated";
+  const canUploadResolutionPhoto = publicStatus === "communicated" || publicStatus === "resolved";
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Risoluzione</CardTitle>
         <CardDescription>
-          La risoluzione viene impostata solo dopo verifica di Visione Comune. Per VC-016 e uno stato finale.
+          La risoluzione viene impostata solo dopo verifica di Visione Comune. La foto di risoluzione e opzionale.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         {communicatedAt ? <InfoBlock label="Comunicata il" value={formatAdminDate(communicatedAt)} /> : null}
         {resolvedAt ? <InfoBlock label="Risolta il" value={formatAdminDate(resolvedAt)} /> : null}
+
+        <AttachmentReviewSection attachment={attachment} publicCode={publicCode} type="resolution_photo" />
+
+        {canUploadResolutionPhoto && !attachment ? (
+          <form action={addResolutionPhotoAction} className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+            <input name="publicCode" type="hidden" value={publicCode} />
+            <label className="grid gap-2 text-sm font-medium" htmlFor="resolutionPhoto">
+              Carica foto di risoluzione
+              <Input accept="image/jpeg,image/png,image/webp" id="resolutionPhoto" name="resolutionPhoto" type="file" />
+            </label>
+            <Button type="submit">Carica foto risoluzione</Button>
+          </form>
+        ) : null}
 
         {canResolve ? (
           <ResolveReportForm publicCode={publicCode} />
@@ -602,6 +673,28 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 }
 
 
+function AttachmentSuccessMessage({ type }: { type: string }) {
+  const messages: Record<string, string> = {
+    "resolution-added": "Foto di risoluzione caricata e in attesa di verifica.",
+    approved: "Foto approvata.",
+    rejected: "Foto rifiutata."
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+      {messages[type] ?? "Foto aggiornata."}
+    </div>
+  );
+}
+
+function AttachmentErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+      {message}
+    </div>
+  );
+}
+
 function DuplicateSuccessMessage({ type }: { type: string }) {
   const messages: Record<string, string> = {
     linked: "Segnalazione collegata come duplicata.",
@@ -713,6 +806,28 @@ function ErrorMessage({ code }: { code: string }) {
       {messages[code] ?? messages.generic}
     </div>
   );
+}
+
+function attachmentTypeLabel(type: "report_photo" | "resolution_photo"): string {
+  return type === "report_photo" ? "Foto segnalazione" : "Foto risoluzione";
+}
+
+function attachmentReviewStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending_review: "Foto da verificare",
+    approved: "Foto approvata",
+    rejected: "Foto rifiutata"
+  };
+
+  return labels[status] ?? status;
+}
+
+function formatFileSize(size: number): string {
+  if (size < 1024 * 1024) {
+    return `${Math.round(size / 1024)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function statusText(status: string): string {

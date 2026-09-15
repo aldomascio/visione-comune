@@ -184,9 +184,16 @@ test("submits a report with a photo, shows it to admin, then publishes it", asyn
 
   await loginAdmin(page);
   await page.goto(`/admin/segnalazioni/${publicCode}`);
-  await expect(page.getByAltText(`Foto allegata alla segnalazione ${publicCode}`)).toBeVisible();
-  await page.getByRole("button", { name: "Approva" }).click();
+  await expect(page.getByAltText(`Foto segnalazione ${publicCode}`)).toBeVisible();
+  await expect(page.getByText("Foto da verificare")).toBeVisible();
+  await page.getByRole("button", { name: "Approva", exact: true }).click();
   await expect(page.getByText("Segnalazione approvata e pubblicata come Segnalata.")).toBeVisible();
+
+  const stillPendingPhotoResponse = await page.request.get(`/api/report-images/${publicCode}`);
+  expect(stillPendingPhotoResponse.status()).toBe(404);
+
+  await page.getByRole("button", { name: "Approva foto" }).click();
+  await expect(page.getByText("Foto approvata.")).toBeVisible();
 
   const approvedPhotoResponse = await page.request.get(`/api/report-images/${publicCode}`);
   expect(approvedPhotoResponse.status()).toBe(200);

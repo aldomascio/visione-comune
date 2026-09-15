@@ -126,9 +126,10 @@ describe("CreateReportUseCase", () => {
     expect(storageProvider.savedObjects).toHaveLength(1);
     expect(reportRepository.savedAttachments[0]).toMatchObject({
       reportId: "report-1",
-      type: "image",
+      type: "report_photo",
       storageKey: "stored-photo-1.jpg",
-      mimeType: "image/jpeg"
+      mimeType: "image/jpeg",
+      reviewStatus: "pending_review"
     });
   });
 

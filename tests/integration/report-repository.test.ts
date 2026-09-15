@@ -476,7 +476,7 @@ maybeDescribe("DrizzleReportRepository", () => {
     expect(candidates[0]).not.toHaveProperty("description");
   });
 
-  it("persists one image attachment and exposes it only after approval", async () => {
+  it("persists report and resolution attachments and exposes only approved public images", async () => {
     const report = createReport("test-report-attachment", "VC-ATCH0001");
     const events = report.pullDomainEvents();
 
@@ -485,39 +485,93 @@ maybeDescribe("DrizzleReportRepository", () => {
       {
         id: "test-attachment-1",
         reportId: "test-report-attachment",
-        type: "image",
+        type: "report_photo",
         storageKey: "test-storage-key.jpg",
         mimeType: "image/jpeg",
         size: 1234,
+        reviewStatus: "pending_review",
         createdAt: new Date("2026-01-01T10:00:00.000Z")
       },
       events
     );
 
-    await expect(repository.findAttachmentForModeration(PublicCode.create("VC-ATCH0001"))).resolves.toEqual({
+    await expect(repository.findAttachmentForModeration(PublicCode.create("VC-ATCH0001"), "report_photo")).resolves.toEqual({
       storageKey: "test-storage-key.jpg",
       mimeType: "image/jpeg",
       size: 1234
     });
-    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toBeNull();
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"), "report_photo")).resolves.toBeNull();
 
     report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    report.markCommunicated(new Date("2026-01-05T10:00:00.000Z"));
     await repository.save(report, report.pullDomainEvents(), {
       expectedModerationStatus: "pending_review"
     });
 
-    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toEqual({
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"), "report_photo")).resolves.toBeNull();
+
+    await repository.updateAttachmentReview(
+      {
+        reportId: "test-report-attachment",
+        attachmentType: "report_photo",
+        reviewStatus: "approved",
+        reviewedAt: new Date("2026-01-06T10:00:00.000Z")
+      },
+      []
+    );
+
+    await repository.saveAttachment({
+      id: "test-attachment-resolution",
+      reportId: "test-report-attachment",
+      type: "resolution_photo",
+      storageKey: "test-resolution-key.jpg",
+      mimeType: "image/jpeg",
+      size: 2345,
+      reviewStatus: "pending_review",
+      createdAt: new Date("2026-01-06T10:00:00.000Z")
+    });
+
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"), "report_photo")).resolves.toEqual({
       storageKey: "test-storage-key.jpg",
       mimeType: "image/jpeg",
       size: 1234
     });
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"), "resolution_photo")).resolves.toBeNull();
+
+    await repository.updateAttachmentReview(
+      {
+        reportId: "test-report-attachment",
+        attachmentType: "resolution_photo",
+        reviewStatus: "approved",
+        reviewedAt: new Date("2026-01-07T10:00:00.000Z")
+      },
+      []
+    );
+
     await expect(repository.findPublicByPublicCode(PublicCode.create("VC-ATCH0001"))).resolves.toMatchObject({
-      attachment: {
+      reportPhoto: {
         mimeType: "image/jpeg",
         size: 1234,
-        url: "/api/report-images/VC-ATCH0001"
+        url: "/api/report-images/VC-ATCH0001?type=report_photo"
+      },
+      resolutionPhoto: {
+        mimeType: "image/jpeg",
+        size: 2345,
+        url: "/api/report-images/VC-ATCH0001?type=resolution_photo"
       }
     });
+
+    await repository.updateAttachmentReview(
+      {
+        reportId: "test-report-attachment",
+        attachmentType: "resolution_photo",
+        reviewStatus: "rejected",
+        reviewedAt: new Date("2026-01-08T10:00:00.000Z")
+      },
+      []
+    );
+
+    await expect(repository.findPublicAttachmentByPublicCode(PublicCode.create("VC-ATCH0001"), "resolution_photo")).resolves.toBeNull();
   });
 
 
@@ -579,15 +633,16 @@ maybeDescribe("DrizzleReportRepository", () => {
     );
   });
 
-  it("enforces at most one image attachment for each report", async () => {
+  it("enforces at most one attachment for each report and type", async () => {
     const report = createReport("test-report-attachment", "VC-ATCH0001");
     await repository.saveWithAttachment(report, {
       id: "test-attachment-1",
       reportId: "test-report-attachment",
-      type: "image",
+      type: "report_photo",
       storageKey: "test-storage-key.jpg",
       mimeType: "image/jpeg",
       size: 1234,
+      reviewStatus: "pending_review",
       createdAt: new Date("2026-01-01T10:00:00.000Z")
     });
 
@@ -595,10 +650,11 @@ maybeDescribe("DrizzleReportRepository", () => {
       connection.db.insert(reportAttachments).values({
         id: "test-attachment-2",
         reportId: "test-report-attachment",
-        type: "image",
+        type: "report_photo",
         storageKey: "test-storage-key-2.jpg",
         mimeType: "image/jpeg",
         size: 1234,
+        reviewStatus: "pending_review",
         createdAt: new Date("2026-01-01T10:00:00.000Z")
       })
     ).rejects.toThrow();

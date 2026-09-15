@@ -15,14 +15,14 @@
    - permette di continuare se il problema è diverso.
 8. L'utente invia.
 9. Il sistema genera un codice univoco.
-10. La segnalazione entra nello stato interno `Da verificare` con fonte interna `platform`.
+10. La segnalazione entra nello stato interno `Da verificare` con fonte interna `platform`; l'eventuale foto originale entra come `report_photo` in `pending_review`.
 11. L'utente visualizza e può copiare il codice.
 12. Il cittadino non vede e non sceglie la fonte della segnalazione.
 
 ## FLOW-002 — Moderazione
 
 1. L'amministratore apre una segnalazione.
-2. Controlla contenuto, posizione, foto e categoria.
+2. Controlla contenuto, posizione, categoria e allegati. La moderazione della segnalazione e la review delle foto sono decisioni separate.
 3. Controlla possibili duplicati.
 4. Conferma o modifica la categoria.
 5. Approva oppure rifiuta.
@@ -65,6 +65,7 @@
 7. La timeline pubblica mostra `Problema risolto` senza note interne.
 8. La timeline admin mostra anche l'eventuale nota interna.
 9. La scheda pubblica e la mappa continuano a mostrare la segnalazione con stato `Risolta`.
+10. Se disponibile, l'amministratore puo caricare una foto di verifica della risoluzione; la foto nasce `pending_review` e viene mostrata pubblicamente solo dopo approvazione.
 
 ## FLOW-006 — Tracking tramite codice
 

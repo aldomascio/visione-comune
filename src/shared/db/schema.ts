@@ -41,6 +41,9 @@ export const reportEventTypeEnum = pgEnum("report_event_type", [
   "CommunicationFailed",
   "ReportMarkedAsDuplicate",
   "ReportDuplicateLinkRemoved",
+  "ReportAttachmentAdded",
+  "ReportAttachmentApproved",
+  "ReportAttachmentRejected",
 ]);
 
 export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
@@ -51,8 +54,14 @@ export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
 export const adminRoleEnum = pgEnum("admin_role", ["admin"]);
 
 export const reportAttachmentTypeEnum = pgEnum("report_attachment_type", [
-  "image",
+  "report_photo",
+  "resolution_photo",
 ]);
+
+export const reportAttachmentReviewStatusEnum = pgEnum(
+  "report_attachment_review_status",
+  ["pending_review", "approved", "rejected"],
+);
 
 export const outboundCommunicationChannelEnum = pgEnum(
   "outbound_communication_channel",
@@ -320,14 +329,22 @@ export const reportAttachments = pgTable(
     storageKey: varchar("storage_key", { length: 300 }).notNull(),
     mimeType: varchar("mime_type", { length: 80 }).notNull(),
     size: integer("size").notNull(),
+    reviewStatus: reportAttachmentReviewStatusEnum("review_status")
+      .notNull()
+      .default("pending_review"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("report_attachments_report_id_unique").on(table.reportId),
+    uniqueIndex("report_attachments_report_type_unique").on(
+      table.reportId,
+      table.type,
+    ),
     uniqueIndex("report_attachments_storage_key_unique").on(table.storageKey),
     index("report_attachments_report_id_idx").on(table.reportId),
+    index("report_attachments_review_status_idx").on(table.reviewStatus),
     check(
       "report_attachments_id_not_empty",
       sql`length(trim(${table.id})) > 0`,
@@ -341,6 +358,10 @@ export const reportAttachments = pgTable(
       sql`length(trim(${table.mimeType})) > 0`,
     ),
     check("report_attachments_size_positive", sql`${table.size} > 0`),
+    check(
+      "report_attachments_reviewed_at_status",
+      sql`${table.reviewedAt} is null or ${table.reviewStatus} in ('approved', 'rejected')`,
+    ),
   ],
 );
 

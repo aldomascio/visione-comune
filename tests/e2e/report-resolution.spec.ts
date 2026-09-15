@@ -42,6 +42,13 @@ test("admin resolves a communicated report and the public detail and map remain 
   await expect(page.getByText("Comunicata").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Segna come risolta" })).toBeVisible();
 
+  await page.setInputFiles("#resolutionPhoto", { name: "risoluzione.png", mimeType: "image/png", buffer: await validPng() });
+  await page.getByRole("button", { name: "Carica foto risoluzione" }).click();
+  await expect(page.getByText("Foto di risoluzione caricata e in attesa di verifica.")).toBeVisible();
+  await expect(page.getByText("Foto da verificare")).toBeVisible();
+  await page.getByRole("button", { name: "Approva foto" }).click();
+  await expect(page.getByText("Foto approvata.")).toBeVisible();
+
   page.once("dialog", async (dialog) => {
     expect(dialog.message()).toContain("Segnare questa segnalazione come risolta?");
     await dialog.accept();
@@ -60,6 +67,8 @@ test("admin resolves a communicated report and the public detail and map remain 
   await expect(page.getByText("Data risoluzione")).toBeVisible();
   await expect(page.getByText("Problema risolto")).toBeVisible();
   await expect(page.getByText("Visione Comune ha verificato la risoluzione del problema.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Verifica della risoluzione" })).toBeVisible();
+  await expect(page.getByAltText(`Foto di verifica della risoluzione ${resolvedCode}`)).toBeVisible();
   await expect(page.getByText("Sopralluogo E2E completato")).toHaveCount(0);
 
   await page.goto("/mappa");
@@ -186,4 +195,18 @@ async function hashPassword(password: string): Promise<string> {
     nonce.toString("base64url"),
     derivedKey.toString("base64url")
   ].join("$");
+}
+
+async function validPng(): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  return sharp({
+    create: {
+      width: 24,
+      height: 24,
+      channels: 3,
+      background: "green"
+    }
+  })
+    .png()
+    .toBuffer();
 }

@@ -93,6 +93,21 @@ export const REPORT_TIMELINE_EVENT_PRESENTATION: Record<ReportEventType, Timelin
     label: "Collegamento duplicato rimosso",
     adminDescription: "La segnalazione non e piu collegata come duplicata.",
     defaultVisibility: "internal"
+  },
+  ReportAttachmentAdded: {
+    label: "Foto aggiunta",
+    adminDescription: "Una foto e stata aggiunta alla segnalazione ed e in attesa di verifica.",
+    defaultVisibility: "internal"
+  },
+  ReportAttachmentApproved: {
+    label: "Foto approvata",
+    adminDescription: "Una foto della segnalazione e stata approvata per la pubblicazione.",
+    defaultVisibility: "internal"
+  },
+  ReportAttachmentRejected: {
+    label: "Foto rifiutata",
+    adminDescription: "Una foto della segnalazione e stata rifiutata e non verra pubblicata.",
+    defaultVisibility: "internal"
   }
 };
 
@@ -105,7 +120,9 @@ const ADMIN_METADATA_LABELS: Record<string, string> = {
   communicationId: "Comunicazione",
   communicationStatus: "Stato comunicazione",
   primaryReportId: "ID segnalazione principale",
-  primaryPublicCode: "Codice segnalazione principale"
+  primaryPublicCode: "Codice segnalazione principale",
+  attachmentId: "Foto",
+  attachmentType: "Tipo foto"
 };
 
 export type GetPublicReportTimelineUseCaseDependencies = {

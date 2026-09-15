@@ -79,3 +79,15 @@ Una segnalazione identificata come duplicata dopo la creazione non deve essere c
 
 ### BR-025
 Una segnalazione duplicata non raccoglie nuove conferme e non compare come problema autonomo nella mappa pubblica o nelle liste aggregate principali. La scheda diretta resta raggiungibile e rimanda alla segnalazione principale.
+
+### BR-026
+Una foto allegata non e pubblicabile solo perche esiste nello storage: deve appartenere a una segnalazione approvata/pubblica e avere review status `approved`.
+
+### BR-027
+La foto di risoluzione e opzionale: una segnalazione puo diventare `Risolta` anche senza foto.
+
+### BR-028
+La foto di risoluzione puo essere caricata solo da un amministratore su segnalazioni gia `Comunicata` o `Risolta`; nasce `pending_review` e richiede approvazione esplicita prima della pubblicazione.
+
+### BR-029
+Il detector automatico privacy per volti, targhe o dati identificativi nelle immagini non e implementato nell'MVP corrente e resta una misura P1 futura.

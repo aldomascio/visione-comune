@@ -97,14 +97,13 @@ P0-02 ha introdotto il modello per marcare duplicati dopo la creazione da backof
 
 ### Immagini
 
-Il sistema accetta una foto opzionale per segnalazione, valida MIME reale JPEG/PNG/WebP, limite 10 MB, normalizza a JPEG con `sharp`, ridimensiona e non serve foto non pubbliche. Lo schema attuale consente una sola riga attachment per report e `type = image`.
+Il sistema accetta una foto opzionale per segnalazione, valida MIME reale JPEG/PNG/WebP, limite 10 MB, normalizza a JPEG con `sharp`, ridimensiona e non serve foto non pubbliche. P0-03 ha introdotto `report_photo`, `resolution_photo` e `reviewStatus` (`pending_review`, `approved`, `rejected`). Ogni report puo avere al massimo una foto per tipo.
 
-Mancano:
+Restano fuori dall'MVP corrente:
 
-- tipi distinti per foto originale e foto risoluzione;
-- stato review privacy dell'allegato;
 - controllo automatico volti/targhe;
-- piu allegati per report.
+- blur automatico;
+- multi-photo/gallery pubblica avanzata.
 
 ### Metriche
 
@@ -335,9 +334,9 @@ Conferme:
 
 ## 8. Modello immagini
 
-Stato attuale: `report_attachments` supporta un solo allegato per report, tipo `image`.
+Stato P0-03: `report_attachments` supporta una foto originale e una foto di risoluzione per report, con review esplicita.
 
-Target proposto:
+Modello implementato:
 
 ```text
 report_attachment_type:
@@ -345,10 +344,9 @@ report_attachment_type:
 - resolution_photo
 
 report_attachment_review_status:
-- pending
+- pending_review
 - approved
-- blocked
-- needs_review
+- rejected
 
 report_attachments
 - id
@@ -358,8 +356,7 @@ report_attachments
 - mime_type
 - size
 - review_status
-- review_reason nullable
-- created_by_admin_id nullable
+- reviewed_at nullable
 - created_at
 - reviewed_at nullable
 ```
@@ -369,12 +366,12 @@ Modifiche:
 - rimuovere o sostituire il vincolo unique su `report_id` con unique parziale per tipo se si vuole una sola foto per tipo;
 - mantenere una sola `report_photo` caricata dal cittadino nella prima versione;
 - consentire una `resolution_photo` caricata solo da admin;
-- non servire pubblicamente attachment `blocked` o `needs_review`;
-- evento interno quando un allegato viene bloccato/approvato.
+- non servire pubblicamente attachment `pending_review` o `rejected`;
+- eventi interni quando un allegato viene aggiunto, approvato o rifiutato.
 
 Compatibilita:
 
-- attachment esistenti: `type = report_photo`, `review_status = approved` se gia collegati a report approvati, oppure `pending`/`approved` da decidere. Per non bloccare dati gia pubblicati, backfill pragmatico: `approved`.
+- attachment esistenti: `type = report_photo`; `review_status = approved` se collegati a report gia approvati/pubblici, altrimenti `pending_review`.
 
 ## 9. Modello Transmission
 
@@ -643,7 +640,7 @@ Decisioni privacy aperte:
 
 ## 17. Foto risoluzione
 
-La foto dopo intervento va modellata come attachment distinto:
+La foto dopo intervento e modellata come attachment distinto:
 
 - `type = resolution_photo`;
 - caricabile solo da admin;
@@ -823,3 +820,6 @@ La relazione e modellata con `reports.duplicate_of_report_id`, nullable FK verso
 Una segnalazione duplicata pubblica resta raggiungibile tramite URL e tracking code. La scheda pubblica mostra un avviso e un link alla principale, senza redirect automatico. I duplicati sono esclusi dalla mappa pubblica e dalle liste aggregate principali per non creare rumore. Le nuove conferme sono disabilitate sul duplicato e raccolte sulla principale; le conferme gia presenti sul duplicato restano storiche e non vengono sommate automaticamente alla principale.
 
 Le metriche operative conteggiano ancora `totalReceived` come totale storico delle segnalazioni ricevute, inclusi duplicati. I conteggi di problemi pubblicati/comunicati/risolti, distribuzioni pubbliche e tempi operativi escludono invece i duplicati per non gonfiare il numero di problemi unici.
+
+
+Nota P0-03: Il detector automatico privacy resta P1 e non e implementato. Nel MVP corrente la mitigazione e la review manuale degli allegati.

@@ -61,13 +61,22 @@ export type ReportModerationSummary = {
   address?: string;
 };
 
+export type ReportAttachmentType = "report_photo" | "resolution_photo";
+
+export type ReportAttachmentReviewStatus =
+  | "pending_review"
+  | "approved"
+  | "rejected";
+
 export type ReportAttachment = {
   id: string;
   reportId: string;
-  type: "image";
+  type: ReportAttachmentType;
   storageKey: string;
   mimeType: string;
   size: number;
+  reviewStatus: ReportAttachmentReviewStatus;
+  reviewedAt?: Date;
   createdAt: Date;
 };
 
@@ -76,6 +85,17 @@ export type NewReportAttachment = ReportAttachment;
 export type PublicReportAttachment = {
   mimeType: string;
   size: number;
+  url: string;
+};
+
+export type ModerationReportAttachment = {
+  id: string;
+  type: ReportAttachmentType;
+  reviewStatus: ReportAttachmentReviewStatus;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+  reviewedAt?: Date;
   url: string;
 };
 
@@ -102,7 +122,8 @@ export type PublicReportDetail = {
     publicCode: string;
     title: string;
   };
-  attachment?: PublicReportAttachment;
+  reportPhoto?: PublicReportAttachment;
+  resolutionPhoto?: PublicReportAttachment;
 };
 
 export type PublicReportTimelineEvent = {
@@ -195,11 +216,33 @@ export type ReportRepository = {
   findAdminCreatorByReportId?(
     reportId: string,
   ): Promise<ReportAdminCreator | null>;
+  saveAttachment?(
+    attachment: NewReportAttachment,
+    events?: ReportDomainEvent[],
+  ): Promise<void>;
+  updateAttachmentReview?(
+    input: {
+      reportId: string;
+      attachmentType: ReportAttachmentType;
+      reviewStatus: ReportAttachmentReviewStatus;
+      reviewedAt: Date;
+    },
+    events?: ReportDomainEvent[],
+  ): Promise<void>;
+  findAttachmentByReportAndType?(
+    reportId: string,
+    type: ReportAttachmentType,
+  ): Promise<ReportAttachment | null>;
+  listAttachmentsForModeration?(
+    publicCode: PublicCode,
+  ): Promise<ModerationReportAttachment[]>;
   findAttachmentForModeration(
     publicCode: PublicCode,
+    type: ReportAttachmentType,
   ): Promise<ReportAttachmentAccess | null>;
   findPublicAttachmentByPublicCode(
     publicCode: PublicCode,
+    type: ReportAttachmentType,
   ): Promise<ReportAttachmentAccess | null>;
   listForModeration(input?: {
     status?: ReportModerationFilter;

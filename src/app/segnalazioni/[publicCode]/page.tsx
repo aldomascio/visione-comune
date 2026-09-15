@@ -77,14 +77,30 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
               </section>
 
 
-              {report.attachment ? (
+              {report.reportPhoto ? (
                 <section className="grid gap-2">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Foto</h2>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Foto segnalazione</h2>
                   <div className="overflow-hidden rounded-lg border border-border bg-background">
                     <img
                       alt={`Foto della segnalazione ${report.publicCode}`}
                       className="h-auto w-full object-cover"
-                      src={report.attachment.url}
+                      src={report.reportPhoto.url}
+                    />
+                  </div>
+                </section>
+              ) : null}
+
+              {report.resolutionPhoto ? (
+                <section className="grid gap-2 rounded-lg border border-primary/30 bg-primary/10 p-4">
+                  <div>
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Verifica della risoluzione</h2>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">Foto approvata dopo la verifica della risoluzione.</p>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-border bg-background">
+                    <img
+                      alt={`Foto di verifica della risoluzione ${report.publicCode}`}
+                      className="h-auto w-full object-cover"
+                      src={report.resolutionPhoto.url}
                     />
                   </div>
                 </section>

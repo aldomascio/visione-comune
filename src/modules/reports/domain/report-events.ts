@@ -16,7 +16,10 @@ export type ReportEventType =
   | "CommunicationDelivered"
   | "CommunicationFailed"
   | "ReportMarkedAsDuplicate"
-  | "ReportDuplicateLinkRemoved";
+  | "ReportDuplicateLinkRemoved"
+  | "ReportAttachmentAdded"
+  | "ReportAttachmentApproved"
+  | "ReportAttachmentRejected";
 
 export type ReportEventVisibility = "public" | "internal";
 

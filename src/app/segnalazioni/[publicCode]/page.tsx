@@ -43,6 +43,25 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
           </p>
         </section>
 
+        {report.duplicateOf ? (
+          <Card className="border-primary/40 bg-primary/10">
+            <CardHeader>
+              <CardTitle>Questa segnalazione riguarda un problema gia segnalato.</CardTitle>
+              <CardDescription>
+                Segui la segnalazione principale {report.duplicateOf.publicCode} per gli aggiornamenti. Il codice originale resta valido e questa scheda rimane consultabile.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                href={`/segnalazioni/${report.duplicateOf.publicCode}`}
+              >
+                Vai alla segnalazione principale
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <Card>
             <CardHeader>
@@ -99,6 +118,8 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
                 </div>
                 <ConfirmReportForm
                   alreadyConfirmed={confirmationState.alreadyConfirmed}
+                  confirmable={confirmationState.confirmable}
+                  primaryPublicCode={report.duplicateOf?.publicCode}
                   publicCode={report.publicCode}
                 />
               </CardContent>

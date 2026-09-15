@@ -14,6 +14,7 @@ export type ReportConfirmationState = {
   publicCode: string;
   count: number;
   alreadyConfirmed: boolean;
+  confirmable: boolean;
 };
 
 export type ConfirmReportResult = ReportConfirmationState & {
@@ -51,6 +52,7 @@ export class ConfirmReportUseCase {
       publicCode: snapshot.publicCode,
       count,
       alreadyConfirmed: true,
+      confirmable: true,
       created: result === "created"
     };
   }
@@ -60,10 +62,11 @@ export class GetReportConfirmationStateUseCase {
   constructor(private readonly dependencies: ReportConfirmationUseCaseDependencies) {}
 
   async execute(input: { publicCode: string; antiAbuseKey?: string }): Promise<ReportConfirmationState> {
-    const report = await findConfirmableReport(this.dependencies.reportRepository, input.publicCode);
+    const report = await findPublicReportForConfirmationState(this.dependencies.reportRepository, input.publicCode);
     const snapshot = report.toSnapshot();
     const count = await this.dependencies.confirmationRepository.countByReportId(snapshot.id);
-    const alreadyConfirmed = input.antiAbuseKey
+    const confirmable = !snapshot.duplicateOfReportId;
+    const alreadyConfirmed = confirmable && input.antiAbuseKey
       ? await this.dependencies.confirmationRepository.exists({
           reportId: snapshot.id,
           antiAbuseKey: normalizeAntiAbuseKey(input.antiAbuseKey)
@@ -73,7 +76,8 @@ export class GetReportConfirmationStateUseCase {
     return {
       publicCode: snapshot.publicCode,
       count,
-      alreadyConfirmed
+      alreadyConfirmed,
+      confirmable
     };
   }
 }
@@ -88,6 +92,28 @@ export class CountReportConfirmationsUseCase {
 }
 
 async function findConfirmableReport(reportRepository: ReportRepository, publicCodeValue: string) {
+  let publicCode: PublicCode;
+
+  try {
+    publicCode = PublicCode.create(publicCodeValue);
+  } catch (error) {
+    if (error instanceof InvalidPublicCodeError) {
+      throw new ReportNotConfirmableError(publicCodeValue);
+    }
+
+    throw error;
+  }
+
+  const report = await reportRepository.findByPublicCode(publicCode);
+
+  if (!report?.isPublic() || report.isDuplicate()) {
+    throw new ReportNotConfirmableError(publicCode.toString());
+  }
+
+  return report;
+}
+
+async function findPublicReportForConfirmationState(reportRepository: ReportRepository, publicCodeValue: string) {
   let publicCode: PublicCode;
 
   try {

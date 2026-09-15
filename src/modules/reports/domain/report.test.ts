@@ -217,6 +217,56 @@ describe("Report domain", () => {
     );
   });
 
+
+  it("marks and unlinks duplicate reports without changing public status", () => {
+    const report = createReport();
+    report.approve(approvedAt);
+    report.pullDomainEvents();
+
+    report.markAsDuplicateOf("primary-report", communicatedAt, "VC-PRIMARY1");
+
+    expect(report.toSnapshot()).toMatchObject({
+      duplicateOfReportId: "primary-report",
+      publicStatus: "reported"
+    });
+    expect(report.pullDomainEvents()).toEqual([
+      {
+        type: "ReportMarkedAsDuplicate",
+        reportId: "report-1",
+        occurredAt: communicatedAt,
+        visibility: "internal",
+        metadata: {
+          primaryReportId: "primary-report",
+          primaryPublicCode: "VC-PRIMARY1"
+        }
+      }
+    ]);
+
+    report.removeDuplicateLink(resolvedAt, "primary-report", "VC-PRIMARY1");
+
+    expect(report.toSnapshot().duplicateOfReportId).toBeUndefined();
+    expect(report.pullDomainEvents()).toEqual([
+      {
+        type: "ReportDuplicateLinkRemoved",
+        reportId: "report-1",
+        occurredAt: resolvedAt,
+        visibility: "internal",
+        metadata: {
+          primaryReportId: "primary-report",
+          primaryPublicCode: "VC-PRIMARY1"
+        }
+      }
+    ]);
+  });
+
+  it("does not allow a report to duplicate itself", () => {
+    const report = createReport();
+
+    expect(() => report.markAsDuplicateOf("report-1", communicatedAt)).toThrow(
+      InvalidReportTransitionError
+    );
+  });
+
   it("restores consistent report snapshots", () => {
     const report = Report.restore({
       id: "report-2",

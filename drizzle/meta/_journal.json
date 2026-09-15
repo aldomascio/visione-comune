@@ -78,6 +78,13 @@
       "when": 1789453663963,
       "tag": "0010_blue_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789472640634,
+      "tag": "0011_clever_dust",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,9 @@
 import type { PublicReportStatus } from "./report-status";
 
-export type ReportEventMetadata = Record<string, string | number | boolean | null>;
+export type ReportEventMetadata = Record<
+  string,
+  string | number | boolean | null
+>;
 
 export type ReportEventType =
   | "ReportCreated"
@@ -11,7 +14,9 @@ export type ReportEventType =
   | "CommunicationRecorded"
   | "CommunicationSent"
   | "CommunicationDelivered"
-  | "CommunicationFailed";
+  | "CommunicationFailed"
+  | "ReportMarkedAsDuplicate"
+  | "ReportDuplicateLinkRemoved";
 
 export type ReportEventVisibility = "public" | "internal";
 
@@ -23,4 +28,3 @@ export type ReportDomainEvent = {
   publicStatus?: PublicReportStatus;
   metadata?: ReportEventMetadata;
 };
-

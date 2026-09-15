@@ -1,10 +1,32 @@
-import { and, asc, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
-import type { Database } from "@/shared/db/client";
-import { adminUsers, categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
+import type { Database } from "@/shared/db/client";
+import {
+  adminUsers,
+  categories,
+  reportAttachments,
+  reportConfirmations,
+  reportEvents,
+  reports,
+} from "@/shared/db/schema";
+import {
+  ConcurrentReportDuplicateLinkError,
   ConcurrentReportModerationError,
   ConcurrentReportStateError,
   DuplicatePublicCodePersistenceError,
+  type DuplicateReportSummary,
   type ReportModerationFilter,
   type NewReportAttachment,
   type PublicReportDetail,
@@ -14,13 +36,24 @@ import {
   type PublicReportTimelineEvent,
   type PotentialDuplicateReportQuery,
   type PotentialDuplicateReportRecord,
+  type PotentialPrimaryReport,
   type ReportModerationSummary,
   type ReportRepository,
-  type ReportSaveOptions
+  type ReportDuplicateSaveOptions,
+  type ReportSaveOptions,
 } from "../application/report-repository";
 import type { ReportTimelineEvent } from "../application/report-timeline";
-import { PublicCode, type ModerationStatus, type Report, type ReportDomainEvent } from "../domain";
-import { recordToReport, reportEventToRecord, reportToRecord } from "./report-mapper";
+import {
+  PublicCode,
+  type ModerationStatus,
+  type Report,
+  type ReportDomainEvent,
+} from "../domain";
+import {
+  recordToReport,
+  reportEventToRecord,
+  reportToRecord,
+} from "./report-mapper";
 
 export class DrizzleReportRepository implements ReportRepository {
   constructor(private readonly db: Database) {}
@@ -28,7 +61,7 @@ export class DrizzleReportRepository implements ReportRepository {
   async save(
     report: Report,
     events: ReportDomainEvent[] = [],
-    options: ReportSaveOptions = {}
+    options: ReportSaveOptions = {},
   ): Promise<void> {
     try {
       await this.db.transaction(async (tx) => {
@@ -38,11 +71,15 @@ export class DrizzleReportRepository implements ReportRepository {
           const conditions = [eq(reports.id, record.id)];
 
           if (options.expectedModerationStatus) {
-            conditions.push(eq(reports.moderationStatus, options.expectedModerationStatus));
+            conditions.push(
+              eq(reports.moderationStatus, options.expectedModerationStatus),
+            );
           }
 
           if (options.expectedPublicStatus) {
-            conditions.push(eq(reports.publicStatus, options.expectedPublicStatus));
+            conditions.push(
+              eq(reports.publicStatus, options.expectedPublicStatus),
+            );
           }
 
           const updatedRows = await tx
@@ -59,13 +96,10 @@ export class DrizzleReportRepository implements ReportRepository {
             throw new ConcurrentReportModerationError(record.id);
           }
         } else {
-          await tx
-            .insert(reports)
-            .values(record)
-            .onConflictDoUpdate({
-              target: reports.id,
-              set: record
-            });
+          await tx.insert(reports).values(record).onConflictDoUpdate({
+            target: reports.id,
+            set: record,
+          });
         }
 
         if (events.length > 0) {
@@ -74,18 +108,79 @@ export class DrizzleReportRepository implements ReportRepository {
       });
     } catch (error) {
       if (isPublicCodeUniqueViolation(error)) {
-        throw new DuplicatePublicCodePersistenceError(report.toSnapshot().publicCode);
+        throw new DuplicatePublicCodePersistenceError(
+          report.toSnapshot().publicCode,
+        );
       }
 
       throw error;
     }
   }
 
+  async saveDuplicateLink(
+    report: Report,
+    events: ReportDomainEvent[],
+    options: ReportDuplicateSaveOptions,
+  ): Promise<void> {
+    await this.updateDuplicateLink(report, events, options);
+  }
+
+  async removeDuplicateLink(
+    report: Report,
+    events: ReportDomainEvent[],
+    options: ReportDuplicateSaveOptions,
+  ): Promise<void> {
+    await this.updateDuplicateLink(report, events, options);
+  }
+
+  private async updateDuplicateLink(
+    report: Report,
+    events: ReportDomainEvent[],
+    options: ReportDuplicateSaveOptions,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const record = reportToRecord(report);
+      const duplicateCondition =
+        options.expectedDuplicateOfReportId === null
+          ? isNull(reports.duplicateOfReportId)
+          : eq(
+              reports.duplicateOfReportId,
+              options.expectedDuplicateOfReportId,
+            );
+      if (record.duplicateOfReportId) {
+        const primaryRows = await tx.execute(sql`
+          select id
+          from reports
+          where id = ${record.duplicateOfReportId}
+            and duplicate_of_report_id is null
+          for update
+        `);
+
+        if (primaryRows.length === 0) {
+          throw new ConcurrentReportDuplicateLinkError(record.id);
+        }
+      }
+
+      const updatedRows = await tx
+        .update(reports)
+        .set({ duplicateOfReportId: record.duplicateOfReportId })
+        .where(and(eq(reports.id, record.id), duplicateCondition))
+        .returning({ id: reports.id });
+
+      if (updatedRows.length === 0) {
+        throw new ConcurrentReportDuplicateLinkError(record.id);
+      }
+
+      if (events.length > 0) {
+        await tx.insert(reportEvents).values(events.map(reportEventToRecord));
+      }
+    });
+  }
 
   async saveWithAttachment(
     report: Report,
     attachment: NewReportAttachment,
-    events: ReportDomainEvent[] = []
+    events: ReportDomainEvent[] = [],
   ): Promise<void> {
     try {
       await this.db.transaction(async (tx) => {
@@ -103,12 +198,14 @@ export class DrizzleReportRepository implements ReportRepository {
           storageKey: attachment.storageKey,
           mimeType: attachment.mimeType,
           size: attachment.size,
-          createdAt: attachment.createdAt
+          createdAt: attachment.createdAt,
         });
       });
     } catch (error) {
       if (isPublicCodeUniqueViolation(error)) {
-        throw new DuplicatePublicCodePersistenceError(report.toSnapshot().publicCode);
+        throw new DuplicatePublicCodePersistenceError(
+          report.toSnapshot().publicCode,
+        );
       }
 
       throw error;
@@ -129,7 +226,7 @@ export class DrizzleReportRepository implements ReportRepository {
     const [row] = await this.db
       .select({
         id: adminUsers.id,
-        email: adminUsers.email
+        email: adminUsers.email,
       })
       .from(reports)
       .innerJoin(adminUsers, eq(reports.createdByAdminId, adminUsers.id))
@@ -149,13 +246,14 @@ export class DrizzleReportRepository implements ReportRepository {
     return record ? recordToReport(record) : null;
   }
 
-
-  async findAttachmentForModeration(publicCode: PublicCode): Promise<ReportAttachmentAccess | null> {
+  async findAttachmentForModeration(
+    publicCode: PublicCode,
+  ): Promise<ReportAttachmentAccess | null> {
     const [row] = await this.db
       .select({
         storageKey: reportAttachments.storageKey,
         mimeType: reportAttachments.mimeType,
-        size: reportAttachments.size
+        size: reportAttachments.size,
       })
       .from(reportAttachments)
       .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
@@ -165,12 +263,14 @@ export class DrizzleReportRepository implements ReportRepository {
     return row ?? null;
   }
 
-  async findPublicAttachmentByPublicCode(publicCode: PublicCode): Promise<ReportAttachmentAccess | null> {
+  async findPublicAttachmentByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<ReportAttachmentAccess | null> {
     const [row] = await this.db
       .select({
         storageKey: reportAttachments.storageKey,
         mimeType: reportAttachments.mimeType,
-        size: reportAttachments.size
+        size: reportAttachments.size,
       })
       .from(reportAttachments)
       .innerJoin(reports, eq(reportAttachments.reportId, reports.id))
@@ -179,21 +279,24 @@ export class DrizzleReportRepository implements ReportRepository {
           eq(reports.publicCode, publicCode.toString()),
           eq(reports.moderationStatus, "approved"),
           isNotNull(reports.publicStatus),
-          isNotNull(reports.publishedAt)
-        )
+          isNotNull(reports.publishedAt),
+        ),
       )
       .limit(1);
 
     return row ?? null;
   }
 
-  async listForModeration(input: {
-    status?: ReportModerationFilter;
-    limit?: number;
-  } = {}): Promise<ReportModerationSummary[]> {
+  async listForModeration(
+    input: {
+      status?: ReportModerationFilter;
+      limit?: number;
+    } = {},
+  ): Promise<ReportModerationSummary[]> {
     const status = input.status ?? "pending_review";
     const limit = input.limit ?? 50;
-    const whereClause = status === "all" ? undefined : eq(reports.moderationStatus, status);
+    const whereClause =
+      status === "all" ? undefined : eq(reports.moderationStatus, status);
 
     const query = this.db
       .select({
@@ -203,7 +306,7 @@ export class DrizzleReportRepository implements ReportRepository {
         createdAt: reports.createdAt,
         moderationStatus: reports.moderationStatus,
         source: reports.source,
-        address: reports.address
+        address: reports.address,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
@@ -219,11 +322,100 @@ export class DrizzleReportRepository implements ReportRepository {
       createdAt: row.createdAt,
       moderationStatus: row.moderationStatus,
       source: row.source,
-      ...(row.address ? { address: row.address } : {})
+      ...(row.address ? { address: row.address } : {}),
     }));
   }
 
-  async findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null> {
+  async searchPotentialPrimaryReports(input: {
+    query: string;
+    excludeReportId: string;
+    limit: number;
+  }): Promise<PotentialPrimaryReport[]> {
+    const normalizedQuery = input.query.trim();
+    const queryFilter = normalizedQuery
+      ? or(
+          ilike(reports.publicCode, `%${normalizedQuery}%`),
+          ilike(reports.title, `%${normalizedQuery}%`),
+        )
+      : undefined;
+    const rows = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        categoryName: categories.name,
+        moderationStatus: reports.moderationStatus,
+        publicStatus: reports.publicStatus,
+        createdAt: reports.createdAt,
+      })
+      .from(reports)
+      .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .where(
+        and(
+          ne(reports.id, input.excludeReportId),
+          isNull(reports.duplicateOfReportId),
+          eq(reports.moderationStatus, "approved"),
+          isNotNull(reports.publicStatus),
+          isNotNull(reports.publishedAt),
+          queryFilter,
+        ),
+      )
+      .orderBy(desc(reports.publishedAt), desc(reports.createdAt))
+      .limit(input.limit);
+
+    return rows.map((row) => ({
+      publicCode: row.publicCode,
+      title: row.title,
+      categoryName: row.categoryName,
+      moderationStatus: row.moderationStatus,
+      ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
+      createdAt: row.createdAt,
+    }));
+  }
+
+  async listDuplicatesOfReport(
+    reportId: string,
+  ): Promise<DuplicateReportSummary[]> {
+    const rows = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+        source: reports.source,
+        createdAt: reports.createdAt,
+        moderationStatus: reports.moderationStatus,
+        publicStatus: reports.publicStatus,
+        confirmationsCount: sql<number>`count(${reportConfirmations.id})::int`,
+      })
+      .from(reports)
+      .leftJoin(
+        reportConfirmations,
+        eq(reportConfirmations.reportId, reports.id),
+      )
+      .where(eq(reports.duplicateOfReportId, reportId))
+      .groupBy(
+        reports.id,
+        reports.publicCode,
+        reports.title,
+        reports.source,
+        reports.createdAt,
+        reports.moderationStatus,
+        reports.publicStatus,
+      )
+      .orderBy(desc(reports.createdAt));
+
+    return rows.map((row) => ({
+      publicCode: row.publicCode,
+      title: row.title,
+      source: row.source,
+      createdAt: row.createdAt,
+      moderationStatus: row.moderationStatus,
+      ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
+      confirmationsCount: Number(row.confirmationsCount),
+    }));
+  }
+
+  async findPublicByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<PublicReportDetail | null> {
     const [row] = await this.db
       .select({
         publicCode: reports.publicCode,
@@ -238,9 +430,10 @@ export class DrizzleReportRepository implements ReportRepository {
         publishedAt: reports.publishedAt,
         communicatedAt: reports.communicatedAt,
         resolvedAt: reports.resolvedAt,
+        duplicateOfReportId: reports.duplicateOfReportId,
         attachmentStorageKey: reportAttachments.storageKey,
         attachmentMimeType: reportAttachments.mimeType,
-        attachmentSize: reportAttachments.size
+        attachmentSize: reportAttachments.size,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
@@ -248,14 +441,18 @@ export class DrizzleReportRepository implements ReportRepository {
       .where(
         and(
           eq(reports.publicCode, publicCode.toString()),
-          eq(reports.moderationStatus, "approved")
-        )
+          eq(reports.moderationStatus, "approved"),
+        ),
       )
       .limit(1);
 
     if (!row?.publicStatus || !row.publishedAt) {
       return null;
     }
+
+    const duplicateOf = row.duplicateOfReportId
+      ? await this.findDuplicatePrimaryPublicSummary(row.duplicateOfReportId)
+      : null;
 
     return {
       publicCode: row.publicCode,
@@ -270,18 +467,20 @@ export class DrizzleReportRepository implements ReportRepository {
       publishedAt: row.publishedAt,
       ...(row.communicatedAt ? { communicatedAt: row.communicatedAt } : {}),
       ...(row.resolvedAt ? { resolvedAt: row.resolvedAt } : {}),
-      ...(row.attachmentStorageKey && row.attachmentMimeType && row.attachmentSize
+      ...(duplicateOf ? { duplicateOf } : {}),
+      ...(row.attachmentStorageKey &&
+      row.attachmentMimeType &&
+      row.attachmentSize
         ? {
             attachment: {
               mimeType: row.attachmentMimeType,
               size: row.attachmentSize,
-              url: `/api/report-images/${row.publicCode}`
-            }
+              url: `/api/report-images/${row.publicCode}`,
+            },
           }
-        : {})
+        : {}),
     };
   }
-
 
   async listPublicForMap(): Promise<PublicReportMapItem[]> {
     const rows = await this.db
@@ -296,7 +495,7 @@ export class DrizzleReportRepository implements ReportRepository {
         publishedAt: reports.publishedAt,
         attachmentStorageKey: reportAttachments.storageKey,
         attachmentMimeType: reportAttachments.mimeType,
-        attachmentSize: reportAttachments.size
+        attachmentSize: reportAttachments.size,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
@@ -305,8 +504,9 @@ export class DrizzleReportRepository implements ReportRepository {
         and(
           eq(reports.moderationStatus, "approved"),
           isNotNull(reports.publicStatus),
-          isNotNull(reports.publishedAt)
-        )
+          isNotNull(reports.publishedAt),
+          isNull(reports.duplicateOfReportId),
+        ),
       )
       .orderBy(desc(reports.publishedAt), desc(reports.createdAt));
 
@@ -324,20 +524,21 @@ export class DrizzleReportRepository implements ReportRepository {
           longitude: row.longitude,
           ...(row.address ? { address: row.address } : {}),
           publicStatus: row.publicStatus,
-          publishedAt: row.publishedAt
-        }
+          publishedAt: row.publishedAt,
+        },
       ];
     });
   }
 
-
-  async listRecentlyResolvedPublic(limit: number): Promise<RecentResolvedPublicReport[]> {
+  async listRecentlyResolvedPublic(
+    limit: number,
+  ): Promise<RecentResolvedPublicReport[]> {
     const rows = await this.db
       .select({
         publicCode: reports.publicCode,
         title: reports.title,
         categoryName: categories.name,
-        resolvedAt: reports.resolvedAt
+        resolvedAt: reports.resolvedAt,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
@@ -346,8 +547,9 @@ export class DrizzleReportRepository implements ReportRepository {
           eq(reports.moderationStatus, "approved"),
           eq(reports.publicStatus, "resolved"),
           isNotNull(reports.publishedAt),
-          isNotNull(reports.resolvedAt)
-        )
+          isNotNull(reports.resolvedAt),
+          isNull(reports.duplicateOfReportId),
+        ),
       )
       .orderBy(desc(reports.resolvedAt), desc(reports.createdAt))
       .limit(limit);
@@ -362,15 +564,14 @@ export class DrizzleReportRepository implements ReportRepository {
           publicCode: row.publicCode,
           title: row.title,
           categoryName: row.categoryName,
-          resolvedAt: row.resolvedAt
-        }
+          resolvedAt: row.resolvedAt,
+        },
       ];
     });
   }
 
-
   async findPotentialDuplicates(
-    input: PotentialDuplicateReportQuery
+    input: PotentialDuplicateReportQuery,
   ): Promise<PotentialDuplicateReportRecord[]> {
     const rows = await this.db
       .select({
@@ -381,7 +582,7 @@ export class DrizzleReportRepository implements ReportRepository {
         longitude: reports.longitude,
         address: reports.address,
         publicStatus: reports.publicStatus,
-        publishedAt: reports.publishedAt
+        publishedAt: reports.publishedAt,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
@@ -391,12 +592,13 @@ export class DrizzleReportRepository implements ReportRepository {
           eq(reports.moderationStatus, "approved"),
           isNotNull(reports.publicStatus),
           isNotNull(reports.publishedAt),
+          isNull(reports.duplicateOfReportId),
           gte(reports.publishedAt, input.publishedAfter),
           gte(reports.latitude, input.minLatitude),
           lte(reports.latitude, input.maxLatitude),
           gte(reports.longitude, input.minLongitude),
-          lte(reports.longitude, input.maxLongitude)
-        )
+          lte(reports.longitude, input.maxLongitude),
+        ),
       )
       .orderBy(desc(reports.publishedAt), desc(reports.createdAt))
       .limit(input.limit);
@@ -415,13 +617,15 @@ export class DrizzleReportRepository implements ReportRepository {
           longitude: row.longitude,
           ...(row.address ? { address: row.address } : {}),
           publicStatus: row.publicStatus,
-          publishedAt: row.publishedAt
-        }
+          publishedAt: row.publishedAt,
+        },
       ];
     });
   }
 
-  async listTimelineByReportId(reportId: string): Promise<ReportTimelineEvent[]> {
+  async listTimelineByReportId(
+    reportId: string,
+  ): Promise<ReportTimelineEvent[]> {
     const rows = await this.db
       .select({
         id: reportEvents.id,
@@ -430,7 +634,7 @@ export class DrizzleReportRepository implements ReportRepository {
         visibility: reportEvents.visibility,
         publicStatus: reportEvents.publicStatus,
         metadata: reportEvents.metadata,
-        occurredAt: reportEvents.createdAt
+        occurredAt: reportEvents.createdAt,
       })
       .from(reportEvents)
       .where(eq(reportEvents.reportId, reportId))
@@ -439,7 +643,9 @@ export class DrizzleReportRepository implements ReportRepository {
     return rows.map(timelineRowToEvent);
   }
 
-  async listPublicTimelineByPublicCode(publicCode: PublicCode): Promise<ReportTimelineEvent[]> {
+  async listPublicTimelineByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<ReportTimelineEvent[]> {
     const rows = await this.db
       .select({
         id: reportEvents.id,
@@ -448,7 +654,7 @@ export class DrizzleReportRepository implements ReportRepository {
         visibility: reportEvents.visibility,
         publicStatus: reportEvents.publicStatus,
         metadata: reportEvents.metadata,
-        occurredAt: reportEvents.createdAt
+        occurredAt: reportEvents.createdAt,
       })
       .from(reportEvents)
       .innerJoin(reports, eq(reportEvents.reportId, reports.id))
@@ -458,22 +664,39 @@ export class DrizzleReportRepository implements ReportRepository {
           eq(reports.moderationStatus, "approved"),
           isNotNull(reports.publicStatus),
           isNotNull(reports.publishedAt),
-          eq(reportEvents.visibility, "public")
-        )
+          eq(reportEvents.visibility, "public"),
+        ),
       )
       .orderBy(asc(reportEvents.createdAt), asc(reportEvents.id));
 
     return rows.map(timelineRowToEvent);
   }
 
-  async listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]> {
+  async listPublicEventsByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<PublicReportTimelineEvent[]> {
     const events = await this.listPublicTimelineByPublicCode(publicCode);
 
     return events.map((event) => ({
       type: event.type,
       ...(event.publicStatus ? { publicStatus: event.publicStatus } : {}),
-      occurredAt: event.occurredAt
+      occurredAt: event.occurredAt,
     }));
+  }
+
+  private async findDuplicatePrimaryPublicSummary(
+    reportId: string,
+  ): Promise<{ publicCode: string; title: string } | null> {
+    const [row] = await this.db
+      .select({
+        publicCode: reports.publicCode,
+        title: reports.title,
+      })
+      .from(reports)
+      .where(eq(reports.id, reportId))
+      .limit(1);
+
+    return row ?? null;
   }
 
   async countByModerationStatus(status: ModerationStatus): Promise<number> {
@@ -529,7 +752,6 @@ function isPostgresError(error: unknown): error is PostgresError {
   );
 }
 
-
 function timelineRowToEvent(row: {
   id: string;
   reportId: string;
@@ -546,10 +768,12 @@ function timelineRowToEvent(row: {
     visibility: row.visibility,
     ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
     ...(isTimelineMetadata(row.metadata) ? { metadata: row.metadata } : {}),
-    occurredAt: row.occurredAt
+    occurredAt: row.occurredAt,
   };
 }
 
-function isTimelineMetadata(value: unknown): value is ReportTimelineEvent["metadata"] & {} {
+function isTimelineMetadata(
+  value: unknown,
+): value is ReportTimelineEvent["metadata"] & {} {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

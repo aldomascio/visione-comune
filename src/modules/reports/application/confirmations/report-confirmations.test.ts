@@ -33,6 +33,7 @@ describe("report confirmation use cases", () => {
       publicCode: "VC-CONFIRM1",
       count: 1,
       alreadyConfirmed: true,
+      confirmable: true,
       created: true
     });
     expect(confirmations.confirmations).toMatchObject([
@@ -84,10 +85,36 @@ describe("report confirmation use cases", () => {
 
     await expect(
       useCase.execute({ publicCode: "VC-CONFIRM1", antiAbuseKey: "browser-a" })
-    ).resolves.toEqual({ publicCode: "VC-CONFIRM1", count: 1, alreadyConfirmed: true });
+    ).resolves.toEqual({ publicCode: "VC-CONFIRM1", count: 1, alreadyConfirmed: true, confirmable: true });
     await expect(
       useCase.execute({ publicCode: "VC-CONFIRM1", antiAbuseKey: "browser-b" })
-    ).resolves.toEqual({ publicCode: "VC-CONFIRM1", count: 1, alreadyConfirmed: false });
+    ).resolves.toEqual({ publicCode: "VC-CONFIRM1", count: 1, alreadyConfirmed: false, confirmable: true });
+  });
+
+
+  it("does not allow new confirmations on duplicate reports but keeps historical count", async () => {
+    const duplicateReport = createApprovedReport();
+    duplicateReport.markAsDuplicateOf("primary-report", approvedAt, "VC-PRIMARY1");
+    duplicateReport.pullDomainEvents();
+    const reports = new InMemoryReportRepository([duplicateReport]);
+    const confirmations = new InMemoryReportConfirmationRepository();
+    await confirmations.create({
+      id: "confirmation-existing",
+      reportId: "report-confirmable",
+      antiAbuseKey: "browser-old",
+      createdAt: new Date("2026-01-03T10:00:00.000Z")
+    });
+
+    await expect(
+      createConfirmUseCase(reports, confirmations).execute({ publicCode: "VC-CONFIRM1", antiAbuseKey: "browser-new" })
+    ).rejects.toThrow(ReportNotConfirmableError);
+
+    await expect(
+      new GetReportConfirmationStateUseCase({ reportRepository: reports, confirmationRepository: confirmations }).execute({
+        publicCode: "VC-CONFIRM1",
+        antiAbuseKey: "browser-new"
+      })
+    ).resolves.toEqual({ publicCode: "VC-CONFIRM1", count: 1, alreadyConfirmed: false, confirmable: false });
   });
 
   it("rejects pending, rejected, missing and invalid reports", async () => {

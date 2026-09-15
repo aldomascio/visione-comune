@@ -533,3 +533,12 @@ la Home deve spiegare rapidamente l'ecosistema digitale senza introdurre CMS, pa
 
 Conseguenza:
 le metriche mostrate sono solo aggregate pubbliche: pubblicate, comunicate, risolte, conferme totali e tasso di risoluzione. Metriche interne come pending, rifiutate e tempi operativi restano fuori dalla Home pubblica. La mappa viene promossa con CTA, ma MapLibre non viene caricato nella Home.
+
+
+### ADR-0P02 — Duplicati post-submit
+
+Stato: approvata e implementata in P0-02.
+
+Decisione: modellare il collegamento duplicato con `reports.duplicate_of_report_id`, FK nullable verso `reports.id`, invece di introdurre una tabella many-to-many. Un duplicato puo puntare a una sola principale; una principale puo avere piu duplicati. Il target selezionabile nel backoffice deve essere approvato, pubblico e non gia duplicato.
+
+Conseguenze: il codice pubblico del duplicato continua a funzionare, la pagina pubblica del duplicato mostra un rimando alla principale senza redirect automatico, le nuove conferme sono disabilitate sul duplicato, la mappa pubblica e le liste aggregate principali escludono duplicati. `totalReceived` resta totale storico, mentre pubblicate/comunicate/risolte escludono duplicati.

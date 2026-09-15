@@ -83,6 +83,16 @@ export const REPORT_TIMELINE_EVENT_PRESENTATION: Record<ReportEventType, Timelin
     label: "Comunicazione non riuscita",
     adminDescription: "La comunicazione e stata marcata come non riuscita.",
     defaultVisibility: "internal"
+  },
+  ReportMarkedAsDuplicate: {
+    label: "Segnalazione marcata come duplicata",
+    adminDescription: "La segnalazione e stata collegata a una segnalazione principale.",
+    defaultVisibility: "internal"
+  },
+  ReportDuplicateLinkRemoved: {
+    label: "Collegamento duplicato rimosso",
+    adminDescription: "La segnalazione non e piu collegata come duplicata.",
+    defaultVisibility: "internal"
   }
 };
 
@@ -93,7 +103,9 @@ const ADMIN_METADATA_LABELS: Record<string, string> = {
   communicationChannel: "Canale",
   externalMessageId: "ID esterno",
   communicationId: "Comunicazione",
-  communicationStatus: "Stato comunicazione"
+  communicationStatus: "Stato comunicazione",
+  primaryReportId: "ID segnalazione principale",
+  primaryPublicCode: "Codice segnalazione principale"
 };
 
 export type GetPublicReportTimelineUseCaseDependencies = {

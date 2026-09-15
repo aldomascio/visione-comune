@@ -14,6 +14,14 @@ import {
   ReportModerationConflictError
 } from "@/modules/reports/application/moderate-report";
 import {
+  InvalidDuplicatePublicCodeError,
+  MarkReportAsDuplicateUseCase,
+  RemoveReportDuplicateLinkUseCase,
+  ReportDuplicateConflictError,
+  ReportDuplicateNotFoundError,
+  ReportDuplicateTargetError
+} from "@/modules/reports/application/report-duplicates";
+import {
   InvalidResolutionPublicCodeError,
   ReportForResolutionNotFoundError,
   ReportResolutionConflictError,
@@ -167,6 +175,58 @@ async function updateCommunicationStatus(input: { formData: FormData; status: "d
   redirect(redirectTo);
 }
 
+export async function markReportDuplicateAction(formData: FormData): Promise<void> {
+  await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  const primaryPublicCode = getRequiredString(formData, "primaryPublicCode");
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    await new MarkReportAsDuplicateUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db)
+    }).execute({ publicCode, primaryPublicCode });
+
+    revalidateReportPaths(publicCode);
+    revalidatePath(`/admin/segnalazioni/${primaryPublicCode}`);
+    redirectTo = `${redirectTo}?duplicate=linked`;
+  } catch (error) {
+    redirectTo = `${redirectTo}?duplicateError=${mapDuplicateErrorToCode(error)}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
+export async function removeReportDuplicateLinkAction(formData: FormData): Promise<void> {
+  await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  const primaryPublicCode = getOptionalString(formData, "primaryPublicCode");
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    await new RemoveReportDuplicateLinkUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db)
+    }).execute({ publicCode });
+
+    revalidateReportPaths(publicCode);
+    if (primaryPublicCode) {
+      revalidatePath(`/admin/segnalazioni/${primaryPublicCode}`);
+    }
+    redirectTo = `${redirectTo}?duplicate=removed`;
+  } catch (error) {
+    redirectTo = `${redirectTo}?duplicateError=${mapDuplicateErrorToCode(error)}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
 export async function approveReportAction(formData: FormData): Promise<void> {
   await moderateReport({ formData, action: "approve" });
 }
@@ -286,6 +346,23 @@ function mapModerationErrorToCode(error: unknown): string {
   }
 
   console.error("Unable to moderate report", error);
+  return "generic";
+}
+
+function mapDuplicateErrorToCode(error: unknown): string {
+  if (error instanceof ReportDuplicateTargetError) {
+    return "invalid-target";
+  }
+
+  if (error instanceof ReportDuplicateConflictError) {
+    return "conflict";
+  }
+
+  if (error instanceof ReportDuplicateNotFoundError || error instanceof InvalidDuplicatePublicCodeError) {
+    return "not-found";
+  }
+
+  console.error("Unable to update duplicate link", error);
   return "generic";
 }
 

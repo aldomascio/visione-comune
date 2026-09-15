@@ -33,6 +33,7 @@ export type ModerationReportDetail = {
   communicatedAt?: Date;
   resolvedAt?: Date;
   createdByAdmin?: { id: string; email: string };
+  duplicateOf?: { publicCode: string; title: string };
   attachment?: { url: string; mimeType: string; size: number };
 };
 
@@ -118,18 +119,23 @@ export class GetReportForModerationUseCase {
     }
 
     const snapshot = report.toSnapshot();
-    const [category, attachment, createdByAdmin] = await Promise.all([
+    const [category, attachment, createdByAdmin, duplicateOf] = await Promise.all([
       this.dependencies.categoryRepository.findById(snapshot.categoryId),
       this.dependencies.reportRepository.findAttachmentForModeration(publicCode),
       snapshot.createdByAdminId && this.dependencies.reportRepository.findAdminCreatorByReportId
         ? this.dependencies.reportRepository.findAdminCreatorByReportId(snapshot.id)
+        : Promise.resolve(null),
+      snapshot.duplicateOfReportId && this.dependencies.reportRepository.findById
+        ? this.dependencies.reportRepository.findById(snapshot.duplicateOfReportId)
         : Promise.resolve(null)
     ]);
+    const duplicateOfSnapshot = duplicateOf?.toSnapshot();
 
     return {
       ...snapshot,
       categoryName: category?.name ?? snapshot.categoryId,
       ...(createdByAdmin ? { createdByAdmin } : {}),
+      ...(duplicateOfSnapshot ? { duplicateOf: { publicCode: duplicateOfSnapshot.publicCode, title: duplicateOfSnapshot.title } } : {}),
       ...(attachment
         ? {
             attachment: {

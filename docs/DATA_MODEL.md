@@ -251,3 +251,21 @@ Le metriche operative non introducono nuove tabelle: sono viste aggregate deriva
 ### Privacy
 
 Le metriche pubbliche predisposte espongono solo aggregati: pubblicate, comunicate, risolte, conferme totali e tasso di risoluzione. Non espongono ID interni, chiavi anti-abuso, dati admin, destinatari, dati PEC, note interne o dati individuali di report pending/rejected.
+
+
+## Duplicati post-submit
+
+`reports.duplicate_of_report_id` e una FK nullable verso `reports.id`.
+
+- `null`: segnalazione normale o principale;
+- valorizzato: segnalazione duplicata della segnalazione indicata;
+- self-link impedito da check constraint;
+- target duplicato impedito dall'application layer;
+- indice `reports_duplicate_of_report_id_idx` per lista duplicati della principale.
+
+Eventi interni in `report_events`:
+
+- `ReportMarkedAsDuplicate`;
+- `ReportDuplicateLinkRemoved`.
+
+I metadata degli eventi possono includere `primaryReportId` e `primaryPublicCode`. Non sono eventi pubblici.

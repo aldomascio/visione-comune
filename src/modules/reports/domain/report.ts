@@ -1,7 +1,7 @@
 import {
   InconsistentReportStateError,
   InvalidReportDataError,
-  InvalidReportTransitionError
+  InvalidReportTransitionError,
 } from "./errors";
 import { Location, type LocationSnapshot } from "./location";
 import { PublicCode } from "./public-code";
@@ -20,6 +20,7 @@ export type ReportSnapshot = {
   categoryId: CategoryId;
   source: ReportSource;
   createdByAdminId?: string;
+  duplicateOfReportId?: ReportId;
   location: LocationSnapshot;
   publicStatus?: PublicReportStatus;
   moderationStatus: ModerationStatus;
@@ -44,7 +45,10 @@ export type CreateReportInput = {
 export class Report {
   private readonly events: ReportDomainEvent[];
 
-  private constructor(private state: ReportSnapshot, events: ReportDomainEvent[] = []) {
+  private constructor(
+    private state: ReportSnapshot,
+    events: ReportDomainEvent[] = [],
+  ) {
     this.events = events;
     this.ensureStateIsConsistent();
   }
@@ -59,10 +63,17 @@ export class Report {
         description: requireText(input.description, "Report description"),
         categoryId: requireText(input.categoryId, "Report category"),
         source: input.source ?? "platform",
-        ...(input.createdByAdminId ? { createdByAdminId: requireText(input.createdByAdminId, "Report creator admin id") } : {}),
+        ...(input.createdByAdminId
+          ? {
+              createdByAdminId: requireText(
+                input.createdByAdminId,
+                "Report creator admin id",
+              ),
+            }
+          : {}),
         location: input.location.toSnapshot(),
         moderationStatus: "pending_review",
-        createdAt
+        createdAt,
       },
       [
         {
@@ -72,10 +83,12 @@ export class Report {
           visibility: "internal",
           metadata: {
             source: input.source ?? "platform",
-            ...(input.createdByAdminId ? { createdByAdminId: input.createdByAdminId } : {})
-          }
-        }
-      ]
+            ...(input.createdByAdminId
+              ? { createdByAdminId: input.createdByAdminId }
+              : {}),
+          },
+        },
+      ],
     );
 
     return report;
@@ -88,9 +101,24 @@ export class Report {
       description: requireText(snapshot.description, "Report description"),
       categoryId: requireText(snapshot.categoryId, "Report category"),
       source: snapshot.source,
-      ...(snapshot.createdByAdminId ? { createdByAdminId: requireText(snapshot.createdByAdminId, "Report creator admin id") } : {}),
+      ...(snapshot.createdByAdminId
+        ? {
+            createdByAdminId: requireText(
+              snapshot.createdByAdminId,
+              "Report creator admin id",
+            ),
+          }
+        : {}),
+      ...(snapshot.duplicateOfReportId
+        ? {
+            duplicateOfReportId: requireText(
+              snapshot.duplicateOfReportId,
+              "Primary report id",
+            ),
+          }
+        : {}),
       publicCode: PublicCode.create(snapshot.publicCode).toString(),
-      location: Location.create(snapshot.location).toSnapshot()
+      location: Location.create(snapshot.location).toSnapshot(),
     });
   }
 
@@ -100,21 +128,25 @@ export class Report {
     }
 
     if (this.state.moderationStatus === "rejected") {
-      throw new InvalidReportTransitionError("Rejected reports cannot be approved.");
+      throw new InvalidReportTransitionError(
+        "Rejected reports cannot be approved.",
+      );
     }
 
     this.state = {
       ...this.state,
       moderationStatus: "approved",
       publicStatus: "reported",
-      publishedAt: approvedAt
+      publishedAt: approvedAt,
     };
     this.recordEvent("ReportApproved", approvedAt, "public", "reported");
   }
 
   reject(rejectedAt: Date = new Date()): void {
     if (this.state.moderationStatus === "approved") {
-      throw new InvalidReportTransitionError("Approved reports cannot be rejected.");
+      throw new InvalidReportTransitionError(
+        "Approved reports cannot be rejected.",
+      );
     }
 
     if (this.state.moderationStatus === "rejected") {
@@ -123,43 +155,130 @@ export class Report {
 
     this.state = {
       ...this.state,
-      moderationStatus: "rejected"
+      moderationStatus: "rejected",
     };
     this.recordEvent("ReportRejected", rejectedAt, "internal");
   }
 
   markCommunicated(communicatedAt: Date = new Date()): void {
-    if (this.state.moderationStatus !== "approved" || this.state.publicStatus !== "reported") {
+    if (
+      this.state.moderationStatus !== "approved" ||
+      this.state.publicStatus !== "reported"
+    ) {
       throw new InvalidReportTransitionError(
-        "Only approved reports in Segnalata status can become Comunicata."
+        "Only approved reports in Segnalata status can become Comunicata.",
       );
     }
 
     this.state = {
       ...this.state,
       publicStatus: "communicated",
-      communicatedAt
+      communicatedAt,
     };
-    this.recordEvent("ReportCommunicated", communicatedAt, "public", "communicated");
+    this.recordEvent(
+      "ReportCommunicated",
+      communicatedAt,
+      "public",
+      "communicated",
+    );
   }
 
   markResolved(resolvedAt: Date = new Date()): void {
-    if (this.state.moderationStatus !== "approved" || this.state.publicStatus !== "communicated") {
+    if (
+      this.state.moderationStatus !== "approved" ||
+      this.state.publicStatus !== "communicated"
+    ) {
       throw new InvalidReportTransitionError(
-        "Only communicated reports can become Risolta."
+        "Only communicated reports can become Risolta.",
       );
     }
 
     this.state = {
       ...this.state,
       publicStatus: "resolved",
-      resolvedAt
+      resolvedAt,
     };
     this.recordEvent("ReportResolved", resolvedAt, "public", "resolved");
   }
 
+  markAsDuplicateOf(
+    primaryReportId: ReportId,
+    markedAt: Date = new Date(),
+    primaryPublicCode?: string,
+  ): void {
+    const normalizedPrimaryReportId = requireText(
+      primaryReportId,
+      "Primary report id",
+    );
+
+    if (normalizedPrimaryReportId === this.state.id) {
+      throw new InvalidReportTransitionError(
+        "A report cannot be marked as duplicate of itself.",
+      );
+    }
+
+    if (this.state.duplicateOfReportId === normalizedPrimaryReportId) {
+      throw new InvalidReportTransitionError(
+        "Report is already linked to this primary report.",
+      );
+    }
+
+    this.state = {
+      ...this.state,
+      duplicateOfReportId: normalizedPrimaryReportId,
+    };
+    this.events.push({
+      type: "ReportMarkedAsDuplicate",
+      reportId: this.state.id,
+      occurredAt: markedAt,
+      visibility: "internal",
+      metadata: {
+        primaryReportId: normalizedPrimaryReportId,
+        ...(primaryPublicCode ? { primaryPublicCode } : {}),
+      },
+    });
+  }
+
+  removeDuplicateLink(
+    removedAt: Date = new Date(),
+    previousPrimaryReportId?: ReportId,
+    previousPrimaryPublicCode?: string,
+  ): void {
+    const existingPrimaryReportId = this.state.duplicateOfReportId;
+
+    if (!existingPrimaryReportId) {
+      throw new InvalidReportTransitionError(
+        "Report is not linked as duplicate.",
+      );
+    }
+
+    this.state = {
+      ...this.state,
+      duplicateOfReportId: undefined,
+    };
+    this.events.push({
+      type: "ReportDuplicateLinkRemoved",
+      reportId: this.state.id,
+      occurredAt: removedAt,
+      visibility: "internal",
+      metadata: {
+        primaryReportId: previousPrimaryReportId ?? existingPrimaryReportId,
+        ...(previousPrimaryPublicCode
+          ? { primaryPublicCode: previousPrimaryPublicCode }
+          : {}),
+      },
+    });
+  }
+
+  isDuplicate(): boolean {
+    return this.state.duplicateOfReportId !== undefined;
+  }
+
   isPublic(): boolean {
-    return this.state.moderationStatus === "approved" && this.state.publicStatus !== undefined;
+    return (
+      this.state.moderationStatus === "approved" &&
+      this.state.publicStatus !== undefined
+    );
   }
 
   pullDomainEvents(): ReportDomainEvent[] {
@@ -172,7 +291,7 @@ export class Report {
   toSnapshot(): ReportSnapshot {
     return {
       ...this.state,
-      location: { ...this.state.location }
+      location: { ...this.state.location },
     };
   }
 
@@ -180,33 +299,48 @@ export class Report {
     type: ReportDomainEvent["type"],
     occurredAt: Date,
     visibility: ReportDomainEvent["visibility"],
-    publicStatus?: PublicReportStatus
+    publicStatus?: PublicReportStatus,
   ): void {
     this.events.push({
       type,
       reportId: this.state.id,
       occurredAt,
       visibility,
-      ...(publicStatus ? { publicStatus } : {})
+      ...(publicStatus ? { publicStatus } : {}),
     });
   }
 
   private ensureStateIsConsistent(): void {
-    if (this.state.moderationStatus !== "approved" && this.state.publicStatus !== undefined) {
+    if (this.state.duplicateOfReportId === this.state.id) {
       throw new InconsistentReportStateError(
-        "Only approved reports can have a public status."
+        "A report cannot be duplicate of itself.",
       );
     }
 
-    if (this.state.moderationStatus === "approved" && this.state.publicStatus === undefined) {
+    if (
+      this.state.moderationStatus !== "approved" &&
+      this.state.publicStatus !== undefined
+    ) {
       throw new InconsistentReportStateError(
-        "Approved reports must have a public status."
+        "Only approved reports can have a public status.",
       );
     }
 
-    if (this.state.publicStatus === "reported" && this.state.publishedAt === undefined) {
+    if (
+      this.state.moderationStatus === "approved" &&
+      this.state.publicStatus === undefined
+    ) {
       throw new InconsistentReportStateError(
-        "Published reports must have a published date."
+        "Approved reports must have a public status.",
+      );
+    }
+
+    if (
+      this.state.publicStatus === "reported" &&
+      this.state.publishedAt === undefined
+    ) {
+      throw new InconsistentReportStateError(
+        "Published reports must have a published date.",
       );
     }
 
@@ -215,13 +349,16 @@ export class Report {
       this.state.communicatedAt === undefined
     ) {
       throw new InconsistentReportStateError(
-        "Communicated reports must have a communicated date."
+        "Communicated reports must have a communicated date.",
       );
     }
 
-    if (this.state.publicStatus === "resolved" && this.state.resolvedAt === undefined) {
+    if (
+      this.state.publicStatus === "resolved" &&
+      this.state.resolvedAt === undefined
+    ) {
       throw new InconsistentReportStateError(
-        "Resolved reports must have a resolved date."
+        "Resolved reports must have a resolved date.",
       );
     }
   }
@@ -236,4 +373,3 @@ function requireText(value: string, fieldName: string): string {
 
   return normalizedValue;
 }
-

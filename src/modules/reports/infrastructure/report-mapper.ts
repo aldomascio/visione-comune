@@ -4,13 +4,13 @@ import {
   PublicCode,
   Report,
   type ReportDomainEvent,
-  type ReportSnapshot
+  type ReportSnapshot,
 } from "../domain";
 import type {
   NewReportEventRecord,
   NewReportRecord,
   ReportEventRecord,
-  ReportRecord
+  ReportRecord,
 } from "@/shared/db/schema";
 
 export function reportToRecord(report: Report): NewReportRecord {
@@ -27,12 +27,13 @@ export function reportToRecord(report: Report): NewReportRecord {
     address: snapshot.location.address ?? null,
     source: snapshot.source,
     createdByAdminId: snapshot.createdByAdminId ?? null,
+    duplicateOfReportId: snapshot.duplicateOfReportId ?? null,
     publicStatus: snapshot.publicStatus ?? null,
     moderationStatus: snapshot.moderationStatus,
     createdAt: snapshot.createdAt,
     publishedAt: snapshot.publishedAt ?? null,
     communicatedAt: snapshot.communicatedAt ?? null,
-    resolvedAt: snapshot.resolvedAt ?? null
+    resolvedAt: snapshot.resolvedAt ?? null,
   };
 }
 
@@ -50,20 +51,27 @@ export function recordToReportSnapshot(record: ReportRecord): ReportSnapshot {
     location: Location.create({
       latitude: record.latitude,
       longitude: record.longitude,
-      ...(record.address ? { address: record.address } : {})
+      ...(record.address ? { address: record.address } : {}),
     }).toSnapshot(),
     source: record.source,
-    ...(record.createdByAdminId ? { createdByAdminId: record.createdByAdminId } : {}),
+    ...(record.createdByAdminId
+      ? { createdByAdminId: record.createdByAdminId }
+      : {}),
+    ...(record.duplicateOfReportId
+      ? { duplicateOfReportId: record.duplicateOfReportId }
+      : {}),
     ...(record.publicStatus ? { publicStatus: record.publicStatus } : {}),
     moderationStatus: record.moderationStatus,
     createdAt: record.createdAt,
     ...(record.publishedAt ? { publishedAt: record.publishedAt } : {}),
     ...(record.communicatedAt ? { communicatedAt: record.communicatedAt } : {}),
-    ...(record.resolvedAt ? { resolvedAt: record.resolvedAt } : {})
+    ...(record.resolvedAt ? { resolvedAt: record.resolvedAt } : {}),
   };
 }
 
-export function reportEventToRecord(event: ReportDomainEvent): NewReportEventRecord {
+export function reportEventToRecord(
+  event: ReportDomainEvent,
+): NewReportEventRecord {
   return {
     id: randomUUID(),
     reportId: event.reportId,
@@ -71,22 +79,27 @@ export function reportEventToRecord(event: ReportDomainEvent): NewReportEventRec
     visibility: event.visibility,
     publicStatus: event.publicStatus ?? null,
     metadata: event.metadata ?? null,
-    createdAt: event.occurredAt
+    createdAt: event.occurredAt,
   };
 }
 
-export function recordToReportEvent(record: ReportEventRecord): ReportDomainEvent {
+export function recordToReportEvent(
+  record: ReportEventRecord,
+): ReportDomainEvent {
   return {
     type: record.type,
     reportId: record.reportId,
     occurredAt: record.createdAt,
     visibility: record.visibility,
     ...(record.publicStatus ? { publicStatus: record.publicStatus } : {}),
-    ...(isReportEventMetadata(record.metadata) ? { metadata: record.metadata } : {})
+    ...(isReportEventMetadata(record.metadata)
+      ? { metadata: record.metadata }
+      : {}),
   };
 }
 
-function isReportEventMetadata(value: unknown): value is NonNullable<ReportDomainEvent["metadata"]> {
+function isReportEventMetadata(
+  value: unknown,
+): value is NonNullable<ReportDomainEvent["metadata"]> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-

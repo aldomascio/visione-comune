@@ -14,7 +14,8 @@ const reportIds = [
   "test-metrics-reported",
   "test-metrics-communicated",
   "test-metrics-resolved-a",
-  "test-metrics-resolved-b"
+  "test-metrics-resolved-b",
+  "test-metrics-duplicate-resolved"
 ];
 
 maybeDescribe("DrizzleOperationalMetricsRepository", () => {
@@ -70,7 +71,7 @@ maybeDescribe("DrizzleOperationalMetricsRepository", () => {
     }).execute();
 
     expect(snapshot.counts).toEqual({
-      totalReceived: 6,
+      totalReceived: 7,
       pendingReview: 1,
       published: 4,
       communicated: 3,
@@ -87,7 +88,7 @@ maybeDescribe("DrizzleOperationalMetricsRepository", () => {
     ]);
     expect(snapshot.monthlyTrend).toEqual([
       { month: "2026-04", receivedCount: 3, resolvedCount: 1 },
-      { month: "2026-05", receivedCount: 2, resolvedCount: 0 },
+      { month: "2026-05", receivedCount: 3, resolvedCount: 0 },
       { month: "2026-06", receivedCount: 1, resolvedCount: 1 },
       { month: "2026-07", receivedCount: 0, resolvedCount: 0 },
       { month: "2026-08", receivedCount: 0, resolvedCount: 0 },
@@ -172,6 +173,20 @@ async function seedMetricsDataset(connection: DatabaseConnection): Promise<void>
       communicatedAt: new Date("2026-04-02T10:00:00.000Z"),
       resolvedAt: new Date("2026-04-11T10:00:00.000Z")
     }),
+
+    createReportRow({
+      id: "test-metrics-duplicate-resolved",
+      publicCode: "VC-METDUP01",
+      title: "Report duplicato risolto metriche",
+      categoryId: "test-metrics-roads",
+      moderationStatus: "approved",
+      publicStatus: "resolved",
+      createdAt: new Date("2026-05-03T10:00:00.000Z"),
+      publishedAt: new Date("2026-05-03T10:00:00.000Z"),
+      communicatedAt: new Date("2026-05-04T10:00:00.000Z"),
+      resolvedAt: new Date("2026-05-20T10:00:00.000Z"),
+      duplicateOfReportId: "test-metrics-reported"
+    }),
     createReportRow({
       id: "test-metrics-resolved-b",
       publicCode: "VC-METRES02",
@@ -204,6 +219,7 @@ function createReportRow(input: {
   publishedAt?: Date;
   communicatedAt?: Date;
   resolvedAt?: Date;
+  duplicateOfReportId?: string;
 }) {
   return {
     id: input.id,
@@ -219,7 +235,8 @@ function createReportRow(input: {
     createdAt: input.createdAt,
     publishedAt: input.publishedAt,
     communicatedAt: input.communicatedAt,
-    resolvedAt: input.resolvedAt
+    resolvedAt: input.resolvedAt,
+    duplicateOfReportId: input.duplicateOfReportId
   };
 }
 

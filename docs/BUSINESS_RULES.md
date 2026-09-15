@@ -72,3 +72,10 @@ I controlli automatici possono bloccare o chiedere correzioni solo per problemi 
 
 ### BR-023
 La piattaforma deve evitare di generare un volume eccessivo di PEC/email verso Comune o altri enti, mantenendo tracciabilita delle singole segnalazioni e aggregando le comunicazioni quando opportuno.
+
+
+### BR-024
+Una segnalazione identificata come duplicata dopo la creazione non deve essere cancellata o fusa fisicamente: mantiene codice pubblico, fonte, allegati, storico e conferme gia ricevute, ma viene collegata a una segnalazione principale.
+
+### BR-025
+Una segnalazione duplicata non raccoglie nuove conferme e non compare come problema autonomo nella mappa pubblica o nelle liste aggregate principali. La scheda diretta resta raggiungibile e rimanda alla segnalazione principale.

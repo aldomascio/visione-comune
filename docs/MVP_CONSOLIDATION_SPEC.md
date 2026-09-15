@@ -93,7 +93,7 @@ P0-01: il copy pubblico usa formule neutre come `Nessuna conferma ricevuta`, `1 
 
 Il sistema rileva possibili duplicati prima dell'invio tramite categoria, distanza geografica e finestra temporale. Il duplicato pre-submit non blocca se l'utente dichiara problema diverso.
 
-Manca un modello per marcare duplicati dopo la creazione da backoffice.
+P0-02 ha introdotto il modello per marcare duplicati dopo la creazione da backoffice.
 
 ### Immagini
 
@@ -110,7 +110,7 @@ Mancano:
 
 Sono presenti metriche operative admin e metriche pubbliche aggregate su ricevute, pubblicate, comunicate, risolte, rifiutate, conferme, tempi mediani e trend.
 
-Le metriche non distinguono ancora fonte, duplicati, trasmissioni aggregate o solleciti.
+Le metriche operative distinguono i duplicati per i conteggi principali pubblicati/comunicati/risolti; restano aperte metriche piu avanzate su trasmissioni aggregate e solleciti.
 
 ## 3. Gap analysis
 
@@ -120,7 +120,7 @@ Le metriche non distinguono ancora fonte, duplicati, trasmissioni aggregate o so
 | Workflow operativo interno | Moderazione + eventi + comunicazioni | Manca fase operativa tipo da trasmettere/in attesa/riscontro/verifica | Usare stato derivato da report, eventi e comunicazioni; aggiungere enum operativo solo se serve filtro persistente | P0 | Possibile, non obbligatoria subito | `/admin`, `/admin/segnalazioni`, dettaglio admin |
 | Registro interno | `report_events` con visibilita e metadata | Mancano eventi per note, cambi categoria, duplicati, risposte, solleciti, verifiche, privacy image review | Estendere `report_event_type` e metadata; non creare subito event sourcing | P0/P1 | Si, enum event types | Timeline admin |
 | Intake manuale | `/segnala` pubblico + `/admin/segnalazioni/nuova` | P0-01 implementata; resta da usare la fonte in metriche/filtri futuri | `reports.source` e `CreateAdminReportUseCase` aggiunti | P0 completata | Si | Pagina dedicata nel backoffice |
-| Duplicati post-submit | Rilevamento pre-submit | Admin non puo collegare un report a principale | Aggiungere relazione duplicati tracciata da evento | P0 | Si | Dettaglio admin, tracking, dettaglio pubblico, mappa |
+| Duplicati post-submit | Rilevamento pre-submit + `reports.duplicate_of_report_id` | Implementato P0-02; restano possibili affinamenti metriche/filtri | Relazione duplicati tracciata da eventi interni | P0 completato | Si | Dettaglio admin, tracking, dettaglio pubblico, mappa |
 | Conferme | Cookie anonimo + unique DB + conteggio | P0-01 copy risolto; anti-abuso resta minimo | Prevedere rate limit e hardening se emerge abuso | P1 hardening | Possibile | `/segnalazioni/[publicCode]`, duplicati |
 | Immagini | Una foto report, moderata con report | Nessun tipo/stato privacy; nessuna foto risoluzione | Estendere attachment con `type`, `reviewStatus`, vincoli meno rigidi | P0 per modello; P1 detector | Si | `/segnala`, dettaglio admin, dettaglio pubblico |
 | Privacy immagini | EXIF rimossi, resize, conversione | Nessun controllo volti/targhe | Inserire detector dopo upload/processamento e prima pubblicazione | P1 | Probabile | Moderazione admin, foto report |
@@ -311,7 +311,7 @@ Contro:
 
 ### Raccomandazione
 
-Usare tabella relazione `report_duplicates`. E leggermente piu complessa, ma evita di caricare su `reports` una semantica operativa che richiede audit e note. Registrare anche evento `ReportMarkedDuplicate` su duplicato e, opzionalmente, su principale.
+P0-02 ha approvato e implementato l'opzione A con `reports.duplicate_of_report_id`. La motivazione operativa e mantenere il modello semplice: un duplicato punta a una sola principale, mentre audit e storico restano in `report_events`.
 
 ### Effetti da decidere
 
@@ -503,8 +503,8 @@ Estensioni event type consigliate:
 
 - `ReportCategoryChanged`;
 - `ReportSourceRecorded` o gestito solo nel creation metadata;
-- `ReportMarkedDuplicate`;
-- `ReportDuplicateLinked`;
+- `ReportMarkedAsDuplicate`;
+- `ReportDuplicateLinkRemoved`;
 - `ReportInternalNoteAdded`;
 - `AttachmentReviewFlagged`;
 - `AttachmentApproved`;
@@ -741,7 +741,7 @@ Raccomandazione: non creare tabella dedicata ora. Preparare il modello `Transmis
 
 Interventi strutturali che cambiano schermate o workflow:
 
-1. Definire e implementare duplicati post-submit.
+1. Definire e implementare duplicati post-submit. Completato in P0-02.
 2. Evolvere `OutboundCommunication` verso `Transmission` con relazione 1:N report.
 3. Estendere modello attachment per tipo/stato review almeno a livello dati.
 4. Preparare foto risoluzione come `resolution_photo` se prevista nella UI finale.
@@ -787,7 +787,7 @@ Completati in P0-01/P0-01B: `Report.source`, intake manuale admin, copy conferme
 
 ## 23. Sequenza consigliata delle prossime task
 
-1. `MVP-003 — Duplicati post-submit`: tabella relazione, eventi, azione admin, comportamento pubblico deciso.
+1. `MVP-003/P0-02 — Duplicati post-submit`: completato con `reports.duplicate_of_report_id`, eventi, azione admin, comportamento pubblico, conferme e mappa.
 2. `MVP-004 — Attachment model v2`: tipo attachment, review status, backfill, compatibilita foto esistente.
 3. `MVP-005 — Foto risoluzione`: upload admin `resolution_photo`, rendering pubblico, evento timeline.
 4. `MVP-006 — Transmission foundation`: introdurre relazione `transmission_reports`, aggiornare repository/use case mantenendo compatibilita VC-015.
@@ -810,3 +810,16 @@ La raccomandazione principale e non trasformare Visione Comune in un gestionale 
 - Routing verso enti tramite matrice `Category → category_recipients → Recipient`, senza PEC duplicata su `categories`.
 - Direzione futura per comunicazioni: trasmissioni aggregate per destinatario, con frequenza/soglie configurabili da testare.
 - Principio anti-spam verso gli enti: tracciabilita delle singole segnalazioni, ma comunicazioni aggregate quando opportuno.
+
+
+## P0-02 implementata
+
+### P0-02 — Duplicati post-submit
+
+Gli amministratori possono collegare una segnalazione a una segnalazione principale dopo la creazione. Il duplicato resta nel database, mantiene codice pubblico, fonte, allegati, storico e conferme gia ricevute. Non viene eseguito alcun merge fisico e non vengono trasferiti conferme, foto o eventi alla principale.
+
+La relazione e modellata con `reports.duplicate_of_report_id`, nullable FK verso `reports.id`. `null` indica una segnalazione normale; un valore indica che la segnalazione e duplicata di una principale. Il database impedisce il self-link diretto; l'application layer permette come target solo una segnalazione approvata, pubblica e non duplicata, evitando catene A -> B -> C.
+
+Una segnalazione duplicata pubblica resta raggiungibile tramite URL e tracking code. La scheda pubblica mostra un avviso e un link alla principale, senza redirect automatico. I duplicati sono esclusi dalla mappa pubblica e dalle liste aggregate principali per non creare rumore. Le nuove conferme sono disabilitate sul duplicato e raccolte sulla principale; le conferme gia presenti sul duplicato restano storiche e non vengono sommate automaticamente alla principale.
+
+Le metriche operative conteggiano ancora `totalReceived` come totale storico delle segnalazioni ricevute, inclusi duplicati. I conteggi di problemi pubblicati/comunicati/risolti, distribuzioni pubbliche e tempi operativi escludono invece i duplicati per non gonfiare il numero di problemi unici.

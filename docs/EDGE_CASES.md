@@ -531,3 +531,36 @@ molte segnalazioni riguardano la stessa categoria o lo stesso destinatario.
 Gestione prevista:
 la direzione operativa e evitare una PEC/email per ogni singola segnalazione e preparare trasmissioni aggregate configurabili per destinatario, mantenendo tracciabilita dei singoli report.
 
+
+
+## P0-02 — Duplicati post-submit
+
+### EC-P002-001 — Duplicato di se stesso
+
+Scenario: un admin prova a collegare una segnalazione a se stessa.
+
+Comportamento: il database ha un check anti self-link e il dominio rifiuta la transizione.
+
+### EC-P002-002 — Target gia duplicato
+
+Scenario: un admin prova a scegliere come principale una segnalazione che e gia duplicata di un'altra.
+
+Comportamento: il sistema rifiuta il target e chiede di scegliere la principale reale. Questo evita catene A -> B -> C.
+
+### EC-P002-003 — Duplicato gia pubblico
+
+Scenario: una segnalazione gia approvata viene collegata come duplicata.
+
+Comportamento: la pagina pubblica resta raggiungibile dal suo codice, mostra l'avviso di duplicato e rimanda alla principale. Non viene rimossa dal database e non subisce merge fisico.
+
+### EC-P002-004 — Conferme esistenti sul duplicato
+
+Scenario: una segnalazione aveva gia ricevuto conferme prima di essere collegata come duplicata.
+
+Comportamento: le conferme restano associate storicamente al duplicato, ma nuove conferme vengono disabilitate sul duplicato e indirizzate verso la principale.
+
+### EC-P002-005 — Mappa pubblica rumorosa
+
+Scenario: principale e duplicato hanno coordinate simili.
+
+Comportamento: il duplicato e escluso dalla mappa pubblica e dalle liste aggregate principali, ma resta accessibile via URL/codice.

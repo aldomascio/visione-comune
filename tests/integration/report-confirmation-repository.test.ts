@@ -13,7 +13,9 @@ const testCategoryId = "test-confirmations-category";
 const testReportIds = [
   "test-confirmation-approved",
   "test-confirmation-pending",
-  "test-confirmation-rejected"
+  "test-confirmation-rejected",
+  "test-confirmation-duplicate",
+  "test-confirmation-primary"
 ];
 
 maybeDescribe("DrizzleReportConfirmationRepository", () => {
@@ -107,6 +109,23 @@ maybeDescribe("DrizzleReportConfirmationRepository", () => {
     ).rejects.toThrow(ReportNotConfirmableError);
     await expect(confirmationRepository.countByReportId("test-confirmation-pending")).resolves.toBe(0);
     await expect(confirmationRepository.countByReportId("test-confirmation-rejected")).resolves.toBe(0);
+  });
+
+
+  it("does not allow confirmations on reports linked as duplicates", async () => {
+    await saveApprovedReport("test-confirmation-primary", "VC-CONF0004");
+    const duplicate = createPendingReport("test-confirmation-duplicate", "VC-CONF0005");
+    await reportRepository.save(duplicate, duplicate.pullDomainEvents());
+    duplicate.approve(new Date("2026-01-04T10:00:00.000Z"));
+    duplicate.markAsDuplicateOf("test-confirmation-primary", new Date("2026-01-05T10:00:00.000Z"), "VC-CONF0004");
+    await reportRepository.save(duplicate, duplicate.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    await expect(
+      createUseCase().execute({ publicCode: "VC-CONF0005", antiAbuseKey: "browser-a" })
+    ).rejects.toThrow(ReportNotConfirmableError);
+    await expect(confirmationRepository.countByReportId("test-confirmation-duplicate")).resolves.toBe(0);
   });
 
   it("does not allow confirmations for missing reports", async () => {

@@ -2,9 +2,10 @@ import { inArray, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/client";
-import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
+import { categories, reportAttachments, reportConfirmations, reportEvents, reports } from "@/shared/db/schema";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DuplicatePublicCodePersistenceError } from "@/modules/reports/application/report-repository";
+import { MarkReportAsDuplicateUseCase, RemoveReportDuplicateLinkUseCase } from "@/modules/reports/application/report-duplicates";
 import { GetAdminReportTimelineUseCase, GetPublicReportTimelineUseCase } from "@/modules/reports/application/report-timeline";
 import { ReportResolutionNotAllowedError, ResolveReportUseCase } from "@/modules/reports/application/resolve-report";
 import { Location, PublicCode, Report } from "@/modules/reports/domain";
@@ -31,7 +32,10 @@ const testReportIds = [
   "test-report-duplicate-old",
   "test-report-timeline",
   "test-report-resolution",
-  "test-report-resolution-reported"
+  "test-report-resolution-reported",
+  "test-report-primary",
+  "test-report-linked-duplicate",
+  "test-report-map-linked-duplicate"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -516,6 +520,65 @@ maybeDescribe("DrizzleReportRepository", () => {
     });
   });
 
+
+  it("persists duplicate links, lists linked duplicates and excludes duplicates from map", async () => {
+    const primary = createReport("test-report-primary", "VC-PRIMARY1");
+    await repository.save(primary, primary.pullDomainEvents());
+    primary.approve(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(primary, primary.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const duplicate = createReport("test-report-linked-duplicate", "VC-DUPLINK1");
+    await repository.save(duplicate, duplicate.pullDomainEvents());
+    duplicate.approve(new Date("2026-01-05T10:00:00.000Z"));
+    await repository.save(duplicate, duplicate.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+    await connection.db.insert(reportConfirmations).values({
+      id: "test-report-linked-duplicate-confirmation",
+      reportId: "test-report-linked-duplicate",
+      antiAbuseKey: "browser-before-link"
+    });
+
+    await new MarkReportAsDuplicateUseCase({
+      reportRepository: repository,
+      now: () => new Date("2026-01-06T10:00:00.000Z")
+    }).execute({ publicCode: "VC-DUPLINK1", primaryPublicCode: "VC-PRIMARY1" });
+
+    await expect(repository.findByPublicCode(PublicCode.create("VC-DUPLINK1"))).resolves.toSatisfy((report) =>
+      report?.toSnapshot().duplicateOfReportId === "test-report-primary"
+    );
+    await expect(repository.findPublicByPublicCode(PublicCode.create("VC-DUPLINK1"))).resolves.toMatchObject({
+      publicCode: "VC-DUPLINK1",
+      duplicateOf: { publicCode: "VC-PRIMARY1", title: "Buche in strada" }
+    });
+    await expect(repository.listDuplicatesOfReport("test-report-primary")).resolves.toMatchObject([
+      { publicCode: "VC-DUPLINK1", confirmationsCount: 1 }
+    ]);
+    await expect(repository.listPublicForMap()).resolves.not.toContainEqual(
+      expect.objectContaining({ publicCode: "VC-DUPLINK1" })
+    );
+
+    const savedEvents = await connection.db
+      .select({ type: reportEvents.type, metadata: reportEvents.metadata })
+      .from(reportEvents)
+      .where(sql`${reportEvents.reportId} = ${"test-report-linked-duplicate"}`);
+    expect(savedEvents).toContainEqual({
+      type: "ReportMarkedAsDuplicate",
+      metadata: { primaryReportId: "test-report-primary", primaryPublicCode: "VC-PRIMARY1" }
+    });
+
+    await new RemoveReportDuplicateLinkUseCase({
+      reportRepository: repository,
+      now: () => new Date("2026-01-07T10:00:00.000Z")
+    }).execute({ publicCode: "VC-DUPLINK1" });
+
+    await expect(repository.findByPublicCode(PublicCode.create("VC-DUPLINK1"))).resolves.toSatisfy((report) =>
+      report?.toSnapshot().duplicateOfReportId === undefined
+    );
+  });
+
   it("enforces at most one image attachment for each report", async () => {
     const report = createReport("test-report-attachment", "VC-ATCH0001");
     await repository.saveWithAttachment(report, {
@@ -597,6 +660,7 @@ maybeDescribe("DrizzleReportRepository", () => {
 });
 
 async function cleanupTestData(connection: DatabaseConnection): Promise<void> {
+  await connection.db.delete(reportConfirmations).where(inArray(reportConfirmations.reportId, testReportIds));
   await connection.db.delete(reportEvents).where(inArray(reportEvents.reportId, testReportIds));
   await connection.db.delete(reportAttachments).where(inArray(reportAttachments.reportId, testReportIds));
   await connection.db.delete(reports).where(inArray(reports.id, testReportIds));

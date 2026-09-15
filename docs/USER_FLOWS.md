@@ -91,3 +91,17 @@
 2. Il pre-filtro potra chiedere correzioni o bloccare casi tecnici evidenti, come file non validi, spam manifesto, linguaggio palesemente volgare o duplicati evidenti secondo regole gia definite.
 3. Se il contenuto supera il pre-filtro, entra comunque in `Da verificare`.
 4. La validita sostanziale, la pertinenza e il rischio di uso strumentale restano valutati da Visione Comune tramite moderazione umana.
+
+
+## FLOW-009 — Duplicati post-submit
+
+1. L'amministratore apre il dettaglio di una segnalazione.
+2. Nella sezione `Duplicati` cerca una segnalazione principale per codice pubblico o titolo.
+3. Il sistema mostra solo segnalazioni approvate, pubbliche e non gia duplicate, escludendo la segnalazione corrente.
+4. L'amministratore collega la segnalazione alla principale.
+5. Il duplicato mantiene codice, storico, allegati e conferme gia ricevute.
+6. Il dettaglio admin del duplicato mostra `Duplicata di VC-XXXXXXXX` e permette la rimozione/correzione del collegamento.
+7. Il dettaglio admin della principale mostra le segnalazioni collegate.
+8. La scheda pubblica del duplicato resta accessibile e rimanda alla principale senza redirect automatico.
+9. Le nuove conferme vengono raccolte sulla principale, non sul duplicato.
+10. Il duplicato non compare come marker autonomo sulla mappa pubblica.

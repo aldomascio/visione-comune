@@ -21,14 +21,17 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
             where ${reports.moderationStatus} = 'approved'
               and ${reports.publicStatus} is not null
               and ${reports.publishedAt} is not null
+              and ${reports.duplicateOfReportId} is null
           )::int`,
           communicated: sql<number>`count(*) filter (
             where ${reports.moderationStatus} = 'approved'
               and ${reports.publicStatus} in ('communicated', 'resolved')
+              and ${reports.duplicateOfReportId} is null
           )::int`,
           resolved: sql<number>`count(*) filter (
             where ${reports.moderationStatus} = 'approved'
               and ${reports.publicStatus} = 'resolved'
+              and ${reports.duplicateOfReportId} is null
           )::int`,
           rejected: sql<number>`count(*) filter (where ${reports.moderationStatus} = 'rejected')::int`
         })
@@ -60,7 +63,8 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
           eq(reports.moderationStatus, "approved"),
           eq(reports.publicStatus, "resolved"),
           isNotNull(reports.publishedAt),
-          isNotNull(reports.resolvedAt)
+          isNotNull(reports.resolvedAt),
+          sql`${reports.duplicateOfReportId} is null`
         )
       );
 
@@ -80,7 +84,8 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
           eq(reports.moderationStatus, "approved"),
           inArray(reports.publicStatus, ["communicated", "resolved"]),
           isNotNull(reports.publishedAt),
-          isNotNull(reports.communicatedAt)
+          isNotNull(reports.communicatedAt),
+          sql`${reports.duplicateOfReportId} is null`
         )
       );
 
@@ -96,10 +101,12 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
           where ${reports.moderationStatus} = 'approved'
             and ${reports.publicStatus} is not null
             and ${reports.publishedAt} is not null
+            and ${reports.duplicateOfReportId} is null
         )::int`,
         resolvedCount: sql<number>`count(*) filter (
           where ${reports.moderationStatus} = 'approved'
             and ${reports.publicStatus} = 'resolved'
+            and ${reports.duplicateOfReportId} is null
         )::int`
       })
       .from(categories)
@@ -109,6 +116,7 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
         where ${reports.moderationStatus} = 'approved'
           and ${reports.publicStatus} is not null
           and ${reports.publishedAt} is not null
+          and ${reports.duplicateOfReportId} is null
       )`), categories.name);
 
     return rows
@@ -142,6 +150,7 @@ export class DrizzleOperationalMetricsRepository implements OperationalMetricsRe
             eq(reports.moderationStatus, "approved"),
             eq(reports.publicStatus, "resolved"),
             isNotNull(reports.resolvedAt),
+            sql`${reports.duplicateOfReportId} is null`,
             gte(reports.resolvedAt, input.from)
           )
         )

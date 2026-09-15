@@ -15,6 +15,8 @@ import {
   InvalidModerationPublicCodeError,
   ReportForModerationNotFoundError
 } from "@/modules/reports/application/moderate-report";
+import { ListReportDuplicatesUseCase, SearchPotentialPrimaryReportsUseCase } from "@/modules/reports/application/report-duplicates";
+import type { DuplicateReportSummary, PotentialPrimaryReport } from "@/modules/reports/application/report-repository";
 import { GetAdminReportTimelineUseCase, type AdminTimelineItem } from "@/modules/reports/application/report-timeline";
 import { REPORT_SOURCE_LABELS } from "@/modules/reports/domain";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
@@ -22,14 +24,14 @@ import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzl
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
-import { approveReportAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, rejectReportAction } from "../actions";
+import { approveReportAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, removeReportDuplicateLinkAction } from "../actions";
 import { ResolveReportForm } from "./resolve-report-form";
 import { formatAdminDate } from "../format";
 import { ModerationStatusBadge, PublicStatusBadge } from "../status-badge";
 
 type ReportDetailPageProps = {
   params: Promise<{ publicCode: string }>;
-  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string }>;
+  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string; duplicate?: string; duplicateError?: string; duplicateQuery?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -38,7 +40,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   await requireActiveAdmin();
   const { publicCode } = await params;
   const query = await searchParams;
-  const { report, recipients, communications, communicationTemplate, timeline } = await getReportPageData(publicCode);
+  const { report, recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates } = await getReportPageData(publicCode, query?.duplicateQuery);
   const canModerate = report.moderationStatus === "pending_review";
 
   return (
@@ -59,9 +61,11 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
         {query?.moderation ? <SuccessMessage type={query.moderation} /> : null}
         {query?.communication ? <CommunicationSuccessMessage type={query.communication} /> : null}
         {query?.resolution ? <ResolutionSuccessMessage type={query.resolution} /> : null}
+        {query?.duplicate ? <DuplicateSuccessMessage type={query.duplicate} /> : null}
         {query?.error ? <ErrorMessage code={query.error} /> : null}
         {query?.communicationError ? <CommunicationErrorMessage message={query.communicationError} /> : null}
         {query?.resolutionError ? <ResolutionErrorMessage code={query.resolutionError} /> : null}
+        {query?.duplicateError ? <DuplicateErrorMessage code={query.duplicateError} /> : null}
 
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <Card>
@@ -154,6 +158,13 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
               </CardContent>
             </Card>
 
+            <DuplicatesCard
+              duplicateQuery={query?.duplicateQuery ?? ""}
+              linkedDuplicates={linkedDuplicates}
+              primaryCandidates={duplicateSearchResults}
+              report={report}
+            />
+
             <ResolutionCard
               communicatedAt={report.communicatedAt}
               publicCode={report.publicCode}
@@ -216,7 +227,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   );
 }
 
-async function getReportPageData(publicCode: string) {
+async function getReportPageData(publicCode: string, duplicateQuery = "") {
   let connection;
 
   try {
@@ -228,7 +239,7 @@ async function getReportPageData(publicCode: string) {
     }).execute({ publicCode });
     const recipientRepository = new DrizzleRecipientRepository(connection.db);
     const communicationRepository = new DrizzleOutboundCommunicationRepository(connection.db);
-    const [recipients, communications, communicationTemplate, timeline] = await Promise.all([
+    const [recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates] = await Promise.all([
       recipientRepository.findActiveByCategory(report.categoryId),
       new ListReportCommunicationsUseCase({ reportRepository, communicationRepository }).execute({ publicCode }),
       new GenerateManualCommunicationTemplateUseCase({
@@ -236,10 +247,12 @@ async function getReportPageData(publicCode: string) {
         categoryRepository: new DrizzleCategoryRepository(connection.db),
         appUrl: readBaseEnv().appUrl
       }).execute({ publicCode }),
-      new GetAdminReportTimelineUseCase({ timelineRepository: reportRepository }).execute({ reportId: report.id })
+      new GetAdminReportTimelineUseCase({ timelineRepository: reportRepository }).execute({ reportId: report.id }),
+      new SearchPotentialPrimaryReportsUseCase({ reportRepository }).execute({ publicCode, query: duplicateQuery }),
+      new ListReportDuplicatesUseCase({ reportRepository }).execute({ publicCode })
     ]);
 
-    return { report, recipients, communications, communicationTemplate, timeline };
+    return { report, recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates };
   } catch (error) {
     if (error instanceof ReportForModerationNotFoundError || error instanceof InvalidModerationPublicCodeError) {
       notFound();
@@ -249,6 +262,104 @@ async function getReportPageData(publicCode: string) {
   } finally {
     await connection?.close();
   }
+}
+
+
+function DuplicatesCard({
+  duplicateQuery,
+  linkedDuplicates,
+  primaryCandidates,
+  report
+}: {
+  duplicateQuery: string;
+  linkedDuplicates: DuplicateReportSummary[];
+  primaryCandidates: PotentialPrimaryReport[];
+  report: Awaited<ReturnType<typeof getReportPageData>>["report"];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Duplicati</CardTitle>
+        <CardDescription>Collega questa segnalazione a una principale senza cancellare codice, storico o allegati.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-5">
+        {report.duplicateOf ? (
+          <div className="grid gap-4 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm">
+            <div>
+              <p className="font-semibold">Duplicata di {report.duplicateOf.publicCode}</p>
+              <p className="mt-1 text-muted-foreground">{report.duplicateOf.title}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link className="text-sm font-semibold text-primary hover:underline" href={`/admin/segnalazioni/${report.duplicateOf.publicCode}`}>
+                Apri principale
+              </Link>
+              <form action={removeReportDuplicateLinkAction}>
+                <input name="publicCode" type="hidden" value={report.publicCode} />
+                <input name="primaryPublicCode" type="hidden" value={report.duplicateOf.publicCode} />
+                <Button type="submit" variant="outline">Rimuovi collegamento</Button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <form className="grid gap-3" method="get">
+              <label className="grid gap-2 text-sm font-medium" htmlFor="duplicateQuery">
+                Cerca segnalazione principale
+                <Input defaultValue={duplicateQuery} id="duplicateQuery" name="duplicateQuery" placeholder="VC-XXXXXXXX o titolo" />
+              </label>
+              <Button type="submit" variant="outline">Cerca principale</Button>
+            </form>
+            {primaryCandidates.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+                Nessuna principale pubblica disponibile per la ricerca corrente. Sono escluse la segnalazione stessa e le segnalazioni gia duplicate.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {primaryCandidates.map((candidate) => (
+                  <article className="rounded-md border border-border bg-background p-4 text-sm" key={candidate.publicCode}>
+                    <div className="grid gap-1">
+                      <p className="font-mono text-xs font-semibold text-muted-foreground">{candidate.publicCode}</p>
+                      <p className="font-semibold">{candidate.title}</p>
+                      <p className="text-muted-foreground">{candidate.categoryName} · {statusText(candidate.publicStatus ?? candidate.moderationStatus)} · {formatAdminDate(candidate.createdAt)}</p>
+                    </div>
+                    <form action={markReportDuplicateAction} className="mt-3">
+                      <input name="publicCode" type="hidden" value={report.publicCode} />
+                      <input name="primaryPublicCode" type="hidden" value={candidate.publicCode} />
+                      <Button type="submit">Segna come duplicata di {candidate.publicCode}</Button>
+                    </form>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="grid gap-3">
+          <h3 className="text-sm font-semibold">Segnalazioni collegate</h3>
+          {linkedDuplicates.length === 0 ? (
+            <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+              Nessuna segnalazione e stata collegata a questa come duplicata.
+            </p>
+          ) : (
+            <div className="grid gap-3">
+              {linkedDuplicates.map((duplicate) => (
+                <article className="rounded-md border border-border bg-background p-4 text-sm" key={duplicate.publicCode}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-xs font-semibold text-muted-foreground">{duplicate.publicCode}</p>
+                      <p className="mt-1 font-semibold">{duplicate.title}</p>
+                      <p className="mt-1 text-muted-foreground">{REPORT_SOURCE_LABELS[duplicate.source]} · {formatAdminDate(duplicate.createdAt)} · {duplicate.confirmationsCount} conferme storiche</p>
+                    </div>
+                    <Link className="text-sm font-semibold text-primary hover:underline" href={`/admin/segnalazioni/${duplicate.publicCode}`}>Apri</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function CommunicationsSection({
@@ -486,6 +597,35 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-border bg-background p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
+    </div>
+  );
+}
+
+
+function DuplicateSuccessMessage({ type }: { type: string }) {
+  const messages: Record<string, string> = {
+    linked: "Segnalazione collegata come duplicata.",
+    removed: "Collegamento duplicato rimosso."
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+      {messages[type] ?? "Collegamento duplicati aggiornato."}
+    </div>
+  );
+}
+
+function DuplicateErrorMessage({ code }: { code: string }) {
+  const messages: Record<string, string> = {
+    "invalid-target": "La principale deve essere una segnalazione pubblica non duplicata e non puo coincidere con questa segnalazione.",
+    conflict: "Il collegamento e stato modificato da un altro amministratore. Aggiorna la pagina.",
+    "not-found": "Segnalazione non trovata.",
+    generic: "Non e stato possibile aggiornare il collegamento duplicato. Riprova."
+  };
+
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+      {messages[code] ?? messages.generic}
     </div>
   );
 }

@@ -1,4 +1,11 @@
-import type { ModerationStatus, PublicReportStatus, Report, ReportDomainEvent, PublicCode, ReportSource } from "../domain";
+import type {
+  ModerationStatus,
+  PublicReportStatus,
+  Report,
+  ReportDomainEvent,
+  PublicCode,
+  ReportSource,
+} from "../domain";
 
 export class DuplicatePublicCodePersistenceError extends Error {
   constructor(publicCode: string) {
@@ -21,9 +28,20 @@ export class ConcurrentReportStateError extends Error {
   }
 }
 
+export class ConcurrentReportDuplicateLinkError extends Error {
+  constructor(reportId: string) {
+    super(`Report duplicate link changed before save: ${reportId}`);
+    this.name = "ConcurrentReportDuplicateLinkError";
+  }
+}
+
 export type ReportSaveOptions = {
   expectedModerationStatus?: ModerationStatus;
   expectedPublicStatus?: PublicReportStatus;
+};
+
+export type ReportDuplicateSaveOptions = {
+  expectedDuplicateOfReportId: string | null;
 };
 
 export type ReportModerationFilter = ModerationStatus | "all";
@@ -80,6 +98,10 @@ export type PublicReportDetail = {
   publishedAt: Date;
   communicatedAt?: Date;
   resolvedAt?: Date;
+  duplicateOf?: {
+    publicCode: string;
+    title: string;
+  };
   attachment?: PublicReportAttachment;
 };
 
@@ -98,6 +120,25 @@ export type PublicReportMapItem = {
   address?: string;
   publicStatus: PublicReportStatus;
   publishedAt: Date;
+};
+
+export type PotentialPrimaryReport = {
+  publicCode: string;
+  title: string;
+  categoryName: string;
+  moderationStatus: ModerationStatus;
+  publicStatus?: PublicReportStatus;
+  createdAt: Date;
+};
+
+export type DuplicateReportSummary = {
+  publicCode: string;
+  title: string;
+  source: ReportSource;
+  createdAt: Date;
+  moderationStatus: ModerationStatus;
+  publicStatus?: PublicReportStatus;
+  confirmationsCount: number;
 };
 
 export type RecentResolvedPublicReport = {
@@ -129,19 +170,56 @@ export type PotentialDuplicateReportRecord = {
 };
 
 export type ReportRepository = {
-  save(report: Report, events?: ReportDomainEvent[], options?: ReportSaveOptions): Promise<void>;
-  saveWithAttachment(report: Report, attachment: NewReportAttachment, events?: ReportDomainEvent[]): Promise<void>;
+  save(
+    report: Report,
+    events?: ReportDomainEvent[],
+    options?: ReportSaveOptions,
+  ): Promise<void>;
+  saveWithAttachment(
+    report: Report,
+    attachment: NewReportAttachment,
+    events?: ReportDomainEvent[],
+  ): Promise<void>;
+  saveDuplicateLink?(
+    report: Report,
+    events: ReportDomainEvent[],
+    options: ReportDuplicateSaveOptions,
+  ): Promise<void>;
+  removeDuplicateLink?(
+    report: Report,
+    events: ReportDomainEvent[],
+    options: ReportDuplicateSaveOptions,
+  ): Promise<void>;
   findByPublicCode(publicCode: PublicCode): Promise<Report | null>;
-  findAdminCreatorByReportId?(reportId: string): Promise<ReportAdminCreator | null>;
-  findAttachmentForModeration(publicCode: PublicCode): Promise<ReportAttachmentAccess | null>;
-  findPublicAttachmentByPublicCode(publicCode: PublicCode): Promise<ReportAttachmentAccess | null>;
+  findById?(reportId: string): Promise<Report | null>;
+  findAdminCreatorByReportId?(
+    reportId: string,
+  ): Promise<ReportAdminCreator | null>;
+  findAttachmentForModeration(
+    publicCode: PublicCode,
+  ): Promise<ReportAttachmentAccess | null>;
+  findPublicAttachmentByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<ReportAttachmentAccess | null>;
   listForModeration(input?: {
     status?: ReportModerationFilter;
     limit?: number;
   }): Promise<ReportModerationSummary[]>;
+  searchPotentialPrimaryReports?(input: {
+    query: string;
+    excludeReportId: string;
+    limit: number;
+  }): Promise<PotentialPrimaryReport[]>;
+  listDuplicatesOfReport?(reportId: string): Promise<DuplicateReportSummary[]>;
   countByModerationStatus(status: ModerationStatus): Promise<number>;
-  findPublicByPublicCode(publicCode: PublicCode): Promise<PublicReportDetail | null>;
+  findPublicByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<PublicReportDetail | null>;
   listPublicForMap(): Promise<PublicReportMapItem[]>;
-  findPotentialDuplicates(input: PotentialDuplicateReportQuery): Promise<PotentialDuplicateReportRecord[]>;
-  listPublicEventsByPublicCode(publicCode: PublicCode): Promise<PublicReportTimelineEvent[]>;
+  findPotentialDuplicates(
+    input: PotentialDuplicateReportQuery,
+  ): Promise<PotentialDuplicateReportRecord[]>;
+  listPublicEventsByPublicCode(
+    publicCode: PublicCode,
+  ): Promise<PublicReportTimelineEvent[]>;
 };

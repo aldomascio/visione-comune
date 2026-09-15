@@ -188,12 +188,14 @@ async function cleanupE2eData(): Promise<void> {
     const reportIds = reportRows.map((row) => row.id);
 
     if (reportIds.length > 0) {
+      await sql`delete from report_confirmations where report_id in ${sql(reportIds)}`;
       await sql`delete from report_events where report_id in ${sql(reportIds)}`;
       await sql`delete from report_attachments where report_id in ${sql(reportIds)}`;
       await sql`delete from reports where id in ${sql(reportIds)}`;
     }
 
     await sql`delete from categories where id in (${categoryId}, ${otherCategoryId})`;
+    await sql`delete from admin_users where id = ${adminId} or email = ${adminEmail}`;
   });
 }
 
@@ -211,4 +213,132 @@ async function withDatabase<T>(callback: (sql: postgres.Sql) => Promise<T>): Pro
   } finally {
     await sql.end();
   }
+}
+
+const adminEmail = "duplicates-admin.e2e@example.com";
+const adminPassword = "Correct horse battery staple duplicates 2026!";
+const adminId = "e2e-duplicates-admin";
+const primaryPostSubmitCode = "VC-E2EPRI01";
+const publishedDuplicatePostSubmitCode = "VC-E2EDPA01";
+const pendingDuplicatePostSubmitCode = "VC-E2EDPN01";
+
+test("admin links a post-submit duplicate without breaking public tracking", async ({ page }) => {
+  await createAdmin();
+  await createApprovedReport({
+    id: "e2e-duplicate-primary-post-submit",
+    publicCode: primaryPostSubmitCode,
+    category: categoryId,
+    title: "Problema principale post-submit",
+    latitude: 41.482,
+    longitude: 14.043
+  });
+  await createApprovedReport({
+    id: "e2e-duplicate-published-post-submit",
+    publicCode: publishedDuplicatePostSubmitCode,
+    category: categoryId,
+    title: "Problema duplicato gia pubblicato",
+    latitude: 41.4822,
+    longitude: 14.0432
+  });
+  await createPendingReport({
+    id: "e2e-duplicate-pending-post-submit",
+    publicCode: pendingDuplicatePostSubmitCode,
+    title: "Problema duplicato pending"
+  });
+
+  await loginAdmin(page);
+  await page.goto(`/admin/segnalazioni/${publishedDuplicatePostSubmitCode}?duplicateQuery=${primaryPostSubmitCode}`);
+  await expect(page.getByRole("heading", { name: "Problema duplicato gia pubblicato" })).toBeVisible();
+  await page.getByRole("button", { name: new RegExp(`Segna come duplicata di ${primaryPostSubmitCode}`) }).click();
+  await expect(page.getByText("Segnalazione collegata come duplicata.")).toBeVisible();
+  await expect(page.getByText(`Duplicata di ${primaryPostSubmitCode}`)).toBeVisible();
+
+  await page.goto(`/admin/segnalazioni/${primaryPostSubmitCode}`);
+  await expect(page.getByText("Segnalazioni collegate")).toBeVisible();
+  await expect(page.getByText(publishedDuplicatePostSubmitCode)).toBeVisible();
+
+  await page.goto(`/segnalazioni/${publishedDuplicatePostSubmitCode}`);
+  await expect(page.getByText("Questa segnalazione riguarda un problema gia segnalato.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Vai alla segnalazione principale" })).toHaveAttribute("href", `/segnalazioni/${primaryPostSubmitCode}`);
+  await expect(page.getByRole("button", { name: "Conferme raccolte sulla principale" })).toBeDisabled();
+  await expect(page.getByText("Le nuove conferme vengono raccolte sulla segnalazione principale")).toBeVisible();
+
+  await page.goto(`/segnalazione?codice=${publishedDuplicatePostSubmitCode}`);
+  await expect(page).toHaveURL(new RegExp(`/segnalazioni/${publishedDuplicatePostSubmitCode}$`));
+  await expect(page.getByText("Questa segnalazione riguarda un problema gia segnalato.")).toBeVisible();
+
+  await page.goto("/mappa");
+  await expect(page.getByText("Problema principale post-submit")).toBeVisible();
+  await expect(page.getByText("Problema duplicato gia pubblicato")).toHaveCount(0);
+  await expect(page.getByTestId(`map-marker-${publishedDuplicatePostSubmitCode}`)).toHaveCount(0);
+});
+
+async function createPendingReport(input: { id: string; publicCode: string; title: string }): Promise<void> {
+  await withDatabase(async (sql) => {
+    await sql`
+      insert into reports (
+        id,
+        public_code,
+        title,
+        description,
+        category_id,
+        latitude,
+        longitude,
+        address,
+        moderation_status,
+        created_at
+      ) values (
+        ${input.id},
+        ${input.publicCode},
+        ${input.title},
+        'Descrizione lunga della segnalazione pending duplicata usata nei test end-to-end.',
+        ${categoryId},
+        41.4824,
+        14.0434,
+        'Via Roma, Venafro',
+        'pending_review',
+        now()
+      )
+    `;
+    await sql`
+      insert into report_events (id, report_id, type, visibility, created_at)
+      values (${`${input.id}-created`}, ${input.id}, 'ReportCreated', 'internal', now())
+    `;
+  });
+}
+
+async function createAdmin(): Promise<void> {
+  await withDatabase(async (sql) => {
+    const passwordHash = await hashPassword(adminPassword);
+    await sql`
+      insert into admin_users (id, email, password_hash, role, active)
+      values (${adminId}, ${adminEmail}, ${passwordHash}, 'admin', true)
+      on conflict (id) do update set email = excluded.email, password_hash = excluded.password_hash, active = true
+    `;
+  });
+}
+
+async function loginAdmin(page: Page): Promise<void> {
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill(adminPassword);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const { argon2, randomBytes } = await import("node:crypto");
+  const { promisify } = await import("node:util");
+  const argon2Async = promisify(argon2);
+  const nonce = randomBytes(16);
+  const derivedKey = await argon2Async("argon2id", {
+    message: password,
+    nonce,
+    memory: 65_536,
+    passes: 3,
+    parallelism: 1,
+    tagLength: 32
+  });
+
+  return `argon2id$v=19$m=65536,t=3,p=1$${nonce.toString("base64")}$${Buffer.from(derivedKey).toString("base64")}`;
 }

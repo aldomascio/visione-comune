@@ -502,7 +502,7 @@ Estensioni event type consigliate:
 - `ReportSourceRecorded` o gestito solo nel creation metadata;
 - `ReportMarkedAsDuplicate`;
 - `ReportDuplicateLinkRemoved`;
-- `ReportInternalNoteAdded`;
+- `InternalNoteAdded`;
 - `AttachmentReviewFlagged`;
 - `AttachmentApproved`;
 - `AttachmentBlocked`;
@@ -836,3 +836,8 @@ P0-04 e implementata come foundation dati, application e admin.
 - Gli eventi Transmission sono interni; la timeline pubblica continua a mostrare solo l'evento pubblico di comunicazione.
 
 Restano fuori scope: PEC reale, SMTP/IMAP, ricevute, risposte, scheduling, solleciti, batch automatici, PDF e AI.
+
+
+## Aggiornamento P0-05 — Registro operativo interno esteso
+
+P0-05 ha implementato il registro operativo esteso senza introdurre un nuovo workflow persistito. Gli eventi aggiunti sono `ReportCategoryChanged` e `InternalNoteAdded`; entrambi sono interni. Il dettaglio admin mostra uno stato operativo derivato, cambio categoria e note interne. Il pubblico continua a vedere solo eventi pubblici. Il cambio categoria non riscrive trasmissioni storiche e aggiorna soltanto i suggerimenti futuri di smistamento.

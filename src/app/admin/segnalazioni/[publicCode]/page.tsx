@@ -10,6 +10,7 @@ import type { OutboundCommunication } from "@/modules/communications/application
 import { ListReportTransmissionsUseCase } from "@/modules/communications/application/transmissions";
 import type { Transmission } from "@/modules/communications/application/transmission-repository";
 import { DrizzleOutboundCommunicationRepository } from "@/modules/communications/infrastructure/drizzle-outbound-communication-repository";
+import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import type { CategoryRecipient } from "@/modules/recipients/application/recipient-repository";
 import { readBaseEnv } from "@/shared/config/env";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/modules/reports/application/moderate-report";
 import { ListReportDuplicatesUseCase, SearchPotentialPrimaryReportsUseCase } from "@/modules/reports/application/report-duplicates";
 import type { DuplicateReportSummary, ModerationReportAttachment, PotentialPrimaryReport } from "@/modules/reports/application/report-repository";
+import { deriveReportOperationalState, type DerivedReportOperationalState } from "@/modules/reports/application/operational-registry";
 import { GetAdminReportTimelineUseCase, type AdminTimelineItem } from "@/modules/reports/application/report-timeline";
 import { REPORT_SOURCE_LABELS } from "@/modules/reports/domain";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
@@ -26,7 +28,7 @@ import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzl
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
-import { addResolutionPhotoAction, approveReportAction, approveReportAttachmentAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, rejectReportAttachmentAction, removeReportDuplicateLinkAction } from "../actions";
+import { addInternalReportNoteAction, addResolutionPhotoAction, approveReportAction, approveReportAttachmentAction, changeReportCategoryAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, rejectReportAttachmentAction, removeReportDuplicateLinkAction } from "../actions";
 import { ResolveReportForm } from "./resolve-report-form";
 import { formatAdminDate } from "../format";
 import { ModerationStatusBadge, PublicStatusBadge } from "../status-badge";
@@ -34,7 +36,7 @@ import { transmissionStatusLabel } from "../../trasmissioni/status";
 
 type ReportDetailPageProps = {
   params: Promise<{ publicCode: string }>;
-  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string; duplicate?: string; duplicateError?: string; duplicateQuery?: string; attachment?: string; attachmentError?: string }>;
+  searchParams?: Promise<{ error?: string; moderation?: string; communication?: string; communicationError?: string; resolution?: string; resolutionError?: string; duplicate?: string; duplicateError?: string; duplicateQuery?: string; attachment?: string; attachmentError?: string; operational?: string; operationalError?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -43,7 +45,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   await requireActiveAdmin();
   const { publicCode } = await params;
   const query = await searchParams;
-  const { report, recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates } = await getReportPageData(publicCode, query?.duplicateQuery);
+  const { report, recipients, activeCategories, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates, operationalState } = await getReportPageData(publicCode, query?.duplicateQuery);
   const canModerate = report.moderationStatus === "pending_review";
 
   return (
@@ -66,11 +68,19 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
         {query?.resolution ? <ResolutionSuccessMessage type={query.resolution} /> : null}
         {query?.duplicate ? <DuplicateSuccessMessage type={query.duplicate} /> : null}
         {query?.attachment ? <AttachmentSuccessMessage type={query.attachment} /> : null}
+        {query?.operational ? <OperationalSuccessMessage type={query.operational} /> : null}
         {query?.error ? <ErrorMessage code={query.error} /> : null}
         {query?.communicationError ? <CommunicationErrorMessage message={query.communicationError} /> : null}
         {query?.resolutionError ? <ResolutionErrorMessage code={query.resolutionError} /> : null}
         {query?.duplicateError ? <DuplicateErrorMessage code={query.duplicateError} /> : null}
         {query?.attachmentError ? <AttachmentErrorMessage message={query.attachmentError} /> : null}
+        {query?.operationalError ? <OperationalErrorMessage message={query.operationalError} /> : null}
+
+        <OperationalSummaryCard
+          latestTransmission={transmissions[0]}
+          operationalState={operationalState}
+          report={report}
+        />
 
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
           <Card>
@@ -101,6 +111,15 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 <InfoBlock label="Indirizzo" value={report.location.address ?? "Non indicato"} />
                 <InfoBlock label="Coordinate" value={`${report.location.latitude}, ${report.location.longitude}`} />
               </section>
+
+              <CategoryChangeSection
+                activeCategories={activeCategories}
+                currentCategoryId={report.categoryId}
+                publicCode={report.publicCode}
+              />
+
+              <InternalNoteSection publicCode={report.publicCode} />
+
               <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
                 <div>
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Smistamento suggerito</h2>
@@ -140,8 +159,8 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
           <div className="grid gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Timeline completa</CardTitle>
-                <CardDescription>Eventi pubblici e interni della segnalazione, ordinati cronologicamente.</CardDescription>
+                <CardTitle>Registro operativo</CardTitle>
+                <CardDescription>Eventi pubblici, interni e tecnici visibili solo nel backoffice, ordinati cronologicamente.</CardDescription>
               </CardHeader>
               <CardContent>
                 {timeline.length === 0 ? (
@@ -240,13 +259,15 @@ async function getReportPageData(publicCode: string, duplicateQuery = "") {
     }).execute({ publicCode });
     const recipientRepository = new DrizzleRecipientRepository(connection.db);
     const communicationRepository = new DrizzleOutboundCommunicationRepository(connection.db);
-    const [recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates] = await Promise.all([
+    const categoryRepository = new DrizzleCategoryRepository(connection.db);
+    const [recipients, activeCategories, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates] = await Promise.all([
       recipientRepository.findActiveByCategory(report.categoryId),
+      categoryRepository.listActive(),
       new ListReportCommunicationsUseCase({ reportRepository, communicationRepository }).execute({ publicCode }),
       new ListReportTransmissionsUseCase({ transmissionRepository: communicationRepository }).execute({ reportId: report.id }),
       new GenerateManualCommunicationTemplateUseCase({
         reportRepository,
-        categoryRepository: new DrizzleCategoryRepository(connection.db),
+        categoryRepository,
         appUrl: readBaseEnv().appUrl
       }).execute({ publicCode }),
       new GetAdminReportTimelineUseCase({ timelineRepository: reportRepository }).execute({ reportId: report.id }),
@@ -254,7 +275,25 @@ async function getReportPageData(publicCode: string, duplicateQuery = "") {
       new ListReportDuplicatesUseCase({ reportRepository }).execute({ publicCode })
     ]);
 
-    return { report, recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates };
+    return {
+      report,
+      recipients,
+      activeCategories,
+      communications,
+      transmissions,
+      communicationTemplate,
+      timeline,
+      duplicateSearchResults,
+      linkedDuplicates,
+      operationalState: deriveReportOperationalState({
+        report: {
+          moderationStatus: report.moderationStatus,
+          publicStatus: report.publicStatus,
+          duplicateOfReportId: report.duplicateOf ? report.duplicateOf.publicCode : undefined
+        },
+        transmissions
+      })
+    };
   } catch (error) {
     if (error instanceof ReportForModerationNotFoundError || error instanceof InvalidModerationPublicCodeError) {
       notFound();
@@ -266,6 +305,100 @@ async function getReportPageData(publicCode: string, duplicateQuery = "") {
   }
 }
 
+
+
+function OperationalSummaryCard({
+  latestTransmission,
+  operationalState,
+  report,
+}: {
+  latestTransmission?: Transmission;
+  operationalState: DerivedReportOperationalState;
+  report: Awaited<ReturnType<typeof getReportPageData>>["report"];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quadro operativo</CardTitle>
+        <CardDescription>Vista interna derivata dagli stati esistenti. Non introduce nuovi stati pubblici o workflow persistiti.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <InfoBlock label="Stato operativo" value={operationalState.label} />
+        <InfoBlock label="Dettaglio operativo" value={operationalState.description} />
+        <InfoBlock label="Stato pubblico" value={report.publicStatus ? statusText(report.publicStatus) : "Non pubblica"} />
+        <InfoBlock label="Moderazione" value={statusText(report.moderationStatus)} />
+        <InfoBlock label="Fonte" value={REPORT_SOURCE_LABELS[report.source]} />
+        <InfoBlock label="Categoria" value={report.categoryName ?? report.categoryId} />
+        <InfoBlock label="Duplicato" value={report.duplicateOf ? `Di ${report.duplicateOf.publicCode}` : "No"} />
+        <InfoBlock
+          label="Ultima trasmissione"
+          value={latestTransmission ? `${latestTransmission.recipientNameSnapshot} · ${transmissionStatusLabel(latestTransmission.status)}` : "Nessuna"}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function CategoryChangeSection({
+  activeCategories,
+  currentCategoryId,
+  publicCode,
+}: {
+  activeCategories: CategoryOption[];
+  currentCategoryId: string;
+  publicCode: string;
+}) {
+  return (
+    <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Categoria operativa</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          Cambiare categoria aggiorna lo smistamento suggerito futuro e registra un evento interno. Le trasmissioni gia create non vengono modificate.
+        </p>
+      </div>
+      <form action={changeReportCategoryAction} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <input name="publicCode" type="hidden" value={publicCode} />
+        <label className="grid gap-2 text-sm font-medium" htmlFor="categoryId">
+          Categoria
+          <Select defaultValue={currentCategoryId} id="categoryId" name="categoryId" required>
+            {activeCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <Button type="submit" variant="outline">Aggiorna categoria</Button>
+      </form>
+    </section>
+  );
+}
+
+function InternalNoteSection({ publicCode }: { publicCode: string }) {
+  return (
+    <section className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Note interne</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">Le note sono immutabili, visibili solo agli amministratori e non entrano nella timeline pubblica.</p>
+      </div>
+      <form action={addInternalReportNoteAction} className="grid gap-3">
+        <input name="publicCode" type="hidden" value={publicCode} />
+        <label className="grid gap-2 text-sm font-medium" htmlFor="standaloneInternalNote">
+          Nuova nota
+          <Textarea
+            id="standaloneInternalNote"
+            maxLength={1000}
+            name="internalNote"
+            placeholder="Annotazione operativa interna, visibile solo nel backoffice."
+            required
+            rows={4}
+          />
+        </label>
+        <Button className="w-fit" type="submit">Aggiungi nota</Button>
+      </form>
+    </section>
+  );
+}
 
 function DuplicatesCard({
   duplicateQuery,
@@ -711,6 +844,28 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
+
+
+function OperationalSuccessMessage({ type }: { type: string }) {
+  const messages: Record<string, string> = {
+    "category-changed": "Categoria aggiornata e registrata nel registro operativo.",
+    "note-added": "Nota interna aggiunta al registro operativo."
+  };
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+      {messages[type] ?? "Registro operativo aggiornato."}
+    </div>
+  );
+}
+
+function OperationalErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+      {message}
+    </div>
+  );
+}
 
 function AttachmentSuccessMessage({ type }: { type: string }) {
   const messages: Record<string, string> = {

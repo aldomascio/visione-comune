@@ -294,3 +294,14 @@ La fondazione Transmission e implementata evolvendo in modo non distruttivo `out
 - Gli eventi interni aggiunti sono `ReportAddedToTransmission`, `ReportRemovedFromTransmission`, `TransmissionSent`, `TransmissionDelivered`, `TransmissionFailed`.
 
 Questa foundation non rinomina fisicamente `outbound_communications` e non introduce provider PEC, ricevute reali, reply, scheduling o batch automatici.
+
+## P0-05 — Registro operativo interno esteso
+
+Il registro operativo interno resta basato su `report_events`. Non e stato introdotto un enum di workflow operativo persistito: lo stato operativo mostrato in admin e derivato da moderazione, stato pubblico, collegamento duplicato e trasmissioni.
+
+Eventi interni aggiunti a `report_event_type`:
+
+- `ReportCategoryChanged`: registra il cambio categoria effettuato da admin. Metadata previsti: `previousCategoryId`, `previousCategoryName`, `newCategoryId`, `newCategoryName`, `actorAdminId`, `actorAdminEmail`.
+- `InternalNoteAdded`: registra una nota interna immutabile. Metadata previsti: `internalNote`, `actorAdminId`, `actorAdminEmail`.
+
+Le note interne restano eventi `visibility = internal` e non sono restituite dalla timeline pubblica. Il cambio categoria aggiorna solo `reports.category_id` e il registro interno: non modifica trasmissioni gia create, snapshot destinatari o storico smistamento. Lo smistamento suggerito futuro viene invece riletto dalla matrice categoria-destinatari della nuova categoria.

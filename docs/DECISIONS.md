@@ -565,3 +565,21 @@ le route pubbliche servono una foto solo se il report e approvato/pubblico e l'a
 - Le frequenze future, soglie, batch automatici e solleciti restano da definire e non sono hardcoded.
 - Una segnalazione diventa `Comunicata` solo quando una trasmissione/comunicazione viene marcata come consegnata.
 - La moderazione manuale resta obbligatoria prima di qualunque trasmissione operativa.
+
+## P0-05 — Registro operativo interno esteso implementato
+
+### APPROVATO
+
+- Il registro operativo interno continua a usare `report_events` come sorgente di audit e timeline admin.
+- Sono stati aggiunti gli eventi interni `ReportCategoryChanged` e `InternalNoteAdded`.
+- Il cambio categoria e consentito dal dettaglio admin solo verso categorie attive, aggiorna `reports.category_id` e registra actor admin nei metadata evento quando disponibile.
+- Il cambio categoria non modifica trasmissioni esistenti, destinatari snapshot o storico precedente; incide solo sullo smistamento suggerito futuro.
+- Le note interne sono immutabili nella prima versione, solo admin e non pubbliche.
+- Lo stato operativo admin e derivato, non persistito: `Duplicata`, `Respinta`, `Da verificare`, `Da trasmettere`, `In trasmissione`, `Comunicata`, `Risolta`.
+- Non viene introdotto un campo `nextActionAt` o `nextActionNote` in P0-05: resta fuori scope finche non esiste una regola operativa condivisa su solleciti e verifiche successive.
+
+### DA DEFINIRE
+
+- Se e quando introdurre prossima azione/scadenza operativa persistita.
+- Eventuali filtri admin persistenti sullo stato operativo derivato, se la lista cresce e la derivazione lato query diventa insufficiente.
+- Eventi futuri per ricezione risposte ente, solleciti, verifiche operative e ricevute PEC reali.

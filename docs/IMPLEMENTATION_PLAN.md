@@ -769,3 +769,15 @@ Scelte applicate:
 - stati vuoti gestiti per metriche, notizie e risolti.
 
 La newsletter resta un rimando alla pagina esistente finche non verra configurato il provider email/newsletter. La Home non introduce contenuti politici o sezioni manifesto non fornite.
+
+## P0-05 — Registro operativo interno esteso
+
+Implementazione completata senza introdurre un workflow operativo persistito.
+
+- `report_events` e stato esteso con `ReportCategoryChanged` e `InternalNoteAdded`.
+- Il dominio `Report` puo cambiare categoria registrando un evento interno con categoria precedente, nuova categoria e actor admin.
+- Sono stati aggiunti use case applicativi per cambio categoria, note interne e derivazione dello stato operativo admin.
+- Il dettaglio admin mostra un quadro operativo derivato, il cambio categoria, l'inserimento note interne e un registro operativo cronologico.
+- Le note interne e gli eventi operativi restano esclusi dalla timeline pubblica.
+- Le trasmissioni gia create non vengono mutate dopo un cambio categoria; la matrice di smistamento viene usata solo per suggerimenti futuri.
+- `nextActionAt`/`nextActionNote` non sono stati implementati per evitare una semantica prematura di workflow. La decisione resta aperta.

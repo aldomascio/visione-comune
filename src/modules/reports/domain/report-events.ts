@@ -20,6 +20,8 @@ export type ReportEventType =
   | "ReportAttachmentAdded"
   | "ReportAttachmentApproved"
   | "ReportAttachmentRejected"
+  | "ReportCategoryChanged"
+  | "InternalNoteAdded"
   | "ReportAddedToTransmission"
   | "ReportRemovedFromTransmission"
   | "TransmissionSent"

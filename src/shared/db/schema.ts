@@ -44,6 +44,8 @@ export const reportEventTypeEnum = pgEnum("report_event_type", [
   "ReportAttachmentAdded",
   "ReportAttachmentApproved",
   "ReportAttachmentRejected",
+  "ReportCategoryChanged",
+  "InternalNoteAdded",
   "ReportAddedToTransmission",
   "ReportRemovedFromTransmission",
   "TransmissionSent",

@@ -39,7 +39,7 @@ test("admin approves a pending report from the backoffice", async ({ page }) => 
   await expect(page.getByText("Segnalazione approvata e pubblicata come Segnalata.")).toBeVisible();
   await expect(page.getByText("Approvata").first()).toBeVisible();
   await expect(page.getByText("Segnalata").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Timeline completa" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registro operativo" })).toBeVisible();
   await expect(page.getByText("Segnalazione ricevuta")).toBeVisible();
   await expect(page.getByText("Segnalazione pubblicata")).toBeVisible();
   await expect(page.getByText("Interno").first()).toBeVisible();
@@ -61,7 +61,7 @@ test("admin rejects a pending report from the backoffice", async ({ page }) => {
   await expect(page.getByText("Segnalazione rifiutata.")).toBeVisible();
   await expect(page.getByText("Rifiutata").first()).toBeVisible();
   await expect(page.getByText("Non pubblica").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Timeline completa" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registro operativo" })).toBeVisible();
   await expect(page.getByText("Segnalazione ricevuta")).toBeVisible();
   await expect(page.getByText("Segnalazione rifiutata", { exact: true })).toBeVisible();
   await expect(page.getByText("Test rifiuto E2E")).toBeVisible();
@@ -108,10 +108,10 @@ test("admin creates a manual report with source and pending status", async ({ pa
   });
   await page.getByRole("link", { name: "Apri dettaglio" }).click();
   await expect(page.getByRole("heading", { name: /Categoria moderazione E2E: Via manuale, Venafro/ })).toBeVisible();
-  await expect(page.getByText("Fonte")).toBeVisible();
+  await expect(page.getByText("Fonte").first()).toBeVisible();
   await expect(page.getByText("Email").first()).toBeVisible();
   await expect(page.getByText("Da verificare").first()).toBeVisible();
-  await expect(page.getByText("Creato da")).toBeVisible();
+  await expect(page.getByText("Creato da").first()).toBeVisible();
   await expect(page.getByText(adminEmail).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Approva" }).click();

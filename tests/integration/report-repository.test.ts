@@ -3,8 +3,10 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/client";
 import { categories, reportAttachments, reportConfirmations, reportEvents, reports } from "@/shared/db/schema";
+import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DuplicatePublicCodePersistenceError } from "@/modules/reports/application/report-repository";
+import { AddInternalReportNoteUseCase, ChangeReportCategoryUseCase } from "@/modules/reports/application/operational-registry";
 import { MarkReportAsDuplicateUseCase, RemoveReportDuplicateLinkUseCase } from "@/modules/reports/application/report-duplicates";
 import { GetAdminReportTimelineUseCase, GetPublicReportTimelineUseCase } from "@/modules/reports/application/report-timeline";
 import { ReportResolutionNotAllowedError, ResolveReportUseCase } from "@/modules/reports/application/resolve-report";
@@ -35,7 +37,8 @@ const testReportIds = [
   "test-report-resolution-reported",
   "test-report-primary",
   "test-report-linked-duplicate",
-  "test-report-map-linked-duplicate"
+  "test-report-map-linked-duplicate",
+  "test-report-operational-registry"
 ];
 
 maybeDescribe("DrizzleReportRepository", () => {
@@ -474,6 +477,83 @@ maybeDescribe("DrizzleReportRepository", () => {
     });
     expect(candidates[0]).not.toHaveProperty("moderationStatus");
     expect(candidates[0]).not.toHaveProperty("description");
+  });
+
+
+  it("updates report category and stores internal operational notes without contaminating public timeline", async () => {
+    await connection.db.insert(categories).values({
+      id: otherCategoryId,
+      name: "Categoria test illuminazione",
+      slug: "test-illuminazione"
+    });
+
+    const report = createReport("test-report-operational-registry", "VC-OPREG001");
+    await repository.save(report, report.pullDomainEvents());
+    report.approve(new Date("2026-01-04T10:00:00.000Z"));
+    await repository.save(report, report.pullDomainEvents(), {
+      expectedModerationStatus: "pending_review"
+    });
+
+    const categoryRepository = new DrizzleCategoryRepository(connection.db);
+    await new ChangeReportCategoryUseCase({
+      reportRepository: repository,
+      categoryRepository,
+      now: () => new Date("2026-01-05T10:00:00.000Z")
+    }).execute({
+      publicCode: "VC-OPREG001",
+      categoryId: otherCategoryId,
+      actorAdminId: "admin-operational",
+      actorAdminEmail: "operational@example.test"
+    });
+
+    await new AddInternalReportNoteUseCase({
+      reportRepository: repository,
+      now: () => new Date("2026-01-06T10:00:00.000Z")
+    }).execute({
+      publicCode: "VC-OPREG001",
+      note: "Nota visibile solo nel registro interno.",
+      actorAdminId: "admin-operational",
+      actorAdminEmail: "operational@example.test"
+    });
+
+    await expect(repository.findByPublicCode(PublicCode.create("VC-OPREG001"))).resolves.toSatisfy((savedReport) =>
+      savedReport?.toSnapshot().categoryId === otherCategoryId
+    );
+
+    const adminItems = await new GetAdminReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ reportId: "test-report-operational-registry" });
+    expect(adminItems.map((item) => item.label)).toEqual([
+      "Segnalazione ricevuta",
+      "Segnalazione pubblicata",
+      "Categoria modificata",
+      "Nota interna aggiunta"
+    ]);
+    expect(adminItems).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        label: "Categoria modificata",
+        visibility: "internal",
+        metadataItems: expect.arrayContaining([
+          { label: "Categoria precedente", value: "Categoria test strade" },
+          { label: "Nuova categoria", value: "Categoria test illuminazione" },
+          { label: "Admin", value: "operational@example.test" }
+        ])
+      }),
+      expect.objectContaining({
+        label: "Nota interna aggiunta",
+        visibility: "internal",
+        note: "Nota visibile solo nel registro interno.",
+        metadataItems: expect.arrayContaining([
+          { label: "Admin", value: "operational@example.test" }
+        ])
+      })
+    ]));
+
+    const publicItems = await new GetPublicReportTimelineUseCase({
+      timelineRepository: repository
+    }).execute({ publicCode: "VC-OPREG001" });
+    expect(publicItems.map((item) => item.label)).toEqual(["Segnalazione pubblicata"]);
+    expect(publicItems.map((item) => item.description).join(" ")).not.toContain("Nota visibile");
   });
 
   it("persists report and resolution attachments and exposes only approved public images", async () => {

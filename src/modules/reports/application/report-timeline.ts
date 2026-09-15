@@ -109,6 +109,16 @@ export const REPORT_TIMELINE_EVENT_PRESENTATION: Record<ReportEventType, Timelin
     adminDescription: "Una foto della segnalazione e stata rifiutata e non verra pubblicata.",
     defaultVisibility: "internal"
   },
+  ReportCategoryChanged: {
+    label: "Categoria modificata",
+    adminDescription: "La categoria della segnalazione e stata aggiornata dal backoffice.",
+    defaultVisibility: "internal"
+  },
+  InternalNoteAdded: {
+    label: "Nota interna aggiunta",
+    adminDescription: "Una nota interna e stata aggiunta al registro operativo.",
+    defaultVisibility: "internal"
+  },
   ReportAddedToTransmission: {
     label: "Segnalazione aggiunta a una trasmissione",
     adminDescription: "La segnalazione e stata inclusa in una trasmissione verso un destinatario.",
@@ -150,7 +160,13 @@ const ADMIN_METADATA_LABELS: Record<string, string> = {
   attachmentType: "Tipo foto",
   transmissionId: "Trasmissione",
   transmissionStatus: "Stato trasmissione",
-  transmissionReportCount: "Segnalazioni incluse"
+  transmissionReportCount: "Segnalazioni incluse",
+  previousCategoryId: "ID categoria precedente",
+  previousCategoryName: "Categoria precedente",
+  newCategoryId: "ID nuova categoria",
+  newCategoryName: "Nuova categoria",
+  actorAdminId: "ID admin",
+  actorAdminEmail: "Admin"
 };
 
 export type GetPublicReportTimelineUseCaseDependencies = {
@@ -218,10 +234,27 @@ export function presentAdminTimelineEvent(event: ReportTimelineEvent): AdminTime
     occurredAt: event.occurredAt,
     visibility: event.visibility,
     label: presentation.label,
-    description: presentation.adminDescription,
+    description: describeAdminTimelineEvent(event, presentation),
     ...(note ? { note } : {}),
     metadataItems: mapAdminMetadataItems(event.metadata)
   };
+}
+
+
+function describeAdminTimelineEvent(
+  event: ReportTimelineEvent,
+  presentation: TimelinePresentation,
+): string {
+  if (event.type === "ReportCategoryChanged") {
+    const previousCategory = readMetadataText(event.metadata, "previousCategoryName") ?? readMetadataText(event.metadata, "previousCategoryId");
+    const newCategory = readMetadataText(event.metadata, "newCategoryName") ?? readMetadataText(event.metadata, "newCategoryId");
+
+    if (previousCategory && newCategory) {
+      return `Categoria aggiornata da ${previousCategory} a ${newCategory}.`;
+    }
+  }
+
+  return presentation.adminDescription;
 }
 
 export function sortTimelineEvents(events: ReportTimelineEvent[]): ReportTimelineEvent[] {

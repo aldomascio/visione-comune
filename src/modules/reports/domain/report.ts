@@ -270,6 +270,45 @@ export class Report {
     });
   }
 
+  changeCategory(input: {
+    newCategoryId: CategoryId;
+    changedAt?: Date;
+    previousCategoryName?: string;
+    newCategoryName?: string;
+    actorAdminId?: string;
+    actorAdminEmail?: string;
+  }): void {
+    const newCategoryId = requireText(input.newCategoryId, "Report category");
+
+    if (newCategoryId === this.state.categoryId) {
+      throw new InvalidReportTransitionError(
+        "Report already belongs to this category.",
+      );
+    }
+
+    const previousCategoryId = this.state.categoryId;
+    this.state = {
+      ...this.state,
+      categoryId: newCategoryId,
+    };
+    this.events.push({
+      type: "ReportCategoryChanged",
+      reportId: this.state.id,
+      occurredAt: input.changedAt ?? new Date(),
+      visibility: "internal",
+      metadata: {
+        previousCategoryId,
+        newCategoryId,
+        ...(input.previousCategoryName
+          ? { previousCategoryName: input.previousCategoryName }
+          : {}),
+        ...(input.newCategoryName ? { newCategoryName: input.newCategoryName } : {}),
+        ...(input.actorAdminId ? { actorAdminId: input.actorAdminId } : {}),
+        ...(input.actorAdminEmail ? { actorAdminEmail: input.actorAdminEmail } : {}),
+      },
+    });
+  }
+
   isDuplicate(): boolean {
     return this.state.duplicateOfReportId !== undefined;
   }

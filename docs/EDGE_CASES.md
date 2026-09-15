@@ -607,3 +607,11 @@ Comportamento: il duplicato e escluso dalla mappa pubblica e dalle liste aggrega
 - Stessa coppia transmission/report: protetta da vincolo DB unique.
 - Trasmissione `failed`: non puo essere marcata successivamente come `sent` o `delivered` senza una futura regola esplicita.
 - Trasmissione `delivered`: non puo essere marcata come `failed`.
+
+## P0-05 — Registro operativo interno esteso
+
+- Cambio categoria verso la stessa categoria: l'azione viene rifiutata e non genera un evento ridondante.
+- Cambio categoria verso categoria inattiva o inesistente: l'azione viene rifiutata; le segnalazioni storiche possono continuare a mantenere categorie non piu attive, ma non possono essere riassegnate a una categoria inattiva.
+- Cambio categoria dopo trasmissioni gia create: le trasmissioni esistenti non vengono modificate e continuano a mostrare gli snapshot del destinatario usato al momento della creazione.
+- Note interne vuote: l'azione viene rifiutata e non crea eventi.
+- Note interne pubbliche: la timeline pubblica filtra solo eventi `visibility = public`, quindi `InternalNoteAdded` e `ReportCategoryChanged` non vengono esposti ai cittadini.

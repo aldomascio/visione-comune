@@ -1,0 +1,2 @@
+ALTER TYPE "public"."report_event_type" ADD VALUE 'ReportCategoryChanged' BEFORE 'ReportAddedToTransmission';--> statement-breakpoint
+ALTER TYPE "public"."report_event_type" ADD VALUE 'InternalNoteAdded' BEFORE 'ReportAddedToTransmission';

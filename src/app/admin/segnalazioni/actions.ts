@@ -44,6 +44,7 @@ import {
 } from "@/modules/communications/application/manual-communications";
 import { DrizzleOutboundCommunicationRepository } from "@/modules/communications/infrastructure/drizzle-outbound-communication-repository";
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
+import { AddInternalReportNoteUseCase, ChangeReportCategoryUseCase, ReportCategoryChangeError, ReportInternalNoteError, ReportOperationalNotFoundError } from "@/modules/reports/application/operational-registry";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { requireActiveAdmin } from "../admin-auth";
@@ -175,6 +176,63 @@ async function updateCommunicationStatus(input: { formData: FormData; status: "d
   } catch (error) {
     console.error("Unable to update communication", error);
     redirectTo = `${redirectTo}?communicationError=${encodeURIComponent(mapCommunicationErrorToMessage(error))}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
+export async function changeReportCategoryAction(formData: FormData): Promise<void> {
+  const activeAdmin = await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    await new ChangeReportCategoryUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db),
+      categoryRepository: new DrizzleCategoryRepository(connection.db)
+    }).execute({
+      publicCode,
+      categoryId: getRequiredString(formData, "categoryId"),
+      actorAdminId: activeAdmin.id,
+      actorAdminEmail: activeAdmin.email
+    });
+
+    revalidateReportPaths(publicCode);
+    redirectTo = `${redirectTo}?operational=category-changed`;
+  } catch (error) {
+    redirectTo = `${redirectTo}?operationalError=${encodeURIComponent(mapOperationalErrorToMessage(error))}`;
+  } finally {
+    await connection?.close();
+  }
+
+  redirect(redirectTo);
+}
+
+export async function addInternalReportNoteAction(formData: FormData): Promise<void> {
+  const activeAdmin = await requireActiveAdmin();
+  const publicCode = getPublicCode(formData);
+  let redirectTo = `/admin/segnalazioni/${encodeURIComponent(publicCode)}`;
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    await new AddInternalReportNoteUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db)
+    }).execute({
+      publicCode,
+      note: getRequiredString(formData, "internalNote"),
+      actorAdminId: activeAdmin.id,
+      actorAdminEmail: activeAdmin.email
+    });
+
+    revalidateReportPaths(publicCode);
+    redirectTo = `${redirectTo}?operational=note-added`;
+  } catch (error) {
+    redirectTo = `${redirectTo}?operationalError=${encodeURIComponent(mapOperationalErrorToMessage(error))}`;
   } finally {
     await connection?.close();
   }
@@ -445,6 +503,19 @@ function mapDuplicateErrorToCode(error: unknown): string {
 
   console.error("Unable to update duplicate link", error);
   return "generic";
+}
+
+function mapOperationalErrorToMessage(error: unknown): string {
+  if (error instanceof ReportCategoryChangeError || error instanceof ReportInternalNoteError) {
+    return error.message;
+  }
+
+  if (error instanceof ReportOperationalNotFoundError) {
+    return "Segnalazione non trovata.";
+  }
+
+  console.error("Unable to update operational registry", error);
+  return "Non e stato possibile aggiornare il registro operativo. Riprova.";
 }
 
 function mapReportAttachmentActionError(error: unknown): string {

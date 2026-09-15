@@ -31,14 +31,19 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
       <div className="mx-auto grid w-full max-w-6xl gap-8">
-        <section className="grid gap-3">
-          <Link className="text-sm font-semibold text-primary hover:underline" href="/admin">
-            ← Torna al backoffice
+        <section className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
+          <div className="grid gap-3">
+            <Link className="text-sm font-semibold text-primary hover:underline" href="/admin">
+              ← Torna al backoffice
+            </Link>
+            <h1 className="font-serif text-4xl font-semibold tracking-normal">Segnalazioni</h1>
+            <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+              La vista privilegia le segnalazioni da verificare. Usa i filtri solo per controllare quelle gia moderate.
+            </p>
+          </div>
+          <Link className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:w-auto" href="/admin/segnalazioni/nuova">
+            Nuova segnalazione
           </Link>
-          <h1 className="font-serif text-4xl font-semibold tracking-normal">Segnalazioni</h1>
-          <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-            La vista privilegia le segnalazioni da verificare. Usa i filtri solo per controllare quelle gia moderate.
-          </p>
         </section>
 
         <nav aria-label="Filtri segnalazioni" className="flex flex-wrap gap-2">

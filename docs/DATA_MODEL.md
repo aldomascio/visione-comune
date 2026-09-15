@@ -9,6 +9,8 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - title
 - description
 - categoryId
+- source
+- createdByAdminId
 - latitude
 - longitude
 - address
@@ -18,6 +20,16 @@ Modello concettuale. Non è ancora uno schema ORM definitivo.
 - publishedAt
 - communicatedAt
 - resolvedAt
+
+Note implementative MVP:
+
+- `source` indica il canale di origine della segnalazione e supporta `platform`, `social`, `email`, `direct`, `other`.
+- `source = platform` e il default per le segnalazioni create dal form pubblico `/segnala`.
+- le segnalazioni create manualmente da admin devono valorizzare esplicitamente la fonte e nascono comunque `pending_review`, senza pubblicazione automatica.
+- la fonte e informazione operativa/admin: non viene richiesta al cittadino e non viene mostrata nelle viste pubbliche MVP.
+- `createdByAdminId` e nullable, referenzia `admin_users.id` con `ON DELETE SET NULL` ed e valorizzato solo per segnalazioni create manualmente dal backoffice.
+- report creati dal form pubblico hanno `createdByAdminId = null`.
+- `createdByAdminId` e dato di audit interno: puo essere mostrato nel dettaglio admin, ma non deve essere esposto nelle viste pubbliche.
 
 ## ReportAttachment
 
@@ -69,7 +81,7 @@ Note implementative MVP:
 - `createdAt` e `id` definiscono l'ordinamento stabile della timeline: `createdAt ASC`, poi `id ASC`.
 - `metadata` puo contenere dati operativi interni legati all'evento. Di default i metadata sono considerati non pubblici.
 - In VC-006 la nota opzionale di rifiuto viene salvata come `metadata.internalNote` sull'evento interno `ReportRejected`.
-- Chiavi metadata previste per evoluzioni future: `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`.
+- Chiavi metadata previste: `source`, `createdByAdminId`, `recipientName`, `recipientOrganization`, `recipientAddress`, `communicationChannel`, `externalMessageId`, `internalNote`.
 - Le note salvate negli eventi interni non devono essere esposte nelle viste pubbliche.
 - In VC-015 gli eventi `CommunicationRecorded`, `CommunicationSent`, `CommunicationDelivered` e `CommunicationFailed` sono interni. L'unico evento pubblico collegato alla comunicazione resta `ReportCommunicated`.
 - Eventi futuri previsti ma non implementati: `ReplyReceived`, `ReminderSent`. La loro introduzione richiedera aggiornamento enum e migration.
@@ -124,6 +136,7 @@ Note implementative MVP:
 - la coppia `(categoryId, recipientId)` e univoca.
 - `sortOrder = 0` indica il destinatario principale/preferenziale per la categoria.
 - categorie o destinatari disattivati non cancellano automaticamente le associazioni.
+- non esiste una colonna PEC su `categories`: gli indirizzi email/PEC restano su `recipients` e vengono collegati tramite questa matrice.
 
 ## AdminUser
 

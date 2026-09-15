@@ -37,6 +37,8 @@ describe("report mapper", () => {
       title: "Buche in strada",
       description: "Sono presenti buche profonde vicino alla scuola.",
       categoryId: "roads",
+      source: "platform",
+      createdByAdminId: null,
       latitude: 41.4821,
       longitude: 14.0474,
       address: "Via Roma",
@@ -70,6 +72,8 @@ describe("report mapper", () => {
       title: "Buche in strada",
       description: "Sono presenti buche profonde vicino alla scuola.",
       categoryId: "roads",
+      source: "platform",
+      createdByAdminId: null,
       latitude: 41.4821,
       longitude: 14.0474,
       address: null,
@@ -87,6 +91,7 @@ describe("report mapper", () => {
       title: "Buche in strada",
       description: "Sono presenti buche profonde vicino alla scuola.",
       categoryId: "roads",
+      source: "platform",
       location: {
         latitude: 41.4821,
         longitude: 14.0474
@@ -111,7 +116,7 @@ describe("report mapper", () => {
       type: "ReportCreated",
       visibility: "internal",
       publicStatus: null,
-      metadata: null,
+      metadata: { source: "platform" },
       createdAt
     });
     expect(record.id.length).toBeGreaterThan(0);

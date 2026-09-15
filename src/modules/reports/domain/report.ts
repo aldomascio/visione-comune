@@ -6,6 +6,7 @@ import {
 import { Location, type LocationSnapshot } from "./location";
 import { PublicCode } from "./public-code";
 import type { ReportDomainEvent } from "./report-events";
+import type { ReportSource } from "./report-source";
 import type { ModerationStatus, PublicReportStatus } from "./report-status";
 
 export type ReportId = string;
@@ -17,6 +18,8 @@ export type ReportSnapshot = {
   title: string;
   description: string;
   categoryId: CategoryId;
+  source: ReportSource;
+  createdByAdminId?: string;
   location: LocationSnapshot;
   publicStatus?: PublicReportStatus;
   moderationStatus: ModerationStatus;
@@ -32,6 +35,8 @@ export type CreateReportInput = {
   title: string;
   description: string;
   categoryId: CategoryId;
+  source?: ReportSource;
+  createdByAdminId?: string;
   location: Location;
   createdAt?: Date;
 };
@@ -53,6 +58,8 @@ export class Report {
         title: requireText(input.title, "Report title"),
         description: requireText(input.description, "Report description"),
         categoryId: requireText(input.categoryId, "Report category"),
+        source: input.source ?? "platform",
+        ...(input.createdByAdminId ? { createdByAdminId: requireText(input.createdByAdminId, "Report creator admin id") } : {}),
         location: input.location.toSnapshot(),
         moderationStatus: "pending_review",
         createdAt
@@ -62,7 +69,11 @@ export class Report {
           type: "ReportCreated",
           reportId: input.id,
           occurredAt: createdAt,
-          visibility: "internal"
+          visibility: "internal",
+          metadata: {
+            source: input.source ?? "platform",
+            ...(input.createdByAdminId ? { createdByAdminId: input.createdByAdminId } : {})
+          }
         }
       ]
     );
@@ -76,6 +87,8 @@ export class Report {
       title: requireText(snapshot.title, "Report title"),
       description: requireText(snapshot.description, "Report description"),
       categoryId: requireText(snapshot.categoryId, "Report category"),
+      source: snapshot.source,
+      ...(snapshot.createdByAdminId ? { createdByAdminId: requireText(snapshot.createdByAdminId, "Report creator admin id") } : {}),
       publicCode: PublicCode.create(snapshot.publicCode).toString(),
       location: Location.create(snapshot.location).toSnapshot()
     });

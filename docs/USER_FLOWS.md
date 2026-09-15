@@ -15,8 +15,9 @@
    - permette di continuare se il problema è diverso.
 8. L'utente invia.
 9. Il sistema genera un codice univoco.
-10. La segnalazione entra nello stato interno `Da verificare`.
+10. La segnalazione entra nello stato interno `Da verificare` con fonte interna `platform`.
 11. L'utente visualizza e può copiare il codice.
+12. Il cittadino non vede e non sceglie la fonte della segnalazione.
 
 ## FLOW-002 — Moderazione
 
@@ -73,3 +74,20 @@
 4. Se la segnalazione e approvata, mostra la scheda pubblica con stato e timeline pubblica.
 5. La timeline pubblica mostra solo eventi pubblici con label, descrizione e data comprensibili.
 6. Se la segnalazione e rifiutata, mostra un messaggio generico di mancata pubblicazione senza note interne o motivazioni operative.
+## FLOW-007 — Creazione manuale admin
+
+1. L'amministratore autenticato apre `/admin/segnalazioni/nuova`.
+2. Seleziona categoria e fonte della segnalazione tra `Segnalazione diretta`, `Social`, `Email`, `Altro` o `Piattaforma`.
+3. Indica posizione e descrizione usando gli stessi vincoli del report pubblico.
+4. Può allegare una foto opzionale se disponibile.
+5. Il sistema genera un codice pubblico e registra la segnalazione come `Da verificare`.
+6. Il sistema associa internamente la segnalazione all'admin autenticato che l'ha creata.
+7. La segnalazione non viene approvata automaticamente e deve passare dal normale flusso di moderazione.
+8. Il dettaglio admin mostra fonte e audit di creazione; le pagine pubbliche non li espongono.
+
+## FLOW-008 — Pre-filtro automatico futuro
+
+1. Prima della creazione o della moderazione, il sistema potra applicare controlli automatici leggeri su problemi oggettivi.
+2. Il pre-filtro potra chiedere correzioni o bloccare casi tecnici evidenti, come file non validi, spam manifesto, linguaggio palesemente volgare o duplicati evidenti secondo regole gia definite.
+3. Se il contenuto supera il pre-filtro, entra comunque in `Da verificare`.
+4. La validita sostanziale, la pertinenza e il rischio di uso strumentale restano valutati da Visione Comune tramite moderazione umana.

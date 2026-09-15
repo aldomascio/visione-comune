@@ -271,3 +271,90 @@
     text-underline-offset: 0.25rem;
   }
 }
+
+@layer components {
+  .public-map-marker {
+    --public-map-marker-bg: var(--primary);
+    --public-map-marker-fg: var(--primary-foreground);
+    --public-map-marker-border: var(--background);
+    align-items: center;
+    appearance: none;
+    background: var(--public-map-marker-bg);
+    border: 2px solid var(--public-map-marker-border);
+    border-radius: 9999px;
+    box-shadow: var(--shadow-md);
+    color: var(--public-map-marker-fg);
+    display: inline-flex;
+    height: 1.35rem;
+    justify-content: center;
+    padding: 0;
+    transition: box-shadow 150ms ease;
+    width: 1.35rem;
+  }
+
+  .public-map-marker:hover,
+  .public-map-marker:focus-visible {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent), var(--shadow-lg);
+  }
+
+  .public-map-marker:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  .public-map-marker__dot {
+    background: currentColor;
+    border-radius: 9999px;
+    display: block;
+    height: 0.38rem;
+    width: 0.38rem;
+  }
+
+  .public-map-marker--category-primary {
+    --public-map-marker-bg: var(--primary);
+    --public-map-marker-fg: var(--primary-foreground);
+    --public-map-marker-border: var(--background);
+  }
+
+  .public-map-marker--category-foreground {
+    --public-map-marker-bg: var(--foreground);
+    --public-map-marker-fg: var(--background);
+    --public-map-marker-border: var(--background);
+  }
+
+  .public-map-marker--category-accent {
+    --public-map-marker-bg: var(--accent);
+    --public-map-marker-fg: var(--accent-foreground);
+    --public-map-marker-border: var(--background);
+  }
+
+  .public-map-marker--category-muted {
+    --public-map-marker-bg: var(--muted);
+    --public-map-marker-fg: var(--foreground);
+    --public-map-marker-border: var(--foreground);
+  }
+
+  .public-map-popup .maplibregl-popup-content {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    color: var(--foreground);
+    padding: 0.85rem;
+  }
+
+  .public-map-popup .maplibregl-popup-tip {
+    border-top-color: var(--background);
+  }
+
+  .public-map-popup .maplibregl-popup-close-button {
+    color: var(--muted-foreground);
+    font-size: 1.25rem;
+    padding: 0.25rem 0.45rem;
+  }
+
+  .public-map-popup .maplibregl-popup-close-button:hover,
+  .public-map-popup .maplibregl-popup-close-button:focus-visible {
+    color: var(--foreground);
+  }
+}

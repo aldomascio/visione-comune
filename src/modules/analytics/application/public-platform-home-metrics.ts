@@ -29,7 +29,7 @@ export function buildHomePublicMetricCards(metrics: PublicPlatformMetrics): Home
     },
     {
       key: "totalConfirmations",
-      label: "Conferme cittadine",
+      label: "Conferme ricevute",
       value: formatInteger(metrics.totalConfirmations),
       hint: "Conferme aggregate, senza dati personali pubblici."
     },

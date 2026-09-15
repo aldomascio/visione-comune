@@ -18,6 +18,7 @@ import {
 } from "./report-repository";
 import type { PublicCodeGenerator } from "./public-code-generator";
 import {
+  CreateAdminReportUseCase,
   CreateReportUseCase,
   CreateReportValidationError,
   PublicCodeGenerationExhaustedError,
@@ -54,13 +55,60 @@ describe("CreateReportUseCase", () => {
       publicCode: "VC-23456789",
       title: "Strade e marciapiedi: Via Roma, Venafro",
       categoryId: "test-roads",
+      source: "platform",
       moderationStatus: "pending_review",
       createdAt: new Date("2026-01-01T10:00:00.000Z")
     });
+    expect(reportRepository.savedReports[0]?.toSnapshot().createdByAdminId).toBeUndefined();
     expect(reportRepository.savedReports[0]?.toSnapshot().publicStatus).toBeUndefined();
-    expect(reportRepository.savedEvents.map((event) => event.type)).toEqual([
-      "ReportCreated"
+    expect(reportRepository.savedEvents).toMatchObject([
+      {
+        type: "ReportCreated",
+        metadata: { source: "platform" }
+      }
     ]);
+  });
+
+  it("creates an admin report with the selected source as pending review", async () => {
+    const reportRepository = new InMemoryReportRepository();
+    const useCase = createAdminUseCase({ reportRepository });
+
+    const result = await useCase.execute({ ...createValidInput(), source: "social", createdByAdminId: "admin-1" });
+
+    expect(result).toEqual({ reportId: "report-1", publicCode: "VC-23456789" });
+    expect(reportRepository.savedReports[0]?.toSnapshot()).toMatchObject({
+      source: "social",
+      createdByAdminId: "admin-1",
+      moderationStatus: "pending_review"
+    });
+    expect(reportRepository.savedReports[0]?.toSnapshot().publicStatus).toBeUndefined();
+    expect(reportRepository.savedEvents).toMatchObject([
+      {
+        type: "ReportCreated",
+        visibility: "internal",
+        metadata: { source: "social", createdByAdminId: "admin-1" }
+      }
+    ]);
+  });
+
+  it("rejects invalid admin report source", async () => {
+    const useCase = createAdminUseCase();
+
+    await expect(useCase.execute({ ...createValidInput(), source: "fax", createdByAdminId: "admin-1" })).rejects.toMatchObject({
+      fieldErrors: {
+        source: "Seleziona una fonte valida."
+      }
+    });
+  });
+
+  it("rejects admin report creation without a server-side admin id", async () => {
+    const useCase = createAdminUseCase();
+
+    await expect(useCase.execute({ ...createValidInput(), source: "email", createdByAdminId: " " })).rejects.toMatchObject({
+      fieldErrors: {
+        createdByAdminId: "Identita amministratore non disponibile."
+      }
+    });
   });
 
 
@@ -221,6 +269,20 @@ function createUseCase(overrides: Partial<CreateReportUseCaseDependenciesForTest
   });
 }
 
+
+function createAdminUseCase(overrides: Partial<CreateReportUseCaseDependenciesForTest> = {}) {
+  return new CreateAdminReportUseCase({
+    reportRepository: overrides.reportRepository ?? new InMemoryReportRepository(),
+    categoryRepository: overrides.categoryRepository ?? new FakeCategoryRepository(category),
+    publicCodeGenerator:
+      overrides.publicCodeGenerator ?? new SequencePublicCodeGenerator(["VC-23456789"]),
+    now: () => new Date("2026-01-01T10:00:00.000Z"),
+    createId: overrides.createId?.next ?? new SequenceIdGenerator(["report-1"]).next,
+    maxPublicCodeRetries: overrides.maxPublicCodeRetries,
+    storageProvider: overrides.storageProvider
+  });
+}
+
 type CreateReportUseCaseDependenciesForTest = {
   reportRepository: ReportRepository;
   categoryRepository: CategoryRepository;
@@ -336,6 +398,7 @@ class InMemoryReportRepository implements ReportRepository {
           categoryName: "Categoria test",
           createdAt: snapshot.createdAt,
           moderationStatus: snapshot.moderationStatus,
+          source: snapshot.source,
           ...(snapshot.location.address ? { address: snapshot.location.address } : {})
         };
       });

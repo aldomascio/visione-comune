@@ -64,6 +64,20 @@
       "when": 1789312289415,
       "tag": "0008_fluffy_wildside",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789407279462,
+      "tag": "0009_chilly_demogoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789453663963,
+      "tag": "0010_blue_gauntlet",
+      "breakpoints": true
     }
   ]
 }

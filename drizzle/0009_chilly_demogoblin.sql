@@ -1,0 +1,2 @@
+CREATE TYPE "public"."report_source" AS ENUM('platform', 'social', 'email', 'direct', 'other');--> statement-breakpoint
+ALTER TABLE "reports" ADD COLUMN "source" "report_source" DEFAULT 'platform' NOT NULL;

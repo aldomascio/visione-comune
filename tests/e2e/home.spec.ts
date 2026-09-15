@@ -56,7 +56,7 @@ test("public home shows public metrics, latest published news and recent resolve
   await expect(page.getByTestId("home-metric-published")).toContainText("Segnalazioni pubblicate");
   await expect(page.getByTestId("home-metric-communicated")).toContainText("Comunicate agli enti");
   await expect(page.getByTestId("home-metric-resolved")).toContainText("Problemi risolti");
-  await expect(page.getByTestId("home-metric-totalConfirmations")).toContainText("Conferme cittadine");
+  await expect(page.getByTestId("home-metric-totalConfirmations")).toContainText("Conferme ricevute");
   await expect(page.getByTestId("home-metric-resolutionRate")).toContainText("Tasso di risoluzione");
 
   await expect(main.getByRole("heading", { name: "Notizia Home E2E pubblicata" })).toBeVisible();
@@ -66,7 +66,9 @@ test("public home shows public metrics, latest published news and recent resolve
 
   await page.goto("/");
   await expect(main.getByRole("heading", { name: "Segnalazione Home E2E risolta" })).toBeVisible();
-  await main.getByRole("link", { name: "Apri scheda pubblica" }).click();
+  await main
+    .getByRole("link", { name: /Segnalazione Home E2E risolta/ })
+    .click();
   await expect(page).toHaveURL(/\/segnalazioni\/VC-E2EHM4CC$/);
 });
 

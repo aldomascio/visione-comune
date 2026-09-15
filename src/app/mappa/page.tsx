@@ -15,7 +15,7 @@ export default async function PublicMapPage() {
       <div className="mx-auto grid w-full max-w-6xl gap-8">
         <section className="grid gap-3">
           <Link className="text-sm font-semibold text-primary hover:underline" href="/">
-            ← Torna alla home tecnica
+            ← Torna alla home
           </Link>
           <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="grid gap-3">

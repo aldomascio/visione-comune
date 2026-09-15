@@ -130,7 +130,7 @@ export default async function AdminPage() {
             <MetricCard label="Comunicate" value={metrics.counts.communicated} hint="Include anche quelle risolte." testId="communicated" />
             <MetricCard label="Risolte" value={metrics.counts.resolved} hint="Verificate come risolte." testId="resolved" />
             <MetricCard label="Rifiutate" value={metrics.counts.rejected} hint="Non pubblicate dopo moderazione." testId="rejected" />
-            <MetricCard label="Conferme totali" value={metrics.counts.totalConfirmations} hint="Conferme cittadine aggregate." testId="total-confirmations" />
+            <MetricCard label="Conferme totali" value={metrics.counts.totalConfirmations} hint="Conferme aggregate, senza dati personali pubblici." testId="total-confirmations" />
             <MetricCard
               label="Tasso di risoluzione"
               value={formatPercentage(metrics.resolutionRate.percentage)}

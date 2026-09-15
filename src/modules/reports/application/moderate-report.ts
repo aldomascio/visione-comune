@@ -3,7 +3,8 @@ import {
   InvalidPublicCodeError,
   InvalidReportTransitionError,
   PublicCode,
-  type ReportDomainEvent
+  type ReportDomainEvent,
+  type ReportSource
 } from "../domain";
 import {
   ConcurrentReportModerationError,
@@ -25,11 +26,13 @@ export type ModerationReportDetail = {
     address?: string;
   };
   moderationStatus: "pending_review" | "approved" | "rejected";
+  source: ReportSource;
   publicStatus?: "reported" | "communicated" | "resolved";
   createdAt: Date;
   publishedAt?: Date;
   communicatedAt?: Date;
   resolvedAt?: Date;
+  createdByAdmin?: { id: string; email: string };
   attachment?: { url: string; mimeType: string; size: number };
 };
 
@@ -115,13 +118,18 @@ export class GetReportForModerationUseCase {
     }
 
     const snapshot = report.toSnapshot();
-    const category = await this.dependencies.categoryRepository.findById(snapshot.categoryId);
-
-    const attachment = await this.dependencies.reportRepository.findAttachmentForModeration(publicCode);
+    const [category, attachment, createdByAdmin] = await Promise.all([
+      this.dependencies.categoryRepository.findById(snapshot.categoryId),
+      this.dependencies.reportRepository.findAttachmentForModeration(publicCode),
+      snapshot.createdByAdminId && this.dependencies.reportRepository.findAdminCreatorByReportId
+        ? this.dependencies.reportRepository.findAdminCreatorByReportId(snapshot.id)
+        : Promise.resolve(null)
+    ]);
 
     return {
       ...snapshot,
       categoryName: category?.name ?? snapshot.categoryId,
+      ...(createdByAdmin ? { createdByAdmin } : {}),
       ...(attachment
         ? {
             attachment: {

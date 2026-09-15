@@ -48,8 +48,11 @@ test("submits an anonymous report from an address suggestion and shows the publi
   await expect(readReportLocation(publicCode)).resolves.toEqual({
     address: "Via Roma, Venafro, Molise, Italia",
     latitude: 41.4821,
-    longitude: 14.0474
+    longitude: 14.0474,
+    source: "platform",
+    createdByAdminId: null
   });
+  await expect(page.getByLabel("Fonte")).toHaveCount(0);
 });
 
 test("continues when geolocation permission is denied and the user selects the map", async ({ page }) => {
@@ -192,6 +195,8 @@ test("submits a report with a photo, shows it to admin, then publishes it", asyn
   await page.goto(`/segnalazioni/${publicCode}`);
   await expect(page.getByAltText(`Foto della segnalazione ${publicCode}`)).toBeVisible();
   await expect(page.locator("body")).not.toContainText(".local-storage");
+  await expect(page.getByText("Creato da")).toHaveCount(0);
+  await expect(page.getByText(adminEmail)).toHaveCount(0);
 });
 
 test("rejects an invalid photo without creating a successful report", async ({ page }) => {
@@ -274,17 +279,23 @@ async function clickLocationMap(page: Page): Promise<void> {
   await expect(page.getByText(/Posizione confermata/)).toBeVisible();
 }
 
-async function readReportLocation(publicCode: string): Promise<{ address: string | null; latitude: number; longitude: number }> {
+async function readReportLocation(publicCode: string): Promise<{ address: string | null; latitude: number; longitude: number; source: string; createdByAdminId: string | null }> {
   return withDatabase(async (sql) => {
-    const [row] = await sql<{ address: string | null; latitude: number; longitude: number }[]>`
-      select address, latitude, longitude from reports where public_code = ${publicCode}
+    const [row] = await sql<{ address: string | null; latitude: number; longitude: number; source: string; created_by_admin_id: string | null }[]>`
+      select address, latitude, longitude, source, created_by_admin_id from reports where public_code = ${publicCode}
     `;
 
     if (!row) {
       throw new Error(`Report not found for ${publicCode}`);
     }
 
-    return row;
+    return {
+      address: row.address,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      source: row.source,
+      createdByAdminId: row.created_by_admin_id
+    };
   });
 }
 

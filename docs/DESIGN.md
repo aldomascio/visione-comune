@@ -229,3 +229,24 @@ La Home e organizzata in sezioni leggere e server-rendered:
 - ultimi problemi risolti quando disponibili.
 
 La Home non introduce immagini stock, animazioni complesse, caroselli o contenuti politici. Gli stati vuoti restano visibili con card informative e non mostrano valori non validi.
+
+### Refinement UI mappa pubblica
+
+MAP-REFINEMENT aggiorna la mappa pubblica senza cambiare query, criteri di pubblicazione o business rule.
+
+La mappa non usa lo stato come criterio visivo principale dei marker e non mostra una legenda per stato. Lo stato resta leggibile nel popup, nella lista accessibile e nei filtri.
+
+Le segnalazioni `Risolta` restano accessibili, ma non vengono mostrate di default: il filtro iniziale mostra `Segnalate e comunicate`; l'utente puo scegliere `Risolta` o `Tutti gli stati` per includerle.
+
+Mapping token categoria-marker:
+
+- prima categoria: marker pieno con `primary`, dot `primary-foreground`, bordo `background`;
+- seconda categoria: marker pieno con `foreground`, dot `background`, bordo `background`;
+- terza categoria: marker pieno con `accent`, dot `accent-foreground`, bordo `background`;
+- quarta categoria: marker pieno con `muted`, dot `foreground`, bordo `foreground`.
+
+Se le categorie sono piu di quattro, gli stessi stili ruotano. Questo mantiene una distinzione visiva leggera per categoria usando solo token gia definiti dal tema, senza introdurre colori hardcoded.
+
+I marker sono elementi focusabili e cliccabili con `aria-label`; hover, focus e selezione usano `ring` e ombra del tema. I popup usano `background`, `foreground`, `border`, `muted-foreground` e `primary`; categoria e stato sono sempre mostrati insieme.
+
+Il clustering non e stato introdotto in questa iterazione: il dataset attuale e ancora leggibile con marker semplici, filtri e lista accessibile. Resta un miglioramento futuro se la densita delle segnalazioni cresce.

@@ -195,6 +195,7 @@ class InMemoryReportRepository implements ReportRepository {
           categoryName: "Categoria test",
           createdAt: snapshot.createdAt,
           moderationStatus: snapshot.moderationStatus,
+          source: snapshot.source,
           ...(snapshot.location.address ? { address: snapshot.location.address } : {})
         };
       });

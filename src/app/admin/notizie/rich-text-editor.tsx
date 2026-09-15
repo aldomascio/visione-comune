@@ -46,7 +46,8 @@ export function RichTextEditor({ describedBy, initialValue, inputName, invalid =
         codeBlock: false,
         hardBreak: false,
         heading: { levels: [2, 3] },
-        horizontalRule: false
+        horizontalRule: false,
+        link: false
       }),
       LinkExtension.configure({
         autolink: false,

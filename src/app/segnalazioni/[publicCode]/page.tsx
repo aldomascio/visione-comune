@@ -87,9 +87,9 @@ export default async function PublicReportPage({ params }: PublicReportPageProps
           <div className="grid gap-6">
             <Card id="conferma">
               <CardHeader>
-                <CardTitle>Conferme dei cittadini</CardTitle>
+                <CardTitle>Conferme ricevute</CardTitle>
                 <CardDescription>
-                  La conferma indica che un altro cittadino ha riscontrato lo stesso problema. Non e un voto e non abilita commenti.
+                  La conferma indica che lo stesso problema e stato riscontrato anche da altri. Non e un voto e non abilita commenti.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -167,14 +167,14 @@ async function getPublicReportPageData(publicCode: string) {
 
 function formatConfirmationCount(count: number): string {
   if (count === 0) {
-    return "Nessuna conferma aggiuntiva";
+    return "Nessuna conferma ricevuta";
   }
 
   if (count === 1) {
-    return "1 cittadino ha riscontrato questo problema";
+    return "1 conferma ricevuta";
   }
 
-  return `${count} cittadini hanno riscontrato questo problema`;
+  return `${count} conferme ricevute`;
 }
 
 function InfoBlock({ label, value }: { label: string; value: string }) {

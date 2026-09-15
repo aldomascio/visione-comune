@@ -41,10 +41,12 @@ describe("Report domain", () => {
       title: "Buche in strada",
       description: "Sono presenti buche profonde vicino alla scuola.",
       categoryId: "roads",
+      source: "platform",
       moderationStatus: "pending_review",
       createdAt
     });
     expect(report.toSnapshot().publicStatus).toBeUndefined();
+    expect(report.toSnapshot().createdByAdminId).toBeUndefined();
     expect(report.toSnapshot().publishedAt).toBeUndefined();
     expect(report.isPublic()).toBe(false);
   });
@@ -57,10 +59,42 @@ describe("Report domain", () => {
         type: "ReportCreated",
         reportId: "report-1",
         occurredAt: createdAt,
-        visibility: "internal"
+        visibility: "internal",
+        metadata: { source: "platform" }
       }
     ]);
     expect(report.pullDomainEvents()).toEqual([]);
+  });
+
+  it("preserves the admin creator id for manually created reports", () => {
+    const report = Report.create({
+      id: "report-1",
+      publicCode: PublicCode.create("VC-ABC12345"),
+      title: "Buche in strada",
+      description: "Sono presenti buche profonde vicino alla scuola.",
+      categoryId: "roads",
+      source: "email",
+      createdByAdminId: "admin-1",
+      location: Location.create({
+        latitude: 41.4821,
+        longitude: 14.0474,
+        address: "Via Roma, Venafro"
+      }),
+      createdAt
+    });
+
+    expect(report.toSnapshot()).toMatchObject({
+      source: "email",
+      createdByAdminId: "admin-1",
+      moderationStatus: "pending_review"
+    });
+    expect(report.pullDomainEvents()).toMatchObject([
+      {
+        type: "ReportCreated",
+        visibility: "internal",
+        metadata: { source: "email", createdByAdminId: "admin-1" }
+      }
+    ]);
   });
 
   it("approves a pending report and publishes it as Segnalata", () => {
@@ -190,6 +224,7 @@ describe("Report domain", () => {
       title: "Lampione spento",
       description: "Il lampione non funziona da giorni.",
       categoryId: "lighting",
+      source: "platform",
       location: {
         latitude: 41,
         longitude: 14
@@ -213,6 +248,7 @@ describe("Report domain", () => {
         title: "Lampione spento",
         description: "Il lampione non funziona da giorni.",
         categoryId: "lighting",
+        source: "platform",
         location: {
           latitude: 41,
           longitude: 14

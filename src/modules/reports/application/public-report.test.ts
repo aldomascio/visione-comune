@@ -157,7 +157,8 @@ class InMemoryPublicReportRepository implements ReportRepository {
           title: snapshot.title,
           categoryName: "Categoria test",
           createdAt: snapshot.createdAt,
-          moderationStatus: snapshot.moderationStatus
+          moderationStatus: snapshot.moderationStatus,
+          source: snapshot.source
         };
       });
   }

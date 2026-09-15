@@ -348,6 +348,72 @@ serve formattazione editoriale minima senza introdurre CMS esterni, Markdown amb
 Conseguenza:
 sono consentiti solo paragrafi, H2, H3, grassetto, corsivo, link, elenchi puntati/numerati, blockquote, undo e redo. Non sono consentiti tabelle, media inline, embed, iframe, code block, HTML raw o plugin AI. I link vengono validati e il rendering pubblico usa componenti React basati sui nodi consentiti, senza `dangerouslySetInnerHTML`. I contenuti testuali gia presenti vengono convertiti dalla migration in paragrafi Tiptap validi.
 
+### ADR-039 — Fonte segnalazione e creazione manuale admin
+
+Decisione:
+le segnalazioni hanno una fonte operativa persistita in `reports.source`, con valori `platform`, `social`, `email`, `direct` e `other`. Il form pubblico `/segnala` usa sempre `platform`; il backoffice puo creare segnalazioni manuali scegliendo la fonte.
+
+Motivo:
+Visione Comune puo ricevere problemi anche fuori dalla piattaforma, ad esempio via email, social o contatto diretto. La fonte serve al lavoro interno e alle future metriche operative senza chiedere dati aggiuntivi al cittadino.
+
+Conseguenza:
+le segnalazioni manuali admin nascono `pending_review`, ricevono un codice pubblico e seguono lo stesso flusso di moderazione delle segnalazioni pubbliche. La fonte e visibile nel dettaglio admin, ma non viene esposta nelle viste pubbliche MVP.
+
+### ADR-040 — Audit admin nella creazione manuale
+
+Decisione:
+le segnalazioni create manualmente dal backoffice valorizzano `reports.createdByAdminId` con l'id dell'admin autenticato letto server-side. Le segnalazioni create da `/segnala` mantengono `createdByAdminId = null`.
+
+Motivo:
+serve un audit interno minimo per distinguere i report inseriti da Visione Comune dai report ricevuti direttamente dalla piattaforma, senza esporre dati admin al pubblico.
+
+Conseguenza:
+il client non puo scegliere o inviare l'identita dell'admin creatore. Il dettaglio admin mostra il creatore quando disponibile; le viste pubbliche non selezionano e non mostrano questo dato. La FK usa `ON DELETE SET NULL` per preservare i report se un admin viene rimosso.
+
+### ADR-041 — Moderazione manuale sempre obbligatoria
+
+Decisione:
+ogni segnalazione deve essere verificata e approvata manualmente da Visione Comune prima della pubblicazione. Questo vale anche quando supera controlli automatici, arriva da un canale conosciuto o viene creata manualmente da admin.
+
+Motivo:
+la verifica umana serve a valutare realta, pertinenza e possibile uso strumentale della segnalazione, aspetti che non devono essere decisi automaticamente nell'MVP.
+
+Conseguenza:
+il sistema puo aiutare con controlli tecnici e suggerimenti, ma non pubblica autonomamente report e non introduce decisioni automatiche sulla validita sostanziale.
+
+### ADR-042 — Pre-filtro automatico leggero futuro
+
+Decisione:
+in futuro potra esistere un layer automatico precedente alla moderazione manuale per problemi oggettivi: linguaggio palesemente volgare, contenuto manifestamente invalido, spam evidente, file non validi, limiti tecnici o duplicati evidenti secondo regole gia definite.
+
+Motivo:
+il pre-filtro riduce rumore operativo e richieste tecnicamente invalide senza trasformarsi in moderazione sostanziale automatica.
+
+Conseguenza:
+il principio e `pre-filtro automatico per problemi oggettivi, moderazione umana per la validita sostanziale`. La task P0-01B documenta la decisione ma non implementa anti-spam o nuovi filtri.
+
+### ADR-043 — Macro-categorie semplici e routing tramite matrice destinatari
+
+Decisione:
+il team preferisce poche macro-categorie semplici, comprensibili al cittadino e operative. Il modello `categories` resta piatto; non viene introdotta ora una gerarchia macro-categoria/subcategoria. I destinatari competenti e i relativi indirizzi email/PEC si associano tramite `Category → category_recipients → Recipient`.
+
+Motivo:
+evita una tassonomia troppo granulare nel form pubblico e impedisce di duplicare indirizzi PEC sulle categorie. La stessa categoria puo essere collegata a uno o piu enti/uffici con un destinatario preferito tramite `sortOrder`.
+
+Conseguenza:
+non si aggiunge una colonna PEC a `categories`. Eventuali dettagli piu fini potranno essere gestiti internamente in futuro senza complicare subito l'esperienza del cittadino.
+
+### ADR-044 — Trasmissioni aggregate e anti-spam verso gli enti
+
+Decisione:
+la direzione operativa condivisa e non inviare una PEC/email per ogni singola segnalazione. Il modello futuro deve supportare trasmissioni aggregate per destinatario, con criteri configurabili come invio periodico, soglia numerica o invio manuale anticipato per casi particolari.
+
+Motivo:
+Visione Comune deve mantenere tracciabilita delle singole segnalazioni, ma anche evitare spam verso Comune o altri enti e rendere sostenibile la gestione per operatori e destinatari.
+
+Conseguenza:
+non vengono fissati ora giorno della settimana, soglia numerica o automatismo definitivo. Transmission resta fuori scope di P0-01B e dovra essere progettata in una task dedicata.
+
 ## DA DEFINIRE
 
 ### D-003 — Storage immagini produzione

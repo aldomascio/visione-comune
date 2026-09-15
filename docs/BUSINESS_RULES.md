@@ -64,3 +64,11 @@ Le integrazioni esterne devono poter essere sostituite senza riscrivere il core 
 
 ### BR-020
 Il sistema deve essere progettato per partire con infrastruttura minima e scalare successivamente.
+### BR-021
+Ogni segnalazione deve essere verificata e approvata manualmente da Visione Comune prima della pubblicazione, anche se supera controlli automatici, arriva da un canale conosciuto o viene creata manualmente da un amministratore.
+
+### BR-022
+I controlli automatici possono bloccare o chiedere correzioni solo per problemi oggettivi precedenti alla moderazione, come contenuti tecnicamente invalidi, spam evidente, file non validi o duplicati evidenti secondo regole definite. Non devono sostituire la valutazione umana sulla validita sostanziale della segnalazione.
+
+### BR-023
+La piattaforma deve evitare di generare un volume eccessivo di PEC/email verso Comune o altri enti, mantenendo tracciabilita delle singole segnalazioni e aggregando le comunicazioni quando opportuno.

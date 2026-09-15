@@ -103,7 +103,7 @@ export function ReportForm({ categories, mapConfig }: ReportFormProps) {
           {visibleFieldErrors.length > 0 ? (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
               {visibleFieldErrors.map((fieldError) => (
-                <li key={fieldError.fieldId}>
+                <li key={fieldError.key}>
                   <a className="underline underline-offset-2" href={`#${fieldError.fieldId}`}>
                     {fieldError.label}: {fieldError.message}
                   </a>
@@ -362,6 +362,7 @@ function getVisibleFieldErrors(
     .filter((entry): entry is [keyof typeof labels, string] => Boolean(entry[1]))
     .map(([fieldName, message]) => ({
       ...labels[fieldName],
+      key: fieldName,
       message
     }));
 }

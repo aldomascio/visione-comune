@@ -16,6 +16,7 @@ import {
   ReportForModerationNotFoundError
 } from "@/modules/reports/application/moderate-report";
 import { GetAdminReportTimelineUseCase, type AdminTimelineItem } from "@/modules/reports/application/report-timeline";
+import { REPORT_SOURCE_LABELS } from "@/modules/reports/domain";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
@@ -92,6 +93,8 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
 
               <section className="grid gap-4 sm:grid-cols-2">
                 <InfoBlock label="Categoria" value={report.categoryName ?? report.categoryId} />
+                <InfoBlock label="Fonte" value={REPORT_SOURCE_LABELS[report.source]} />
+                <InfoBlock label="Creato da" value={report.createdByAdmin ? report.createdByAdmin.email : "Form pubblico"} />
                 <InfoBlock label="Data invio" value={formatAdminDate(report.createdAt)} />
                 <InfoBlock label="Indirizzo" value={report.location.address ?? "Non indicato"} />
                 <InfoBlock label="Coordinate" value={`${report.location.latitude}, ${report.location.longitude}`} />

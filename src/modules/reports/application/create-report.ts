@@ -7,7 +7,9 @@ import {
   InvalidPublicCodeError,
   InvalidReportDataError,
   Location,
-  Report
+  Report,
+  isReportSource,
+  type ReportSource
 } from "../domain";
 import {
   DuplicatePublicCodePersistenceError,
@@ -35,6 +37,11 @@ export type CreateReportResult = {
   publicCode: string;
 };
 
+export type CreateAdminReportInput = CreateReportInput & {
+  source: string;
+  createdByAdminId: string;
+};
+
 export class CreateReportValidationError extends Error {
   constructor(readonly fieldErrors: CreateReportFieldErrors) {
     super("Report submission contains invalid data.");
@@ -50,7 +57,7 @@ export class PublicCodeGenerationExhaustedError extends Error {
 }
 
 export type CreateReportFieldErrors = Partial<
-  Record<"categoryId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
+  Record<"categoryId" | "source" | "createdByAdminId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
 >;
 
 export type CreateReportUseCaseDependencies = {
@@ -76,95 +83,167 @@ export class CreateReportUseCase {
   }
 
   async execute(input: CreateReportInput): Promise<CreateReportResult> {
-    const validatedInput = validateCreateReportInput(input);
-    const category = await this.dependencies.categoryRepository.findActiveById(
-      validatedInput.categoryId
-    );
+    return createReportWithSource(this.dependencies, {
+      input,
+      source: "platform",
+      now: this.now,
+      createId: this.createId,
+      maxPublicCodeRetries: this.maxPublicCodeRetries
+    });
+  }
+}
 
-    if (!category) {
-      throw new CreateReportValidationError({
-        categoryId: "Seleziona una categoria disponibile."
-      });
-    }
+export class CreateAdminReportUseCase {
+  private readonly now: () => Date;
+  private readonly createId: () => string;
+  private readonly maxPublicCodeRetries: number;
 
-    const processedPhoto = input.photo
-      ? await processReportImage({ buffer: input.photo.buffer, declaredMimeType: input.photo.mimeType })
-      : undefined;
+  constructor(private readonly dependencies: CreateReportUseCaseDependencies) {
+    this.now = dependencies.now ?? (() => new Date());
+    this.createId = dependencies.createId ?? randomUUID;
+    this.maxPublicCodeRetries =
+      dependencies.maxPublicCodeRetries ?? CREATE_REPORT_PUBLIC_CODE_MAX_RETRIES;
+  }
 
-    const title = deriveReportTitle({
-      categoryName: category.name,
-      address: validatedInput.address,
-      description: validatedInput.description
+  async execute(input: CreateAdminReportInput): Promise<CreateReportResult> {
+    const source = parseCreateReportSource(input.source);
+    const createdByAdminId = parseCreatedByAdminId(input.createdByAdminId);
+    return createReportWithSource(this.dependencies, {
+      input,
+      source,
+      createdByAdminId,
+      now: this.now,
+      createId: this.createId,
+      maxPublicCodeRetries: this.maxPublicCodeRetries
+    });
+  }
+}
+
+async function createReportWithSource(
+  dependencies: CreateReportUseCaseDependencies,
+  options: {
+    input: CreateReportInput;
+    source: ReportSource;
+    createdByAdminId?: string;
+    now: () => Date;
+    createId: () => string;
+    maxPublicCodeRetries: number;
+  }
+): Promise<CreateReportResult> {
+  const validatedInput = validateCreateReportInput(options.input);
+  const category = await dependencies.categoryRepository.findActiveById(
+    validatedInput.categoryId
+  );
+
+  if (!category) {
+    throw new CreateReportValidationError({
+      categoryId: "Seleziona una categoria disponibile."
+    });
+  }
+
+  const processedPhoto = options.input.photo
+    ? await processReportImage({ buffer: options.input.photo.buffer, declaredMimeType: options.input.photo.mimeType })
+    : undefined;
+
+  const title = deriveReportTitle({
+    categoryName: category.name,
+    address: validatedInput.address,
+    description: validatedInput.description
+  });
+
+  for (let attempt = 1; attempt <= options.maxPublicCodeRetries; attempt += 1) {
+    const publicCode = dependencies.publicCodeGenerator.generate();
+    const report = Report.create({
+      id: options.createId(),
+      publicCode,
+      title,
+      description: validatedInput.description,
+      categoryId: validatedInput.categoryId,
+      source: options.source,
+      ...(options.createdByAdminId ? { createdByAdminId: options.createdByAdminId } : {}),
+      location: Location.create({
+        latitude: validatedInput.latitude,
+        longitude: validatedInput.longitude,
+        ...(validatedInput.address ? { address: validatedInput.address } : {})
+      }),
+      createdAt: options.now()
     });
 
-    for (let attempt = 1; attempt <= this.maxPublicCodeRetries; attempt += 1) {
-      const publicCode = this.dependencies.publicCodeGenerator.generate();
-      const report = Report.create({
-        id: this.createId(),
-        publicCode,
-        title,
-        description: validatedInput.description,
-        categoryId: validatedInput.categoryId,
-        location: Location.create({
-          latitude: validatedInput.latitude,
-          longitude: validatedInput.longitude,
-          ...(validatedInput.address ? { address: validatedInput.address } : {})
-        }),
-        createdAt: this.now()
-      });
+    const events = report.pullDomainEvents();
+    const snapshot = report.toSnapshot();
+    let savedStorageKey: string | undefined;
 
-      const events = report.pullDomainEvents();
-      const snapshot = report.toSnapshot();
-      let savedStorageKey: string | undefined;
-
-      try {
-        if (processedPhoto) {
-          if (!this.dependencies.storageProvider) {
-            throw new Error("Storage provider is required for report photos.");
-          }
-
-          const storedPhoto = await this.dependencies.storageProvider.save({
-            buffer: processedPhoto.buffer,
-            extension: processedPhoto.extension
-          });
-          savedStorageKey = storedPhoto.storageKey;
-
-          await this.dependencies.reportRepository.saveWithAttachment(
-            report,
-            {
-              id: this.createId(),
-              reportId: snapshot.id,
-              type: "image",
-              storageKey: storedPhoto.storageKey,
-              mimeType: processedPhoto.mimeType,
-              size: storedPhoto.size,
-              createdAt: snapshot.createdAt
-            },
-            events
-          );
-        } else {
-          await this.dependencies.reportRepository.save(report, events);
+    try {
+      if (processedPhoto) {
+        if (!dependencies.storageProvider) {
+          throw new Error("Storage provider is required for report photos.");
         }
 
-        return {
-          reportId: snapshot.id,
-          publicCode: publicCode.toString()
-        };
-      } catch (error) {
-        if (savedStorageKey && this.dependencies.storageProvider) {
-          await cleanupStoredPhoto(this.dependencies.storageProvider, savedStorageKey);
-        }
+        const storedPhoto = await dependencies.storageProvider.save({
+          buffer: processedPhoto.buffer,
+          extension: processedPhoto.extension
+        });
+        savedStorageKey = storedPhoto.storageKey;
 
-        if (error instanceof DuplicatePublicCodePersistenceError) {
-          continue;
-        }
-
-        throw error;
+        await dependencies.reportRepository.saveWithAttachment(
+          report,
+          {
+            id: options.createId(),
+            reportId: snapshot.id,
+            type: "image",
+            storageKey: storedPhoto.storageKey,
+            mimeType: processedPhoto.mimeType,
+            size: storedPhoto.size,
+            createdAt: snapshot.createdAt
+          },
+          events
+        );
+      } else {
+        await dependencies.reportRepository.save(report, events);
       }
-    }
 
-    throw new PublicCodeGenerationExhaustedError(this.maxPublicCodeRetries);
+      return {
+        reportId: snapshot.id,
+        publicCode: publicCode.toString()
+      };
+    } catch (error) {
+      if (savedStorageKey && dependencies.storageProvider) {
+        await cleanupStoredPhoto(dependencies.storageProvider, savedStorageKey);
+      }
+
+      if (error instanceof DuplicatePublicCodePersistenceError) {
+        continue;
+      }
+
+      throw error;
+    }
   }
+
+  throw new PublicCodeGenerationExhaustedError(options.maxPublicCodeRetries);
+}
+
+export function parseCreatedByAdminId(value: string): string {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    throw new CreateReportValidationError({
+      createdByAdminId: "Identita amministratore non disponibile."
+    });
+  }
+
+  return normalizedValue;
+}
+
+export function parseCreateReportSource(value: string): ReportSource {
+  const normalizedValue = value.trim();
+
+  if (!isReportSource(normalizedValue)) {
+    throw new CreateReportValidationError({
+      source: "Seleziona una fonte valida."
+    });
+  }
+
+  return normalizedValue;
 }
 
 export function validateCreateReportInput(input: CreateReportInput): {

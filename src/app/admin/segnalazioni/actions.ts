@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { CreateAdminReportUseCase, CreateReportValidationError, mapCreateReportErrorToMessage } from "@/modules/reports/application/create-report";
+import { RandomPublicCodeGenerator } from "@/modules/reports/application/public-code-generator";
+import { LocalStorageProvider } from "@/modules/storage/infrastructure/local-storage-provider";
 import { redirect } from "next/navigation";
 import {
   ApproveReportUseCase,
@@ -29,7 +32,65 @@ import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { requireActiveAdmin } from "../admin-auth";
+import { initialCreateAdminReportActionState, type CreateAdminReportActionState } from "./nuova/form-state";
 
+
+
+export async function createAdminReportAction(
+  _previousState: CreateAdminReportActionState,
+  formData: FormData
+): Promise<CreateAdminReportActionState> {
+  const activeAdmin = await requireActiveAdmin();
+  const values = {
+    categoryId: getRequiredString(formData, "categoryId"),
+    source: getRequiredString(formData, "source"),
+    description: getRequiredString(formData, "description"),
+    latitude: getRequiredString(formData, "latitude"),
+    longitude: getRequiredString(formData, "longitude"),
+    address: getRequiredString(formData, "address")
+  };
+  let connection;
+
+  try {
+    connection = createDatabaseConnection();
+    const useCase = new CreateAdminReportUseCase({
+      reportRepository: new DrizzleReportRepository(connection.db),
+      categoryRepository: new DrizzleCategoryRepository(connection.db),
+      publicCodeGenerator: new RandomPublicCodeGenerator(),
+      storageProvider: new LocalStorageProvider()
+    });
+    const result = await useCase.execute({
+      ...values,
+      createdByAdminId: activeAdmin.id,
+      photo: await getOptionalPhoto(formData, "photo")
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/segnalazioni");
+    revalidatePath(`/admin/segnalazioni/${result.publicCode}`);
+
+    return {
+      status: "success",
+      publicCode: result.publicCode,
+      message: "Segnalazione manuale creata.",
+      fieldErrors: {},
+      values: initialCreateAdminReportActionState.values
+    };
+  } catch (error) {
+    if (!(error instanceof CreateReportValidationError) && !(error instanceof Error && error.name === "InvalidReportImageError")) {
+      console.error("Unable to create admin report", error);
+    }
+
+    return {
+      status: "error",
+      message: mapCreateReportErrorToMessage(error),
+      fieldErrors: error instanceof CreateReportValidationError ? error.fieldErrors : {},
+      values
+    };
+  } finally {
+    await connection?.close();
+  }
+}
 
 export async function createManualCommunicationAction(formData: FormData): Promise<void> {
   await requireActiveAdmin();
@@ -187,6 +248,20 @@ function getOptionalString(formData: FormData, key: string): string | undefined 
   }
 
   return value;
+}
+
+
+async function getOptionalPhoto(formData: FormData, key: string): Promise<{ buffer: Buffer; mimeType?: string } | undefined> {
+  const value = formData.get(key);
+
+  if (!(value instanceof File) || value.size === 0) {
+    return undefined;
+  }
+
+  return {
+    buffer: Buffer.from(await value.arrayBuffer()),
+    ...(value.type ? { mimeType: value.type } : {})
+  };
 }
 
 function revalidateReportPaths(publicCode: string): void {

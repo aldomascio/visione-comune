@@ -2,16 +2,17 @@ import { inArray, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
-import { CreateReportUseCase } from "@/modules/reports/application/create-report";
+import { CreateAdminReportUseCase, CreateReportUseCase } from "@/modules/reports/application/create-report";
 import type { PublicCodeGenerator } from "@/modules/reports/application/public-code-generator";
 import { PublicCode } from "@/modules/reports/domain";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/client";
-import { categories, reportEvents, reports } from "@/shared/db/schema";
+import { adminUsers, categories, reportEvents, reports } from "@/shared/db/schema";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const testCategoryId = "test-create-report-category";
 const testReportIds = ["test-create-report-1", "test-create-report-2"];
+const testAdminId = "test-create-report-admin";
 
 maybeDescribe("CreateReportUseCase with PostgreSQL", () => {
   let connection: DatabaseConnection;
@@ -23,6 +24,13 @@ maybeDescribe("CreateReportUseCase with PostgreSQL", () => {
 
   beforeEach(async () => {
     await cleanupTestData(connection);
+    await connection.db.insert(adminUsers).values({
+      id: testAdminId,
+      email: "create-report-admin.integration@example.com",
+      passwordHash: "argon2id$integration-test",
+      role: "admin",
+      active: true
+    });
     await connection.db.insert(categories).values({
       id: testCategoryId,
       name: "Categoria test creazione",
@@ -60,6 +68,8 @@ maybeDescribe("CreateReportUseCase with PostgreSQL", () => {
       publicCode: "VC-23456789",
       categoryId: testCategoryId,
       moderationStatus: "pending_review",
+      source: "platform",
+      createdByAdminId: null,
       publicStatus: null,
       publishedAt: null,
       communicatedAt: null,
@@ -67,11 +77,57 @@ maybeDescribe("CreateReportUseCase with PostgreSQL", () => {
     });
 
     const savedEvents = await connection.db
-      .select({ type: reportEvents.type, visibility: reportEvents.visibility })
+      .select({ type: reportEvents.type, visibility: reportEvents.visibility, metadata: reportEvents.metadata })
       .from(reportEvents)
       .where(sql`${reportEvents.reportId} = ${result.reportId}`);
 
-    expect(savedEvents).toEqual([{ type: "ReportCreated", visibility: "internal" }]);
+    expect(savedEvents).toEqual([{ type: "ReportCreated", visibility: "internal", metadata: { source: "platform" } }]);
+  });
+
+  it("persists an admin-created report with the selected source", async () => {
+    const useCase = createAdminUseCase(connection, { publicCodes: ["VC-ADMINS01"], ids: ["test-create-report-2"] });
+
+    const result = await useCase.execute({
+      ...validInput(),
+      source: "email",
+      createdByAdminId: testAdminId
+    });
+
+    const [savedReport] = await connection.db
+      .select()
+      .from(reports)
+      .where(sql`${reports.id} = ${result.reportId}`);
+
+    expect(savedReport).toMatchObject({
+      id: "test-create-report-2",
+      publicCode: "VC-ADMINS01",
+      source: "email",
+      createdByAdminId: testAdminId,
+      moderationStatus: "pending_review",
+      publicStatus: null
+    });
+
+    const foundReport = await new DrizzleReportRepository(connection.db).findByPublicCode(PublicCode.create("VC-ADMINS01"));
+    expect(foundReport?.toSnapshot()).toMatchObject({ source: "email", createdByAdminId: testAdminId });
+  });
+
+  it("keeps admin-created reports when the admin user is removed", async () => {
+    const useCase = createAdminUseCase(connection, { publicCodes: ["VC-ADMINS02"], ids: ["test-create-report-2"] });
+
+    const result = await useCase.execute({
+      ...validInput(),
+      source: "direct",
+      createdByAdminId: testAdminId
+    });
+
+    await connection.db.delete(adminUsers).where(sql`${adminUsers.id} = ${testAdminId}`);
+
+    const [savedReport] = await connection.db
+      .select({ createdByAdminId: reports.createdByAdminId })
+      .from(reports)
+      .where(sql`${reports.id} = ${result.reportId}`);
+
+    expect(savedReport).toEqual({ createdByAdminId: null });
   });
 
   it("retries when the generated public code collides with an existing report", async () => {
@@ -104,6 +160,19 @@ function createUseCase(connection: DatabaseConnection, input: { publicCodes: str
   });
 }
 
+
+function createAdminUseCase(connection: DatabaseConnection, input: { publicCodes: string[]; ids?: string[] }) {
+  const ids = new Sequence(input.ids ?? ["test-create-report-1"]);
+
+  return new CreateAdminReportUseCase({
+    reportRepository: new DrizzleReportRepository(connection.db),
+    categoryRepository: new DrizzleCategoryRepository(connection.db),
+    publicCodeGenerator: new SequencePublicCodeGenerator(input.publicCodes),
+    createId: () => ids.next(),
+    now: () => new Date("2026-01-01T10:00:00.000Z")
+  });
+}
+
 function validInput() {
   return {
     categoryId: testCategoryId,
@@ -118,6 +187,7 @@ async function cleanupTestData(connection: DatabaseConnection): Promise<void> {
   await connection.db.delete(reportEvents).where(inArray(reportEvents.reportId, testReportIds));
   await connection.db.delete(reports).where(inArray(reports.id, testReportIds));
   await connection.db.delete(categories).where(sql`${categories.id} = ${testCategoryId}`);
+  await connection.db.delete(adminUsers).where(sql`${adminUsers.id} = ${testAdminId}`);
 }
 
 class SequencePublicCodeGenerator implements PublicCodeGenerator {

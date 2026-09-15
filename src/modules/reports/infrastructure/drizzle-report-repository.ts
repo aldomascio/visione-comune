@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
-import { categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
+import { adminUsers, categories, reportAttachments, reportEvents, reports } from "@/shared/db/schema";
 import {
   ConcurrentReportModerationError,
   ConcurrentReportStateError,
@@ -125,6 +125,20 @@ export class DrizzleReportRepository implements ReportRepository {
     return record ? recordToReport(record) : null;
   }
 
+  async findAdminCreatorByReportId(reportId: string) {
+    const [row] = await this.db
+      .select({
+        id: adminUsers.id,
+        email: adminUsers.email
+      })
+      .from(reports)
+      .innerJoin(adminUsers, eq(reports.createdByAdminId, adminUsers.id))
+      .where(eq(reports.id, reportId))
+      .limit(1);
+
+    return row ?? null;
+  }
+
   async findById(reportId: string): Promise<Report | null> {
     const [record] = await this.db
       .select()
@@ -188,6 +202,7 @@ export class DrizzleReportRepository implements ReportRepository {
         categoryName: categories.name,
         createdAt: reports.createdAt,
         moderationStatus: reports.moderationStatus,
+        source: reports.source,
         address: reports.address
       })
       .from(reports)
@@ -203,6 +218,7 @@ export class DrizzleReportRepository implements ReportRepository {
       categoryName: row.categoryName,
       createdAt: row.createdAt,
       moderationStatus: row.moderationStatus,
+      source: row.source,
       ...(row.address ? { address: row.address } : {})
     }));
   }

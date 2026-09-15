@@ -472,3 +472,62 @@ MapLibre o lo style della mappa non si caricano.
 
 Gestione prevista:
 il form mostra un messaggio di errore e resta utilizzabile tramite ricerca indirizzo o geolocalizzazione. La mappa non e l'unico modo per impostare la posizione.
+## P0-01 — Fonte segnalazione e creazione manuale admin
+
+### EC-P001-001 — Fonte admin non valida
+
+Caso:
+un client o una sessione admin invia una fonte diversa da `platform`, `social`, `email`, `direct` o `other`.
+
+Gestione prevista:
+il use case admin rifiuta la richiesta con errore di validazione sul campo fonte. Il database accetta solo valori dell'enum `report_source`.
+
+### EC-P001-002 — Segnalazione manuale inserita dal backoffice
+
+Caso:
+un admin registra una segnalazione ricevuta via email, social, sportello o canale informale.
+
+Gestione prevista:
+la segnalazione viene salvata con la fonte selezionata, codice pubblico generato e `moderationStatus = pending_review`. Non diventa pubblica finche non viene approvata.
+
+### EC-P001-003 — Fonte non esposta al pubblico
+
+Caso:
+un utente pubblico apre la scheda di una segnalazione o invia una nuova segnalazione.
+
+Gestione prevista:
+la fonte non viene mostrata ne richiesta nel flusso pubblico. `/segnala` salva sempre `source = platform`.
+## P0-01B — Audit admin e decisioni operative
+
+### EC-P001B-001 — Admin creatore disattivato o rimosso
+
+Caso:
+una segnalazione manuale e collegata a un admin che in futuro viene rimosso dal database.
+
+Gestione prevista:
+`reports.createdByAdminId` usa `ON DELETE SET NULL`: la segnalazione resta preservata, mentre l'audit puntuale dell'admin puo diventare non disponibile. Gli eventi interni possono conservare metadata tecnici non pubblici quando presenti.
+
+### EC-P001B-002 — Client prova a inviare un adminId arbitrario
+
+Caso:
+un client manipola il form o la Server Action tentando di indicare un admin diverso come creatore.
+
+Gestione prevista:
+la creazione manuale ignora qualsiasi identita proveniente dal client. L'id admin deriva solo da sessione/autenticazione server-side tramite `requireActiveAdmin()`.
+
+### EC-P001B-003 — Segnalazione manuale apparentemente affidabile
+
+Caso:
+un report arriva da canale conosciuto o viene inserito manualmente da un admin.
+
+Gestione prevista:
+la segnalazione nasce comunque `Da verificare` e non viene pubblicata senza approvazione manuale.
+
+### EC-P001B-004 — Volume eccessivo verso gli enti
+
+Caso:
+molte segnalazioni riguardano la stessa categoria o lo stesso destinatario.
+
+Gestione prevista:
+la direzione operativa e evitare una PEC/email per ogni singola segnalazione e preparare trasmissioni aggregate configurabili per destinatario, mantenendo tracciabilita dei singoli report.
+

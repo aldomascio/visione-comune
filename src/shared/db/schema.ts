@@ -14,7 +14,8 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   MODERATION_STATUSES,
-  PUBLIC_REPORT_STATUSES
+  PUBLIC_REPORT_STATUSES,
+  REPORT_SOURCES
 } from "@/modules/reports/domain";
 
 export const publicReportStatusEnum = pgEnum("public_report_status", [
@@ -23,6 +24,10 @@ export const publicReportStatusEnum = pgEnum("public_report_status", [
 
 export const moderationStatusEnum = pgEnum("moderation_status", [
   ...MODERATION_STATUSES
+]);
+
+export const reportSourceEnum = pgEnum("report_source", [
+  ...REPORT_SOURCES
 ]);
 
 export const reportEventTypeEnum = pgEnum("report_event_type", [
@@ -72,6 +77,27 @@ export const categories = pgTable(
     check("categories_id_not_empty", sql`length(trim(${table.id})) > 0`),
     check("categories_name_not_empty", sql`length(trim(${table.name})) > 0`),
     check("categories_slug_not_empty", sql`length(trim(${table.slug})) > 0`)
+  ]
+);
+
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    email: varchar("email", { length: 320 }).notNull(),
+    passwordHash: varchar("password_hash", { length: 512 }).notNull(),
+    role: adminRoleEnum("role").notNull().default("admin"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    uniqueIndex("admin_users_email_unique").on(table.email),
+    index("admin_users_active_idx").on(table.active),
+    check("admin_users_id_not_empty", sql`length(trim(${table.id})) > 0`),
+    check("admin_users_email_not_empty", sql`length(trim(${table.email})) > 0`),
+    check("admin_users_email_normalized", sql`${table.email} = lower(trim(${table.email}))`),
+    check("admin_users_password_hash_not_empty", sql`length(trim(${table.passwordHash})) > 0`)
   ]
 );
 
@@ -134,6 +160,11 @@ export const reports = pgTable(
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
     address: varchar("address", { length: 500 }),
+    source: reportSourceEnum("source").notNull().default("platform"),
+    createdByAdminId: varchar("created_by_admin_id", { length: 64 }).references(() => adminUsers.id, {
+      onDelete: "set null",
+      onUpdate: "cascade"
+    }),
     publicStatus: publicReportStatusEnum("public_status"),
     moderationStatus: moderationStatusEnum("moderation_status").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
@@ -144,6 +175,7 @@ export const reports = pgTable(
   (table) => [
     uniqueIndex("reports_public_code_unique").on(table.publicCode),
     index("reports_category_id_idx").on(table.categoryId),
+    index("reports_created_by_admin_id_idx").on(table.createdByAdminId),
     index("reports_public_status_idx").on(table.publicStatus),
     index("reports_moderation_status_idx").on(table.moderationStatus),
     check("reports_id_not_empty", sql`length(trim(${table.id})) > 0`),
@@ -316,26 +348,7 @@ export const newsPosts = pgTable(
   ]
 );
 
-export const adminUsers = pgTable(
-  "admin_users",
-  {
-    id: varchar("id", { length: 64 }).primaryKey(),
-    email: varchar("email", { length: 320 }).notNull(),
-    passwordHash: varchar("password_hash", { length: 512 }).notNull(),
-    role: adminRoleEnum("role").notNull().default("admin"),
-    active: boolean("active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
-  },
-  (table) => [
-    uniqueIndex("admin_users_email_unique").on(table.email),
-    index("admin_users_active_idx").on(table.active),
-    check("admin_users_id_not_empty", sql`length(trim(${table.id})) > 0`),
-    check("admin_users_email_not_empty", sql`length(trim(${table.email})) > 0`),
-    check("admin_users_email_normalized", sql`${table.email} = lower(trim(${table.email}))`),
-    check("admin_users_password_hash_not_empty", sql`length(trim(${table.passwordHash})) > 0`)
-  ]
-);
+
 
 export type CategoryRecord = typeof categories.$inferSelect;
 export type NewCategoryRecord = typeof categories.$inferInsert;

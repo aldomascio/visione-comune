@@ -8,7 +8,7 @@ const adminEmail = "moderation-admin.e2e@example.com";
 const adminPassword = "Correct horse battery staple moderation 2026!";
 const categoryId = "e2e-moderation-category";
 const categoryName = "Categoria moderazione E2E";
-const reportIds = ["e2e-moderation-approve", "e2e-moderation-reject"];
+const reportIds = ["e2e-moderation-approve", "e2e-moderation-reject", "e2e-moderation-admin-manual"];
 const approveCode = "VC-MODAPP01";
 const rejectCode = "VC-MODREJ01";
 
@@ -74,11 +74,81 @@ test("admin rejects a pending report from the backoffice", async ({ page }) => {
   await expect(page.getByText("Segnalazione da rifiutare")).toHaveCount(0);
 });
 
+
+test("admin creates a manual report with source and pending status", async ({ page }) => {
+  await mockGeocoding(page);
+  await loginAdmin(page);
+
+  await page.goto("/admin/segnalazioni");
+  const newReportLink = page.getByRole("link", { name: "Nuova segnalazione" });
+  await expect(newReportLink).toHaveAttribute("href", "/admin/segnalazioni/nuova");
+
+  await page.goto("/admin/segnalazioni/nuova");
+  await expect(page).toHaveURL(/\/admin\/segnalazioni\/nuova$/);
+  await page.getByLabel("Categoria").selectOption(categoryId);
+  await page.getByLabel("Fonte").selectOption("email");
+  await page.getByLabel("Inserisci indirizzo").fill("Via manuale");
+  await page.getByRole("option", { name: "Via manuale, Venafro, Molise, Italia" }).click();
+  await expect(page.getByText("Indirizzo selezionato e posizione confermata.")).toBeVisible();
+  await page.getByLabel("Descrizione").fill("Segnalazione ricevuta via email e inserita manualmente dal backoffice per verifica.");
+  await page.getByRole("button", { name: "Salva segnalazione" }).click();
+
+  await expect(page.getByText("Segnalazione registrata da verificare")).toBeVisible();
+  const codeText = await page.locator("text=/VC-[0-9A-Z]{8}/").first().textContent();
+  const publicCode = codeText?.match(/VC-[0-9A-Z]{8}/)?.[0];
+
+  if (!publicCode) {
+    throw new Error("Manual report public code not found.");
+  }
+
+  await expect(readReportAudit(publicCode)).resolves.toEqual({
+    source: "email",
+    moderationStatus: "pending_review",
+    createdByAdminId: "e2e-moderation-admin"
+  });
+  await page.getByRole("link", { name: "Apri dettaglio" }).click();
+  await expect(page.getByRole("heading", { name: /Categoria moderazione E2E: Via manuale, Venafro/ })).toBeVisible();
+  await expect(page.getByText("Fonte")).toBeVisible();
+  await expect(page.getByText("Email").first()).toBeVisible();
+  await expect(page.getByText("Da verificare").first()).toBeVisible();
+  await expect(page.getByText("Creato da")).toBeVisible();
+  await expect(page.getByText(adminEmail).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Approva" }).click();
+  await expect(page.getByText("Segnalazione approvata e pubblicata come Segnalata.")).toBeVisible();
+
+  const publicResponse = await page.request.get(`/segnalazioni/${publicCode}`);
+  expect(publicResponse.status()).toBe(200);
+  const publicHtml = await publicResponse.text();
+  expect(publicHtml).not.toContain("Creato da");
+  expect(publicHtml).not.toContain(adminEmail);
+});
+
 test("redirects anonymous users away from the reports moderation list", async ({ page }) => {
   await page.goto("/admin/segnalazioni");
 
   await expect(page).toHaveURL(/\/admin\/login$/);
 });
+
+
+async function mockGeocoding(page: Page): Promise<void> {
+  await page.route("**/api/geocoding/search**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [
+          {
+            id: "mock-via-manuale",
+            label: "Via manuale, Venafro, Molise, Italia",
+            latitude: 41.4821,
+            longitude: 14.0474
+          }
+        ]
+      })
+    });
+  });
+}
 
 async function loginAdmin(page: Page): Promise<void> {
   await page.goto("/admin/login");
@@ -142,10 +212,39 @@ async function createPendingReport(input: { id: string; publicCode: string; titl
   });
 }
 
+
+async function readReportAudit(publicCode: string): Promise<{ source: string; moderationStatus: string; createdByAdminId: string | null }> {
+  return withDatabase(async (sql) => {
+    const rows = await sql<{ source: string; moderation_status: string; created_by_admin_id: string | null }[]>`
+      select source, moderation_status, created_by_admin_id from reports where public_code = ${publicCode}
+    `;
+    const row = rows[0];
+
+    if (!row) {
+      throw new Error(`Manual report not found for ${publicCode}`);
+    }
+
+    return { source: row.source, moderationStatus: row.moderation_status, createdByAdminId: row.created_by_admin_id };
+  });
+}
+
 async function cleanupE2eData(): Promise<void> {
   await withDatabase(async (sql) => {
-    await sql`delete from report_events where report_id in ${sql(reportIds)} or report_id like 'e2e-moderation-%'`;
-    await sql`delete from reports where id in ${sql(reportIds)} or id like 'e2e-moderation-%'`;
+    await sql`
+      delete from report_events
+      where report_id in (
+        select id from reports
+        where id in ${sql(reportIds)} or id like 'e2e-moderation-%' or category_id = ${categoryId}
+      )
+    `;
+    await sql`
+      delete from report_attachments
+      where report_id in (
+        select id from reports
+        where id in ${sql(reportIds)} or id like 'e2e-moderation-%' or category_id = ${categoryId}
+      )
+    `;
+    await sql`delete from reports where id in ${sql(reportIds)} or id like 'e2e-moderation-%' or category_id = ${categoryId}`;
     await sql`delete from categories where id = ${categoryId} or slug = 'categoria-moderazione-e2e'`;
     await sql`delete from admin_users where email = ${adminEmail} or id = 'e2e-moderation-admin'`;
   });

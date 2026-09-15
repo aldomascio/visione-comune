@@ -15,7 +15,7 @@ describe("home public metrics", () => {
       expect.objectContaining({ key: "published", label: "Segnalazioni pubblicate", value: "12" }),
       expect.objectContaining({ key: "communicated", label: "Comunicate agli enti", value: "7" }),
       expect.objectContaining({ key: "resolved", label: "Problemi risolti", value: "3" }),
-      expect.objectContaining({ key: "totalConfirmations", label: "Conferme cittadine", value: "24" }),
+      expect.objectContaining({ key: "totalConfirmations", label: "Conferme ricevute", value: "24" }),
       expect.objectContaining({ key: "resolutionRate", label: "Tasso di risoluzione", value: "25%" })
     ]);
   });

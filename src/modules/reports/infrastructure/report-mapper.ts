@@ -25,6 +25,8 @@ export function reportToRecord(report: Report): NewReportRecord {
     latitude: snapshot.location.latitude,
     longitude: snapshot.location.longitude,
     address: snapshot.location.address ?? null,
+    source: snapshot.source,
+    createdByAdminId: snapshot.createdByAdminId ?? null,
     publicStatus: snapshot.publicStatus ?? null,
     moderationStatus: snapshot.moderationStatus,
     createdAt: snapshot.createdAt,
@@ -50,6 +52,8 @@ export function recordToReportSnapshot(record: ReportRecord): ReportSnapshot {
       longitude: record.longitude,
       ...(record.address ? { address: record.address } : {})
     }).toSnapshot(),
+    source: record.source,
+    ...(record.createdByAdminId ? { createdByAdminId: record.createdByAdminId } : {}),
     ...(record.publicStatus ? { publicStatus: record.publicStatus } : {}),
     moderationStatus: record.moderationStatus,
     createdAt: record.createdAt,

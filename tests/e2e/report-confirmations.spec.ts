@@ -51,21 +51,21 @@ test.afterEach(async () => {
 test("confirms a public report once per browser and counts a second anonymous browser", async ({ browser, page }) => {
   await page.goto(`/segnalazioni/${approvedCode}`);
 
-  await expect(page.getByText("Nessuna conferma aggiuntiva")).toBeVisible();
+  await expect(page.getByText("Nessuna conferma ricevuta")).toBeVisible();
   await page.getByRole("button", { name: "Conferma anche tu" }).click();
   await expect(page.getByText("Hai confermato questa segnalazione.")).toBeVisible();
-  await expect(page.getByText("1 cittadino ha riscontrato questo problema")).toBeVisible();
+  await expect(page.getByText("1 conferma ricevuta")).toBeVisible();
   await expect(page.getByRole("button", { name: "Segnalazione confermata" })).toBeDisabled();
 
   await page.reload();
-  await expect(page.getByText("1 cittadino ha riscontrato questo problema")).toBeVisible();
+  await expect(page.getByText("1 conferma ricevuta")).toBeVisible();
   await expect(page.getByRole("button", { name: "Segnalazione confermata" })).toBeDisabled();
 
   const secondPage = await newAnonymousPage(browser);
   await secondPage.goto(`/segnalazioni/${approvedCode}`);
-  await expect(secondPage.getByText("1 cittadino ha riscontrato questo problema")).toBeVisible();
+  await expect(secondPage.getByText("1 conferma ricevuta")).toBeVisible();
   await secondPage.getByRole("button", { name: "Conferma anche tu" }).click();
-  await expect(secondPage.getByText("2 cittadini hanno riscontrato questo problema")).toBeVisible();
+  await expect(secondPage.getByText("2 conferme ricevute")).toBeVisible();
   await secondPage.context().close();
 });
 

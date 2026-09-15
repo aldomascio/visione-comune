@@ -39,7 +39,8 @@ test("admin creates a category and the public report form shows it", async ({ pa
   await expect(page.getByText("Attiva").first()).toBeVisible();
 
   await page.goto("/segnala");
-  await expect(page.getByLabel("Che tipo di problema vuoi segnalare?")).toContainText(createdCategoryName);
+  await page.getByRole("button", { name: "Inizia la segnalazione" }).click();
+  await expect(page.getByRole("radio", { name: createdCategoryName })).toBeVisible();
 });
 
 test("admin deactivates a category and the public report form hides it", async ({ page }) => {
@@ -55,7 +56,8 @@ test("admin deactivates a category and the public report form hides it", async (
   await expect(page.getByText("Disattivata").first()).toBeVisible();
 
   await page.goto("/segnala");
-  await expect(page.getByLabel("Che tipo di problema vuoi segnalare?")).not.toContainText(createdCategoryName);
+  await page.getByRole("button", { name: "Inizia la segnalazione" }).click();
+  await expect(page.getByRole("radio", { name: createdCategoryName })).toHaveCount(0);
 });
 
 test("historical public reports keep showing their category after deactivation", async ({ page }) => {

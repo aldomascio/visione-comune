@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
+import { LocateFixed } from "lucide-react";
 import type { PublicMapConfig } from "@/shared/config/map";
 import { Button, Input } from "@/shared/ui";
 
@@ -14,6 +15,7 @@ type GeocodingResult = {
 
 type LocationPickerProps = {
   mapConfig: PublicMapConfig;
+  onLocationChange?: (location: { address: string; latitude: string; longitude: string }) => void;
   disabled?: boolean;
   fieldErrors: {
     address?: string;
@@ -41,7 +43,8 @@ export function LocationPicker({
   fieldErrors,
   initialAddress = "",
   initialLatitude = "",
-  initialLongitude = ""
+  initialLongitude = "",
+  onLocationChange
 }: LocationPickerProps) {
   const listboxId = useId();
   const statusId = useId();
@@ -61,6 +64,17 @@ export function LocationPicker({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [status, setStatus] = useState<LocationStatus>({ type: "idle" });
   const [mapReady, setMapReady] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const addressRef = useRef(address);
+  const onLocationChangeRef = useRef(onLocationChange);
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+
+  useEffect(() => {
+    onLocationChangeRef.current = onLocationChange;
+  }, [onLocationChange]);
+
   const selectedPosition = useMemo(() => {
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
@@ -73,14 +87,14 @@ export function LocationPicker({
   const updateFromCoordinates = useCallback(async (input: {
     latitude: number;
     longitude: number;
-    statusMessage: string;
   }) => {
     const nextLatitude = formatCoordinate(input.latitude);
     const nextLongitude = formatCoordinate(input.longitude);
     setLatitude(nextLatitude);
     setLongitude(nextLongitude);
     setLocationConfirmed(true);
-    setStatus({ type: "info", message: input.statusMessage });
+    setShowMap(true);
+    onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
 
     try {
       const response = await fetch(`/api/geocoding/reverse?lat=${nextLatitude}&lon=${nextLongitude}`);
@@ -94,24 +108,25 @@ export function LocationPicker({
       if (payload.result?.label) {
         setAddress(payload.result.label);
         setQuery(payload.result.label);
-        setStatus({ type: "success", message: "Posizione confermata." });
+        onLocationChangeRef.current?.({ address: payload.result.label, latitude: nextLatitude, longitude: nextLongitude });
+        setStatus({ type: "idle" });
       } else {
-        setStatus({
-          type: "success",
-          message: "Posizione confermata. Non abbiamo trovato un indirizzo leggibile, ma puoi continuare."
-        });
+        onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
+        setStatus({ type: "idle" });
       }
     } catch {
-      setStatus({
-        type: "success",
-        message: "Posizione confermata. Non siamo riusciti a ricavare l'indirizzo, ma puoi continuare."
-      });
+      onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
+      setStatus({ type: "idle" });
     }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     let resizeObserver: ResizeObserver | undefined;
+
+    if (!showMap) {
+      return undefined;
+    }
 
     async function initializeMap() {
       if (!containerRef.current || mapRef.current) {
@@ -138,8 +153,7 @@ export function LocationPicker({
         map.on("click", (event) => {
           void updateFromCoordinates({
             latitude: event.lngLat.lat,
-            longitude: event.lngLat.lng,
-            statusMessage: "Punto selezionato sulla mappa. Provo a ricavare l'indirizzo."
+            longitude: event.lngLat.lng
           });
         });
         mapRef.current = map;
@@ -171,7 +185,7 @@ export function LocationPicker({
       mapRef.current = null;
       setMapReady(false);
     };
-  }, [mapConfig.attribution, mapConfig.initialCenter.latitude, mapConfig.initialCenter.longitude, mapConfig.initialZoom, mapConfig.style, updateFromCoordinates]);
+  }, [mapConfig.attribution, mapConfig.initialCenter.latitude, mapConfig.initialCenter.longitude, mapConfig.initialZoom, mapConfig.style, showMap, updateFromCoordinates]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,8 +219,7 @@ export function LocationPicker({
           if (markerPosition) {
             void updateFromCoordinates({
               latitude: markerPosition.lat,
-              longitude: markerPosition.lng,
-                statusMessage: "Punto aggiornato sulla mappa. Provo a ricavare l'indirizzo."
+              longitude: markerPosition.lng
             });
           }
         });
@@ -253,7 +266,7 @@ export function LocationPicker({
         if ((payload.results ?? []).length === 0) {
           setStatus({
             type: "info",
-            message: "Nessun indirizzo trovato. Puoi selezionare il punto direttamente sulla mappa."
+            message: "Nessun indirizzo trovato. Puoi provare un indirizzo diverso o usare il pulsante posizione."
           });
         }
       } catch {
@@ -261,7 +274,7 @@ export function LocationPicker({
           setResults([]);
           setStatus({
             type: "error",
-            message: "Non siamo riusciti a trovare l'indirizzo. Puoi selezionare il punto direttamente sulla mappa."
+            message: "Non siamo riusciti a trovare l'indirizzo. Puoi provare un indirizzo diverso o usare il pulsante posizione."
           });
         }
       } finally {
@@ -286,13 +299,16 @@ export function LocationPicker({
       setSearching(false);
     }
 
-    if (locationConfirmed) {
+    onLocationChangeRef.current?.({ address: nextAddress, latitude: "", longitude: "" });
+
+    if (locationConfirmed || latitude || longitude) {
       setLatitude("");
       setLongitude("");
       setLocationConfirmed(false);
+      setShowMap(false);
       setStatus({
         type: "info",
-        message: "Hai modificato l'indirizzo: seleziona un suggerimento o scegli il punto sulla mappa per confermare la posizione."
+        message: "Hai modificato l'indirizzo: seleziona un suggerimento o usa la posizione per confermare il punto."
       });
     }
   }
@@ -301,28 +317,27 @@ export function LocationPicker({
     if (!navigator.geolocation) {
       setStatus({
         type: "error",
-        message: "Il browser non supporta la geolocalizzazione. Puoi cercare un indirizzo o selezionare il punto sulla mappa."
+        message: "Il browser non supporta la geolocalizzazione. Puoi cercare e selezionare un indirizzo."
       });
       return;
     }
 
-    setStatus({ type: "info", message: "Sto rilevando la posizione del browser..." });
     navigator.geolocation.getCurrentPosition(
       (position) => {
         void updateFromCoordinates({
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          statusMessage: "Posizione rilevata. Provo a ricavare l'indirizzo."
+          longitude: position.coords.longitude
         });
       },
       (error) => {
         const message =
           error.code === error.PERMISSION_DENIED
-            ? "Permesso negato. Puoi cercare un indirizzo o selezionare il punto sulla mappa."
+            ? "Permesso negato. Puoi cercare e selezionare un indirizzo."
             : error.code === error.TIMEOUT
-              ? "Rilevamento scaduto. Puoi cercare un indirizzo o selezionare il punto sulla mappa."
-              : "Non siamo riusciti a rilevare la posizione. Puoi cercare un indirizzo o selezionare il punto sulla mappa.";
+              ? "Rilevamento scaduto. Puoi cercare e selezionare un indirizzo."
+              : "Non siamo riusciti a rilevare la posizione. Puoi cercare e selezionare un indirizzo.";
 
+        setShowMap(false);
         setStatus({ type: "error", message });
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
@@ -335,9 +350,11 @@ export function LocationPicker({
     setLatitude(formatCoordinate(result.latitude));
     setLongitude(formatCoordinate(result.longitude));
     setLocationConfirmed(true);
+    setShowMap(true);
     setResults([]);
     setActiveIndex(-1);
-    setStatus({ type: "success", message: "Indirizzo selezionato e posizione confermata." });
+    onLocationChangeRef.current?.({ address: result.label, latitude: formatCoordinate(result.latitude), longitude: formatCoordinate(result.longitude) });
+    setStatus({ type: "idle" });
   }
 
   function handleAddressKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -370,116 +387,139 @@ export function LocationPicker({
     }
   }
 
+  const coordinateError = fieldErrors.latitude ?? fieldErrors.longitude;
+
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
         <label className="text-sm font-medium text-foreground" htmlFor="address">
           Inserisci indirizzo
         </label>
-        <div className="relative">
-          <Input
-            aria-autocomplete="list"
-            aria-controls={results.length > 0 ? listboxId : undefined}
-            aria-describedby={[fieldErrors.address ? "address-error" : undefined, statusId]
-              .filter(Boolean)
-              .join(" ") || undefined}
-            aria-expanded={results.length > 0}
-            aria-invalid={Boolean(fieldErrors.address)}
-            autoComplete="off"
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <div className="relative">
+            <Input
+              aria-autocomplete="list"
+              aria-controls={results.length > 0 ? listboxId : undefined}
+              aria-describedby={[fieldErrors.address ? "address-error" : undefined, statusId]
+                .filter(Boolean)
+                .join(" ") || undefined}
+              aria-expanded={results.length > 0}
+              aria-invalid={Boolean(fieldErrors.address)}
+              autoComplete="off"
+              disabled={disabled}
+              id="address"
+              name="address"
+              onChange={(event) => handleAddressChange(event.currentTarget.value)}
+              onKeyDown={handleAddressKeyDown}
+              placeholder="Es. Via Colonia Giulia, Venafro"
+              role="combobox"
+              value={address}
+            />
+            {results.length > 0 ? (
+              <ul
+                className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-md border border-border bg-popover p-1 text-sm shadow-lg"
+                id={listboxId}
+                role="listbox"
+              >
+                {results.map((result, index) => (
+                  <li key={result.id} role="presentation">
+                    <button
+                      className={
+                        index === activeIndex
+                          ? "w-full rounded-sm bg-accent px-3 py-2 text-left text-accent-foreground"
+                          : "w-full rounded-sm px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      }
+                      aria-selected={index === activeIndex}
+                      onClick={() => selectResult(result)}
+                      role="option"
+                      type="button"
+                    >
+                      {result.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <Button
+            aria-label="Usa la mia posizione"
+            className="h-10 min-h-10 w-10 !p-2.5"
             disabled={disabled}
-            id="address"
-            name="address"
-            onChange={(event) => handleAddressChange(event.currentTarget.value)}
-            onKeyDown={handleAddressKeyDown}
-            placeholder="Es. Via Colonia Giulia, Venafro"
-            role="combobox"
-            value={address}
-          />
-          {results.length > 0 ? (
-            <ul
-              className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-md border border-border bg-popover p-1 text-sm shadow-lg"
-              id={listboxId}
-              role="listbox"
-            >
-              {results.map((result, index) => (
-                <li key={result.id} role="presentation">
-                  <button
-                    className={
-                      index === activeIndex
-                        ? "w-full rounded-sm bg-accent px-3 py-2 text-left text-accent-foreground"
-                        : "w-full rounded-sm px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    }
-                    aria-selected={index === activeIndex}
-                    onClick={() => selectResult(result)}
-                    role="option"
-                    type="button"
-                  >
-                    {result.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+            onClick={handleUseCurrentLocation}
+            title="Usa la mia posizione"
+            type="button"
+            variant="secondary"
+          >
+            <LocateFixed aria-hidden="true" size={20} strokeWidth={2.5} />
+          </Button>
         </div>
         {searching ? <p className="text-sm text-muted-foreground">Cerco indirizzi...</p> : null}
         <FieldError id="address-error" message={fieldErrors.address} />
-        <p className="text-sm leading-6 text-muted-foreground">
-          Scrivi almeno {minSearchLength} caratteri e scegli un suggerimento. Se non trovi l&apos;indirizzo, puoi cliccare direttamente sulla mappa.
-        </p>
+        {!showMap && coordinateError ? (
+          <div className="text-sm font-medium text-destructive" role="alert">
+            {coordinateError}
+          </div>
+        ) : null}
+        {status.type !== "idle" ? <LocationStatusMessage status={status} statusId={statusId} /> : null}
       </div>
 
-      <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4">
-        <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Posizione del problema</p>
-            <p className="text-sm leading-6 text-muted-foreground" id={mapDescriptionId}>
-              Usa la ricerca, la tua posizione o clicca sulla mappa per scegliere il punto preciso.
-            </p>
-          </div>
-          <Button disabled={disabled} onClick={handleUseCurrentLocation} type="button" variant="secondary">
-            Usa la mia posizione
-          </Button>
+      {showMap ? <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Posizione del problema</p>
+          <p className="text-sm leading-6 text-muted-foreground" id={mapDescriptionId}>
+            Puoi rifinire il punto cliccando sulla mappa.
+          </p>
         </div>
 
         <div
           aria-describedby={mapDescriptionId}
           aria-label="Mappa per selezionare la posizione della segnalazione"
-          className="h-80 min-h-80 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
+          className="h-72 min-h-72 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
           data-testid="report-location-map"
           ref={containerRef}
           role="region"
         />
 
         <div className="sr-only" aria-live="polite">
-          {selectedPosition ? `Posizione selezionata: ${selectedPosition.latitude}, ${selectedPosition.longitude}` : "Nessuna posizione selezionata"}
+          {locationConfirmed ? `Posizione selezionata${address ? `: ${address}` : ""}` : "Nessuna posizione selezionata"}
         </div>
 
         <input name="latitude" type="hidden" value={locationConfirmed ? latitude : ""} />
         <input name="longitude" type="hidden" value={locationConfirmed ? longitude : ""} />
 
-        {fieldErrors.latitude || fieldErrors.longitude ? (
+        {coordinateError ? (
           <div className="text-sm font-medium text-destructive" role="alert">
-            {fieldErrors.latitude ?? fieldErrors.longitude}
+            {coordinateError}
           </div>
         ) : null}
 
-        {status.type !== "idle" ? (
-          <p
-            className={
-              status.type === "error"
-                ? "text-sm font-medium text-destructive"
-                : status.type === "success"
-                  ? "text-sm font-medium text-primary"
-                  : "text-sm text-muted-foreground"
-            }
-            id={statusId}
-            role="status"
-          >
-            {status.message}
-          </p>
-        ) : null}
-      </div>
+      </div> : null}
+
+      {!showMap ? (
+        <>
+          <input name="latitude" type="hidden" value="" />
+          <input name="longitude" type="hidden" value="" />
+        </>
+      ) : null}
     </div>
+  );
+}
+
+function LocationStatusMessage({ status, statusId }: { status: Exclude<LocationStatus, { type: "idle" }>; statusId: string }) {
+  return (
+    <p
+      className={
+        status.type === "error"
+          ? "text-sm font-medium text-destructive"
+          : status.type === "success"
+            ? "text-sm font-medium text-primary"
+            : "text-sm text-muted-foreground"
+      }
+      id={statusId}
+      role="status"
+    >
+      {status.message}
+    </p>
   );
 }
 

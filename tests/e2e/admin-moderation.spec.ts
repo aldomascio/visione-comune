@@ -89,7 +89,8 @@ test("admin creates a manual report with source and pending status", async ({ pa
   await page.getByLabel("Fonte").selectOption("email");
   await page.getByLabel("Inserisci indirizzo").fill("Via manuale");
   await page.getByRole("option", { name: "Via manuale, Venafro, Molise, Italia" }).click();
-  await expect(page.getByText("Indirizzo selezionato e posizione confermata.")).toBeVisible();
+  await expect(page.locator('input[name="latitude"]')).not.toHaveValue("");
+  await expect(page.locator('input[name="longitude"]')).not.toHaveValue("");
   await page.getByLabel("Descrizione").fill("Segnalazione ricevuta via email e inserita manualmente dal backoffice per verifica.");
   await page.getByRole("button", { name: "Salva segnalazione" }).click();
 

@@ -85,12 +85,16 @@ test("does not render public detail pages for pending or rejected reports", asyn
 async function submitReport(page: Page, description: string): Promise<string> {
   await mockGeocoding(page);
   await page.goto("/segnala");
-  await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(categoryId);
-  await selectAddressSuggestion(page);
+  await page.getByRole("button", { name: "Inizia la segnalazione" }).click();
+  await page.getByText(categoryName, { exact: true }).click();
   await page.getByLabel("Descrivi il problema").fill(description);
+  await page.getByRole("button", { name: "Continua" }).click();
+  await selectAddressSuggestion(page);
+  await page.getByRole("button", { name: "Continua" }).click();
+  await page.getByRole("button", { name: "Continua" }).click();
   await page.getByRole("button", { name: "Invia segnalazione" }).click();
-  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Controlla lo stato della segnalazione" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Segnalazione ricevuta" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Controlla lo stato" })).toBeVisible();
 
   const text = await page.locator("body").textContent();
   const publicCode = text?.match(/VC-[0-9A-Z]{8}/)?.[0];
@@ -105,7 +109,8 @@ async function submitReport(page: Page, description: string): Promise<string> {
 async function selectAddressSuggestion(page: Page): Promise<void> {
   await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
   await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
-  await expect(page.getByText("Posizione confermata")).toBeVisible();
+  await expect(page.locator('input[name="latitude"]')).not.toHaveValue("");
+  await expect(page.locator('input[name="longitude"]')).not.toHaveValue("");
 }
 
 async function mockGeocoding(page: Page): Promise<void> {

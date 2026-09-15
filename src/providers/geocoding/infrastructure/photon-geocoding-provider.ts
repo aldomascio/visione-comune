@@ -49,8 +49,6 @@ export class PhotonGeocodingProvider implements GeocodingProvider {
     const url = new URL(`${this.baseUrl}/api/`);
     url.searchParams.set("q", query);
     url.searchParams.set("limit", String(normalizeGeocodingLimit(input.limit)));
-    url.searchParams.set("lang", "it");
-
     if (input.bias) {
       url.searchParams.set("lat", String(input.bias.latitude));
       url.searchParams.set("lon", String(input.bias.longitude));
@@ -68,8 +66,6 @@ export class PhotonGeocodingProvider implements GeocodingProvider {
     const url = new URL(`${this.baseUrl}/reverse`);
     url.searchParams.set("lat", String(input.latitude));
     url.searchParams.set("lon", String(input.longitude));
-    url.searchParams.set("lang", "it");
-
     const payload = await this.fetchJson(url);
     return mapPhotonResponse(payload)[0] ?? null;
   }

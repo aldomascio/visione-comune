@@ -39,7 +39,7 @@ test("shows a nearby approved report as a possible duplicate and opens its publi
   await fillReportForm(page, { category: categoryId, latitude: "41.48215", longitude: "14.04745" });
   await page.getByRole("button", { name: "Invia segnalazione" }).click();
 
-  await expect(page.getByRole("heading", { name: "Potrebbe esistere gia una segnalazione simile" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Potrebbe esistere/ })).toBeVisible();
   await expect(page.getByText("Buca gia segnalata in Via Roma")).toBeVisible();
   await expect(page.getByText(/Circa \d+ m/)).toBeVisible();
 
@@ -63,8 +63,8 @@ test("does not show a duplicate warning for the same area but a different catego
   await fillReportForm(page, { category: categoryId, latitude: "41.48215", longitude: "14.04745" });
   await page.getByRole("button", { name: "Invia segnalazione" }).click();
 
-  await expect(page.getByRole("heading", { name: "Potrebbe esistere gia una segnalazione simile" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Potrebbe esistere/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Segnalazione ricevuta" })).toBeVisible();
 });
 
 test("lets the user continue and create a report after declaring the problem is different", async ({ page }) => {
@@ -80,10 +80,10 @@ test("lets the user continue and create a report after declaring the problem is 
   await fillReportForm(page, { category: categoryId, latitude: "41.48215", longitude: "14.04745" });
   await page.getByRole("button", { name: "Invia segnalazione" }).click();
 
-  await expect(page.getByRole("heading", { name: "Potrebbe esistere gia una segnalazione simile" })).toBeVisible();
-  await page.getByRole("button", { name: "Il mio problema e diverso, continua" }).click();
+  await expect(page.getByRole("heading", { name: /Potrebbe esistere/ })).toBeVisible();
+  await page.getByRole("button", { name: "Il mio problema è diverso, continua" }).click();
 
-  await expect(page.getByRole("heading", { name: "Conserva il tuo codice" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Segnalazione ricevuta" })).toBeVisible();
   await expect(page.getByText(/VC-[0-9A-Z]{8}/)).toBeVisible();
 });
 
@@ -97,12 +97,16 @@ async function fillReportForm(
     label: "Via Roma, Venafro, Molise, Italia"
   });
   await page.goto("/segnala");
-  await page.getByLabel("Che tipo di problema vuoi segnalare?").selectOption(input.category);
-  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
-  await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
+  await page.getByRole("button", { name: "Inizia la segnalazione" }).click();
+  await page.getByText(categoryName, { exact: true }).click();
   await page
     .getByLabel("Descrivi il problema")
     .fill("Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.");
+  await page.getByRole("button", { name: "Continua" }).click();
+  await page.getByLabel("Inserisci indirizzo").fill("Via Roma, Venafro");
+  await page.getByRole("option", { name: "Via Roma, Venafro, Molise, Italia" }).click();
+  await page.getByRole("button", { name: "Continua" }).click();
+  await page.getByRole("button", { name: "Continua" }).click();
 }
 
 async function mockGeocoding(

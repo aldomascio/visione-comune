@@ -51,8 +51,8 @@ test("shows a generic error for invalid credentials", async ({ page }) => {
 test("keeps public report submission accessible without authentication", async ({ page }) => {
   await page.goto("/segnala");
 
-  await expect(page.getByRole("heading", { name: "Invia una segnalazione senza account" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Invia segnalazione" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Invia una segnalazione" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Inizia la segnalazione" })).toBeVisible();
 });
 
 async function createAdmin(): Promise<void> {

@@ -30,7 +30,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicHeader pathname={pathname} />
+      {pathname === "/segnala" ? null : <PublicHeader pathname={pathname} />}
       {children}
       <PublicFooter />
     </div>

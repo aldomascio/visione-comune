@@ -11,7 +11,8 @@ const adminNavItems = [
   { href: "/admin/notizie", label: "Notizie" },
   { href: "/admin/trasmissioni", label: "Trasmissioni" },
   { href: "/admin/destinatari", label: "Destinatari" },
-  { href: "/admin/smistamento", label: "Smistamento" }
+  { href: "/admin/smistamento", label: "Smistamento" },
+  { href: "/admin/design-system", label: "Design system" }
 ];
 
 export function AdminNavigation() {

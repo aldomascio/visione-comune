@@ -185,6 +185,19 @@ Le route admin restano protette server-side: la shell e un aiuto di navigazione,
 Il logo SVG e disponibile in `public/logo.svg`. La shell lo mostra come mark grafico senza testo affiancato, usando una maschera CSS colorata con il token `foreground`, cosi resta coerente con il tema.
 
 
+
+### Icone
+
+Il set icone ufficiale dell'applicazione e `lucide-react`. Le icone devono essere usate come supporto alla comprensione di azioni, stati e navigazione, non come decorazione ridondante.
+
+Linee guida iniziali:
+
+- usare icone Lucide con dimensioni coerenti con il testo o il controllo che accompagnano;
+- colorare le icone tramite `currentColor` e token esistenti, evitando colori hardcoded;
+- mantenere label testuali visibili per azioni importanti;
+- nascondere icone puramente decorative agli screen reader con `aria-hidden`;
+- non introdurre altri set icone senza una decisione esplicita.
+
 ### Menu pubblico principale
 
 Il menu pubblico principale contiene solo i link editoriali e di consultazione: `Mappa`, `Manifesto`, `Notizie`, `Newsletter`. Il logo resta il collegamento alla Home. La creazione segnalazione rimane una CTA separata, non una voce del menu principale.

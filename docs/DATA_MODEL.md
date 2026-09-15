@@ -277,3 +277,20 @@ Eventi interni in `report_events`:
 - `ReportDuplicateLinkRemoved`.
 
 I metadata degli eventi possono includere `primaryReportId` e `primaryPublicCode`. Non sono eventi pubblici.
+
+## P0-04 — Transmission foundation
+
+La fondazione Transmission e implementata evolvendo in modo non distruttivo `outbound_communications`.
+
+- La tabella fisica `outbound_communications` resta la sorgente della trasmissione: destinatario snapshot, canale, oggetto, corpo, stato e timestamp operativi.
+- Il campo legacy `outbound_communications.report_id` resta valorizzato come `primaryReportId` temporaneo per compatibilita con VC-015 e con i record gia esistenti.
+- La relazione esplicita `transmission_reports` collega una trasmissione a una o piu segnalazioni:
+  - `transmission_id` FK verso `outbound_communications.id`;
+  - `report_id` FK verso `reports.id`;
+  - `created_at`;
+  - vincolo unique `(transmission_id, report_id)`.
+- Una segnalazione puo comparire in piu trasmissioni nel tempo, per comunicazioni future o solleciti.
+- La migration P0-04 esegue backfill: ogni record esistente in `outbound_communications` viene collegato al proprio `report_id` in `transmission_reports`.
+- Gli eventi interni aggiunti sono `ReportAddedToTransmission`, `ReportRemovedFromTransmission`, `TransmissionSent`, `TransmissionDelivered`, `TransmissionFailed`.
+
+Questa foundation non rinomina fisicamente `outbound_communications` e non introduce provider PEC, ricevute reali, reply, scheduling o batch automatici.

@@ -108,6 +108,31 @@ export const REPORT_TIMELINE_EVENT_PRESENTATION: Record<ReportEventType, Timelin
     label: "Foto rifiutata",
     adminDescription: "Una foto della segnalazione e stata rifiutata e non verra pubblicata.",
     defaultVisibility: "internal"
+  },
+  ReportAddedToTransmission: {
+    label: "Segnalazione aggiunta a una trasmissione",
+    adminDescription: "La segnalazione e stata inclusa in una trasmissione verso un destinatario.",
+    defaultVisibility: "internal"
+  },
+  ReportRemovedFromTransmission: {
+    label: "Segnalazione rimossa da una trasmissione",
+    adminDescription: "La segnalazione e stata rimossa da una trasmissione in bozza.",
+    defaultVisibility: "internal"
+  },
+  TransmissionSent: {
+    label: "Trasmissione segnata come inviata",
+    adminDescription: "La trasmissione e stata segnata come inviata nel backoffice.",
+    defaultVisibility: "internal"
+  },
+  TransmissionDelivered: {
+    label: "Trasmissione consegnata",
+    adminDescription: "La consegna della trasmissione e stata confermata manualmente.",
+    defaultVisibility: "internal"
+  },
+  TransmissionFailed: {
+    label: "Trasmissione fallita",
+    adminDescription: "La trasmissione e stata marcata come fallita.",
+    defaultVisibility: "internal"
   }
 };
 
@@ -122,7 +147,10 @@ const ADMIN_METADATA_LABELS: Record<string, string> = {
   primaryReportId: "ID segnalazione principale",
   primaryPublicCode: "Codice segnalazione principale",
   attachmentId: "Foto",
-  attachmentType: "Tipo foto"
+  attachmentType: "Tipo foto",
+  transmissionId: "Trasmissione",
+  transmissionStatus: "Stato trasmissione",
+  transmissionReportCount: "Segnalazioni incluse"
 };
 
 export type GetPublicReportTimelineUseCaseDependencies = {

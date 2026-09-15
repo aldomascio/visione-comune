@@ -3,17 +3,18 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/drizzle-category-repository";
 import { CreateManualCommunicationUseCase, MarkCommunicationDeliveredUseCase, MarkCommunicationFailedUseCase } from "@/modules/communications/application/manual-communications";
+import { CreateTransmissionUseCase, MarkTransmissionDeliveredUseCase, MarkTransmissionSentUseCase } from "@/modules/communications/application/transmissions";
 import { DrizzleOutboundCommunicationRepository } from "@/modules/communications/infrastructure/drizzle-outbound-communication-repository";
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { Location, PublicCode, Report } from "@/modules/reports/domain";
 import { createDatabaseConnection, type DatabaseConnection } from "@/shared/db/client";
-import { categories, categoryRecipients, outboundCommunications, recipients, reportEvents, reports } from "@/shared/db/schema";
+import { categories, categoryRecipients, outboundCommunications, recipients, reportEvents, reports, transmissionReports } from "@/shared/db/schema";
 
 const maybeDescribe = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const categoryId = "test-communication-category";
 const recipientIds = ["test-communication-recipient", "test-communication-recipient-alt"];
-const reportIds = ["test-communication-report", "test-communication-report-2"];
+const reportIds = ["test-communication-report", "test-communication-report-2", "test-communication-report-3"];
 
 maybeDescribe("DrizzleOutboundCommunicationRepository", () => {
   let connection: DatabaseConnection;
@@ -133,6 +134,74 @@ maybeDescribe("DrizzleOutboundCommunicationRepository", () => {
       status: "failed",
       failedAt: new Date("2026-01-04T10:00:00.000Z")
     });
+  });
+
+
+
+  it("creates relation rows for legacy manual communications and enforces unique pairs", async () => {
+    await createApprovedReport(reportRepository, reportIds[0], "VC-COMM0001");
+    const communication = await createSentCommunication("test-communication-1", "VC-COMM0001");
+
+    await expect(connection.db.select().from(transmissionReports).where(sql`${transmissionReports.transmissionId} = ${communication.id}`)).resolves.toMatchObject([
+      { transmissionId: communication.id, reportId: reportIds[0] }
+    ]);
+
+    await expect(connection.db.insert(transmissionReports).values({ transmissionId: communication.id, reportId: reportIds[0] })).rejects.toThrow();
+  });
+
+  it("persists a multi-report transmission and lists it from each report", async () => {
+    await createApprovedReport(reportRepository, reportIds[0], "VC-COMM0001");
+    await createApprovedReport(reportRepository, reportIds[1], "VC-COMM0002");
+
+    const transmission = await new CreateTransmissionUseCase({
+      recipientRepository,
+      transmissionRepository: communicationRepository,
+      createId: () => "test-transmission-1",
+      now: () => new Date("2026-01-05T10:00:00.000Z")
+    }).execute({
+      recipientId: recipientIds[0],
+      channel: "pec",
+      reportIds: [reportIds[0], reportIds[1]],
+      subject: "Trasmissione aggregata",
+      body: "Corpo aggregato"
+    });
+
+    expect(transmission).toMatchObject({ id: "test-transmission-1", reportCount: 2, reportIds: [reportIds[0], reportIds[1]], status: "draft" });
+    await expect(communicationRepository.listTransmissionsByReportId(reportIds[1])).resolves.toMatchObject([{ id: "test-transmission-1", reportCount: 2 }]);
+
+    const relationRows = await connection.db.select().from(transmissionReports).where(sql`${transmissionReports.transmissionId} = ${transmission.id}`);
+    expect(relationRows).toHaveLength(2);
+  });
+
+  it("marks a transmission delivered in one transaction and communicates all eligible reports once", async () => {
+    await createApprovedReport(reportRepository, reportIds[0], "VC-COMM0001");
+    await createApprovedReport(reportRepository, reportIds[1], "VC-COMM0002");
+    const transmission = await new CreateTransmissionUseCase({
+      recipientRepository,
+      transmissionRepository: communicationRepository,
+      createId: () => "test-transmission-1",
+      now: () => new Date("2026-01-05T10:00:00.000Z")
+    }).execute({ recipientId: recipientIds[0], channel: "pec", reportIds: [reportIds[0], reportIds[1]], subject: "Trasmissione", body: "Corpo" });
+
+    await new MarkTransmissionSentUseCase({ transmissionRepository: communicationRepository, now: () => new Date("2026-01-06T10:00:00.000Z") }).execute({ transmissionId: transmission.id });
+    await new MarkTransmissionDeliveredUseCase({
+      reportRepository,
+      transmissionRepository: communicationRepository,
+      now: () => new Date("2026-01-07T10:00:00.000Z")
+    }).execute({ transmissionId: transmission.id });
+    await new MarkTransmissionDeliveredUseCase({ reportRepository, transmissionRepository: communicationRepository, now: () => new Date("2026-01-08T10:00:00.000Z") }).execute({ transmissionId: transmission.id });
+
+    for (const [reportId, publicCode] of [[reportIds[0], "VC-COMM0001"], [reportIds[1], "VC-COMM0002"]] as const) {
+      await expect(reportRepository.findByPublicCode(PublicCode.create(publicCode))).resolves.toSatisfy((report) => {
+        expect(report?.toSnapshot()).toMatchObject({ publicStatus: "communicated", communicatedAt: new Date("2026-01-07T10:00:00.000Z") });
+        return true;
+      });
+      const events = await connection.db.select({ type: reportEvents.type }).from(reportEvents).where(sql`${reportEvents.reportId} = ${reportId}`);
+      expect(events.filter((event) => event.type === "TransmissionDelivered")).toHaveLength(1);
+      expect(events.filter((event) => event.type === "ReportCommunicated")).toHaveLength(1);
+    }
+
+    await expect(communicationRepository.findTransmissionById(transmission.id)).resolves.toMatchObject({ status: "delivered" });
   });
 
   it("enforces recipient and report foreign keys", async () => {

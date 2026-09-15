@@ -91,3 +91,15 @@ La foto di risoluzione puo essere caricata solo da un amministratore su segnalaz
 
 ### BR-029
 Il detector automatico privacy per volti, targhe o dati identificativi nelle immagini non e implementato nell'MVP corrente e resta una misura P1 futura.
+
+### BR-030
+Una trasmissione operativa verso un destinatario puo contenere una o piu segnalazioni, evitando di imporre una PEC/email separata per ogni singola segnalazione.
+
+### BR-031
+Una trasmissione puo includere operativamente solo segnalazioni gia approvate, pubbliche, non duplicate e coerenti con il destinatario configurato nella matrice categoria → destinatario.
+
+### BR-032
+La creazione di una bozza o la marcatura come `Inviata` non cambia lo stato pubblico delle segnalazioni incluse. Solo la marcatura come `Consegnata` puo portare le segnalazioni eleggibili da `Segnalata` a `Comunicata`.
+
+### BR-033
+Le regole future di aggregazione, frequenza, soglia e sollecito delle trasmissioni devono restare configurabili e non sono hardcoded nell'MVP corrente.

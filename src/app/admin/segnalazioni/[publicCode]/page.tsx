@@ -7,6 +7,8 @@ import {
   type CommunicationTemplate
 } from "@/modules/communications/application/manual-communications";
 import type { OutboundCommunication } from "@/modules/communications/application/communication-repository";
+import { ListReportTransmissionsUseCase } from "@/modules/communications/application/transmissions";
+import type { Transmission } from "@/modules/communications/application/transmission-repository";
 import { DrizzleOutboundCommunicationRepository } from "@/modules/communications/infrastructure/drizzle-outbound-communication-repository";
 import type { CategoryRecipient } from "@/modules/recipients/application/recipient-repository";
 import { readBaseEnv } from "@/shared/config/env";
@@ -28,6 +30,7 @@ import { addResolutionPhotoAction, approveReportAction, approveReportAttachmentA
 import { ResolveReportForm } from "./resolve-report-form";
 import { formatAdminDate } from "../format";
 import { ModerationStatusBadge, PublicStatusBadge } from "../status-badge";
+import { transmissionStatusLabel } from "../../trasmissioni/status";
 
 type ReportDetailPageProps = {
   params: Promise<{ publicCode: string }>;
@@ -40,7 +43,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
   await requireActiveAdmin();
   const { publicCode } = await params;
   const query = await searchParams;
-  const { report, recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates } = await getReportPageData(publicCode, query?.duplicateQuery);
+  const { report, recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates } = await getReportPageData(publicCode, query?.duplicateQuery);
   const canModerate = report.moderationStatus === "pending_review";
 
   return (
@@ -128,6 +131,8 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 reportCanHaveCommunications={report.moderationStatus === "approved" && Boolean(report.publicStatus)}
                 template={communicationTemplate}
               />
+
+              <ReportTransmissionsSection transmissions={transmissions} />
 
             </CardContent>
           </Card>
@@ -235,9 +240,10 @@ async function getReportPageData(publicCode: string, duplicateQuery = "") {
     }).execute({ publicCode });
     const recipientRepository = new DrizzleRecipientRepository(connection.db);
     const communicationRepository = new DrizzleOutboundCommunicationRepository(connection.db);
-    const [recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates] = await Promise.all([
+    const [recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates] = await Promise.all([
       recipientRepository.findActiveByCategory(report.categoryId),
       new ListReportCommunicationsUseCase({ reportRepository, communicationRepository }).execute({ publicCode }),
+      new ListReportTransmissionsUseCase({ transmissionRepository: communicationRepository }).execute({ reportId: report.id }),
       new GenerateManualCommunicationTemplateUseCase({
         reportRepository,
         categoryRepository: new DrizzleCategoryRepository(connection.db),
@@ -248,7 +254,7 @@ async function getReportPageData(publicCode: string, duplicateQuery = "") {
       new ListReportDuplicatesUseCase({ reportRepository }).execute({ publicCode })
     ]);
 
-    return { report, recipients, communications, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates };
+    return { report, recipients, communications, transmissions, communicationTemplate, timeline, duplicateSearchResults, linkedDuplicates };
   } catch (error) {
     if (error instanceof ReportForModerationNotFoundError || error instanceof InvalidModerationPublicCodeError) {
       notFound();
@@ -355,6 +361,39 @@ function DuplicatesCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ReportTransmissionsSection({ transmissions }: { transmissions: Transmission[] }) {
+  return (
+    <section className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Trasmissioni</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">Registro delle trasmissioni che includono questa segnalazione.</p>
+        </div>
+        <Link className="text-sm font-semibold text-primary hover:underline" href="/admin/trasmissioni/nuova">Nuova trasmissione</Link>
+      </div>
+      {transmissions.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
+          Questa segnalazione non e ancora inclusa in nessuna trasmissione.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {transmissions.map((transmission) => (
+            <article className="rounded-md border border-border bg-background p-4 text-sm" key={transmission.id}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{transmission.recipientNameSnapshot} — {transmission.recipientOrganizationSnapshot}</p>
+                  <p className="mt-1 text-muted-foreground">{formatAdminDate(transmission.createdAt)} · {transmission.channel.toUpperCase()} · {transmission.reportCount} segnalazioni · {transmissionStatusLabel(transmission.status)}</p>
+                </div>
+                <Link className="font-semibold text-primary hover:underline" href={`/admin/trasmissioni/${transmission.id}`}>Apri</Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

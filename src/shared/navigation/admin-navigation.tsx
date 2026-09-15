@@ -9,6 +9,7 @@ const adminNavItems = [
   { href: "/admin/segnalazioni", label: "Segnalazioni" },
   { href: "/admin/categorie", label: "Categorie" },
   { href: "/admin/notizie", label: "Notizie" },
+  { href: "/admin/trasmissioni", label: "Trasmissioni" },
   { href: "/admin/destinatari", label: "Destinatari" },
   { href: "/admin/smistamento", label: "Smistamento" }
 ];

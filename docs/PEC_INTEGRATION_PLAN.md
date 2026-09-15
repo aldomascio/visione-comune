@@ -616,3 +616,14 @@ Risultato verificabile:
 - AgID, note integrative regole tecniche PEC v12.0: `https://www.agid.gov.it/`
 - Trust services AgID, glossario ricevuta avvenuta consegna: `https://trustservices.agid.gov.it/`
 - Namirial/Sicurezza Postale, configurazione client e documentazione supporto: `https://www.sicurezzapostale.it/`, `https://servicedesk.namirial.com/`
+
+## Nota P0-04 — base Transmission disponibile
+
+La piattaforma ora dispone di una foundation Transmission indipendente dal provider PEC:
+
+- una trasmissione puo includere una o piu segnalazioni;
+- ogni trasmissione conserva snapshot destinatario, canale, oggetto, corpo e stati `draft`, `sent`, `delivered`, `failed`;
+- la relazione `transmission_reports` consente il mapping tra ricevute future e singole segnalazioni incluse;
+- `delivered` resta l'unico evento applicativo che aggiorna i report a `Comunicata`.
+
+VC-019B potra collegare ricevute PEC reali a questa foundation, senza modificare il dominio report. Restano da definire provider, parser ricevute, matching Message-ID/subject, polling/webhook e gestione risposte.

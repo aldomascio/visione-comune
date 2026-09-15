@@ -553,3 +553,15 @@ la pubblicazione di un'immagine non deve dipendere solo dall'esistenza del file 
 
 Conseguenza:
 le route pubbliche servono una foto solo se il report e approvato/pubblico e l'allegato e `approved`. Gli admin possono vedere anche foto pending/rejected nel backoffice. Le foto rifiutate non vengono cancellate automaticamente. Il detector automatico per volti/targhe resta P1 e non e implementato.
+
+## P0-04 — Transmission foundation implementata
+
+- `OutboundCommunication` viene evoluta semanticamente verso il concetto di `Transmission` senza rename fisico distruttivo della tabella `outbound_communications`.
+- `outbound_communications.report_id` resta per compatibilita e rappresenta il `primaryReportId` temporaneo.
+- La relazione multi-report e gestita da `transmission_reports` con unique `(transmission_id, report_id)`.
+- I record esistenti vengono backfillati nella relazione ponte.
+- Le trasmissioni possono essere aggregate: non esiste obbligo di una comunicazione per ogni singola segnalazione.
+- La matrice resta `Category → category_recipients → Recipient`; gli indirizzi PEC/email restano sul destinatario.
+- Le frequenze future, soglie, batch automatici e solleciti restano da definire e non sono hardcoded.
+- Una segnalazione diventa `Comunicata` solo quando una trasmissione/comunicazione viene marcata come consegnata.
+- La moderazione manuale resta obbligatoria prima di qualunque trasmissione operativa.

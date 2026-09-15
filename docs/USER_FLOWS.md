@@ -106,3 +106,18 @@
 8. La scheda pubblica del duplicato resta accessibile e rimanda alla principale senza redirect automatico.
 9. Le nuove conferme vengono raccolte sulla principale, non sul duplicato.
 10. Il duplicato non compare come marker autonomo sulla mappa pubblica.
+
+## FLOW-010 — Trasmissione manuale aggregata
+
+1. L'amministratore apre `/admin/trasmissioni`.
+2. Crea una nuova trasmissione.
+3. Sceglie un destinatario attivo configurato nella matrice categoria → destinatario.
+4. Il sistema mostra solo segnalazioni approvate, pubbliche, non duplicate, ancora `Segnalata` e compatibili con quel destinatario.
+5. L'amministratore seleziona una o piu segnalazioni.
+6. Il sistema propone un template deterministico multi-segnalazione, modificabile dall'amministratore.
+7. L'amministratore salva la trasmissione come bozza.
+8. Nessuna PEC o email viene inviata dalla piattaforma.
+9. L'amministratore puo marcare manualmente la trasmissione come `Inviata`, senza cambiare lo stato pubblico delle segnalazioni.
+10. L'amministratore puo marcare manualmente la trasmissione come `Consegnata`: le segnalazioni incluse ancora `Segnalata` diventano `Comunicata` e ricevono evento pubblico in timeline.
+11. L'amministratore puo marcare manualmente la trasmissione come `Fallita`, senza cambiare lo stato pubblico delle segnalazioni.
+12. Il dettaglio admin di ogni segnalazione mostra le trasmissioni collegate.

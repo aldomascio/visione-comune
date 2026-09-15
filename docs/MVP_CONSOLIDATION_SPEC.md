@@ -823,3 +823,16 @@ Le metriche operative conteggiano ancora `totalReceived` come totale storico del
 
 
 Nota P0-03: Il detector automatico privacy resta P1 e non e implementato. Nel MVP corrente la mitigazione e la review manuale degli allegati.
+
+## Aggiornamento P0-04 — Transmission foundation
+
+P0-04 e implementata come foundation dati, application e admin.
+
+- `outbound_communications` resta tabella fisica temporanea per ridurre rischio e preservare VC-015.
+- `transmission_reports` permette di associare una trasmissione a una o piu segnalazioni.
+- La creazione admin salva bozze multi-report verso un destinatario attivo.
+- Le marcature manuali `sent`, `delivered`, `failed` sono disponibili senza invio reale.
+- `delivered` aggiorna in transazione i report inclusi ancora `reported`, generando `ReportCommunicated` una sola volta per report.
+- Gli eventi Transmission sono interni; la timeline pubblica continua a mostrare solo l'evento pubblico di comunicazione.
+
+Restano fuori scope: PEC reale, SMTP/IMAP, ricevute, risposte, scheduling, solleciti, batch automatici, PDF e AI.

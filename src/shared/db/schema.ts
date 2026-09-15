@@ -44,6 +44,11 @@ export const reportEventTypeEnum = pgEnum("report_event_type", [
   "ReportAttachmentAdded",
   "ReportAttachmentApproved",
   "ReportAttachmentRejected",
+  "ReportAddedToTransmission",
+  "ReportRemovedFromTransmission",
+  "TransmissionSent",
+  "TransmissionDelivered",
+  "TransmissionFailed",
 ]);
 
 export const reportEventVisibilityEnum = pgEnum("report_event_visibility", [
@@ -477,6 +482,36 @@ export const outboundCommunications = pgTable(
     ),
   ],
 );
+
+export const transmissionReports = pgTable(
+  "transmission_reports",
+  {
+    transmissionId: varchar("transmission_id", { length: 64 })
+      .notNull()
+      .references(() => outboundCommunications.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    reportId: varchar("report_id", { length: 64 })
+      .notNull()
+      .references(() => reports.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("transmission_reports_transmission_report_unique").on(
+      table.transmissionId,
+      table.reportId,
+    ),
+    index("transmission_reports_transmission_id_idx").on(table.transmissionId),
+    index("transmission_reports_report_id_idx").on(table.reportId),
+  ],
+);
+
 export const newsPosts = pgTable(
   "news_posts",
   {
@@ -546,6 +581,9 @@ export type OutboundCommunicationRecord =
   typeof outboundCommunications.$inferSelect;
 export type NewOutboundCommunicationRecord =
   typeof outboundCommunications.$inferInsert;
+export type TransmissionReportRecord = typeof transmissionReports.$inferSelect;
+export type NewTransmissionReportRecord =
+  typeof transmissionReports.$inferInsert;
 export type NewsPostRecord = typeof newsPosts.$inferSelect;
 export type NewNewsPostRecord = typeof newsPosts.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;

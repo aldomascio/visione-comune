@@ -597,3 +597,13 @@ Comportamento: le conferme restano associate storicamente al duplicato, ma nuove
 Scenario: principale e duplicato hanno coordinate simili.
 
 Comportamento: il duplicato e escluso dalla mappa pubblica e dalle liste aggregate principali, ma resta accessibile via URL/codice.
+
+## P0-04 — Transmission foundation
+
+- Doppio click su `Marca consegnata`: l'operazione e idempotente; se la trasmissione e gia `delivered`, non crea nuovi eventi pubblici `ReportCommunicated`.
+- Report gia `communicated` o `resolved` incluso storicamente in una trasmissione: non viene riportato indietro e non genera una seconda transizione pubblica.
+- Report pending, rejected, duplicato o non pubblico: non deve essere selezionabile nella creazione operativa della trasmissione.
+- Destinatario disattivato o non compatibile con la categoria del report: la server action rifiuta la creazione anche se il client invia manualmente gli id.
+- Stessa coppia transmission/report: protetta da vincolo DB unique.
+- Trasmissione `failed`: non puo essere marcata successivamente come `sent` o `delivered` senza una futura regola esplicita.
+- Trasmissione `delivered`: non puo essere marcata come `failed`.

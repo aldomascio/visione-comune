@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Keyboard
 import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { LocateFixed } from "lucide-react";
 import type { PublicMapConfig } from "@/shared/config/map";
+import { createSharedMapMarkerElement } from "@/shared/map-marker";
 import { Button, Input } from "@/shared/ui";
 
 type GeocodingResult = {
@@ -29,8 +30,6 @@ type LocationPickerProps = {
 
 type LocationStatus =
   | { type: "idle" }
-  | { type: "info"; message: string }
-  | { type: "success"; message: string }
   | { type: "error"; message: string };
 
 const minSearchLength = 3;
@@ -48,7 +47,6 @@ export function LocationPicker({
 }: LocationPickerProps) {
   const listboxId = useId();
   const statusId = useId();
-  const mapDescriptionId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -56,15 +54,15 @@ export function LocationPicker({
   const [latitude, setLatitude] = useState(initialLatitude);
   const [longitude, setLongitude] = useState(initialLongitude);
   const [locationConfirmed, setLocationConfirmed] = useState(
-    isCoordinateString(initialLatitude, initialLongitude)
+    Boolean(initialAddress.trim()) && isCoordinateString(initialLatitude, initialLongitude)
   );
   const [query, setQuery] = useState(initialAddress);
   const [results, setResults] = useState<GeocodingResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [status, setStatus] = useState<LocationStatus>({ type: "idle" });
   const [mapReady, setMapReady] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(true);
+  const selectedQueryRef = useRef(initialAddress);
   const addressRef = useRef(address);
   const onLocationChangeRef = useRef(onLocationChange);
   useEffect(() => {
@@ -79,10 +77,10 @@ export function LocationPicker({
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
 
-    return isValidCoordinate(parsedLatitude, parsedLongitude)
+    return locationConfirmed && isValidCoordinate(parsedLatitude, parsedLongitude)
       ? { latitude: parsedLatitude, longitude: parsedLongitude }
       : null;
-  }, [latitude, longitude]);
+  }, [latitude, locationConfirmed, longitude]);
 
   const updateFromCoordinates = useCallback(async (input: {
     latitude: number;
@@ -106,8 +104,11 @@ export function LocationPicker({
       const payload = (await response.json()) as { result?: GeocodingResult | null };
 
       if (payload.result?.label) {
+        selectedQueryRef.current = payload.result.label;
         setAddress(payload.result.label);
         setQuery(payload.result.label);
+        setResults([]);
+        setActiveIndex(-1);
         onLocationChangeRef.current?.({ address: payload.result.label, latitude: nextLatitude, longitude: nextLongitude });
         setStatus({ type: "idle" });
       } else {
@@ -150,12 +151,6 @@ export function LocationPicker({
 
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ customAttribution: mapConfig.attribution }), "bottom-right");
-        map.on("click", (event) => {
-          void updateFromCoordinates({
-            latitude: event.lngLat.lat,
-            longitude: event.lngLat.lng
-          });
-        });
         mapRef.current = map;
 
         resizeObserver = new ResizeObserver(() => map.resize());
@@ -208,21 +203,13 @@ export function LocationPicker({
       const lngLat: [number, number] = [selectedPosition.longitude, selectedPosition.latitude];
 
       if (!markerRef.current) {
-        markerRef.current = new maplibregl.Marker({ color: getMarkerColor(), draggable: true })
+        const markerElement = createSharedMapMarkerElement({
+          ariaLabel: "Posizione selezionata",
+          testId: "report-location-marker"
+        });
+        markerRef.current = new maplibregl.Marker({ anchor: "bottom", draggable: false, element: markerElement })
           .setLngLat(lngLat)
           .addTo(map);
-        markerRef.current.getElement().setAttribute("aria-label", "Posizione selezionata");
-        markerRef.current.getElement().setAttribute("data-testid", "report-location-marker");
-        markerRef.current.on("dragend", () => {
-          const markerPosition = markerRef.current?.getLngLat();
-
-          if (markerPosition) {
-            void updateFromCoordinates({
-              latitude: markerPosition.lat,
-              longitude: markerPosition.lng
-            });
-          }
-        });
       } else {
         markerRef.current.setLngLat(lngLat);
       }
@@ -245,10 +232,12 @@ export function LocationPicker({
       return;
     }
 
+    if (normalizedQuery === selectedQueryRef.current) {
+      return;
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(async () => {
-      setSearching(true);
-
       try {
         const response = await fetch(
           `/api/geocoding/search?q=${encodeURIComponent(normalizedQuery)}&limit=${maxResults}`,
@@ -263,12 +252,6 @@ export function LocationPicker({
         setResults(payload.results ?? []);
         setActiveIndex(-1);
 
-        if ((payload.results ?? []).length === 0) {
-          setStatus({
-            type: "info",
-            message: "Nessun indirizzo trovato. Puoi provare un indirizzo diverso o usare il pulsante posizione."
-          });
-        }
       } catch {
         if (!controller.signal.aborted) {
           setResults([]);
@@ -278,9 +261,7 @@ export function LocationPicker({
           });
         }
       } finally {
-        if (!controller.signal.aborted) {
-          setSearching(false);
-        }
+        // Request lifecycle intentionally has no visible loading state.
       }
     }, debounceMs);
 
@@ -293,10 +274,10 @@ export function LocationPicker({
   function handleAddressChange(nextAddress: string) {
     setAddress(nextAddress);
     setQuery(nextAddress);
+    selectedQueryRef.current = "";
 
     if (nextAddress.trim().length < minSearchLength) {
       setResults([]);
-      setSearching(false);
     }
 
     onLocationChangeRef.current?.({ address: nextAddress, latitude: "", longitude: "" });
@@ -305,15 +286,15 @@ export function LocationPicker({
       setLatitude("");
       setLongitude("");
       setLocationConfirmed(false);
-      setShowMap(false);
-      setStatus({
-        type: "info",
-        message: "Hai modificato l'indirizzo: seleziona un suggerimento o usa la posizione per confermare il punto."
-      });
+      setShowMap(true);
+      setStatus({ type: "idle" });
     }
   }
 
   async function handleUseCurrentLocation() {
+    setResults([]);
+    setActiveIndex(-1);
+
     if (!navigator.geolocation) {
       setStatus({
         type: "error",
@@ -322,29 +303,45 @@ export function LocationPicker({
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        void updateFromCoordinates({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        });
-      },
-      (error) => {
-        const message =
-          error.code === error.PERMISSION_DENIED
-            ? "Permesso negato. Puoi cercare e selezionare un indirizzo."
-            : error.code === error.TIMEOUT
-              ? "Rilevamento scaduto. Puoi cercare e selezionare un indirizzo."
-              : "Non siamo riusciti a rilevare la posizione. Puoi cercare e selezionare un indirizzo.";
+    const onSuccess: PositionCallback = (position) => {
+      void updateFromCoordinates({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      });
+    };
 
-        setShowMap(false);
-        setStatus({ type: "error", message });
+    const onFinalError: PositionErrorCallback = (error) => {
+      const message =
+        error.code === error.PERMISSION_DENIED
+          ? "Permesso negato. Puoi cercare e selezionare un indirizzo."
+          : error.code === error.TIMEOUT
+            ? "Rilevamento scaduto. Puoi cercare e selezionare un indirizzo."
+            : "Non siamo riusciti a rilevare la posizione. Puoi cercare e selezionare un indirizzo.";
+
+      setShowMap(true);
+      setStatus({ type: "error", message });
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onSuccess,
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          onFinalError(error);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          onFinalError,
+          { enableHighAccuracy: false, maximumAge: 60_000, timeout: 8_000 }
+        );
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
     );
   }
 
   function selectResult(result: GeocodingResult) {
+    selectedQueryRef.current = result.label;
     setAddress(result.label);
     setQuery(result.label);
     setLatitude(formatCoordinate(result.latitude));
@@ -392,7 +389,7 @@ export function LocationPicker({
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <label className="text-sm font-medium text-foreground" htmlFor="address">
+        <label className="text-sm font-medium text-muted-foreground" htmlFor="address">
           Inserisci indirizzo
         </label>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
@@ -453,28 +450,14 @@ export function LocationPicker({
             <LocateFixed aria-hidden="true" size={20} strokeWidth={2.5} />
           </Button>
         </div>
-        {searching ? <p className="text-sm text-muted-foreground">Cerco indirizzi...</p> : null}
         <FieldError id="address-error" message={fieldErrors.address} />
-        {!showMap && coordinateError ? (
-          <div className="text-sm font-medium text-destructive" role="alert">
-            {coordinateError}
-          </div>
-        ) : null}
         {status.type !== "idle" ? <LocationStatusMessage status={status} statusId={statusId} /> : null}
       </div>
 
-      {showMap ? <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">Posizione del problema</p>
-          <p className="text-sm leading-6 text-muted-foreground" id={mapDescriptionId}>
-            Puoi rifinire il punto cliccando sulla mappa.
-          </p>
-        </div>
-
+      <div className="grid gap-3">
         <div
-          aria-describedby={mapDescriptionId}
-          aria-label="Mappa per selezionare la posizione della segnalazione"
-          className="h-72 min-h-72 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
+          aria-label="Mappa della posizione selezionata"
+          className="h-60 min-h-60 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm sm:h-64 sm:min-h-64"
           data-testid="report-location-map"
           ref={containerRef}
           role="region"
@@ -493,14 +476,7 @@ export function LocationPicker({
           </div>
         ) : null}
 
-      </div> : null}
-
-      {!showMap ? (
-        <>
-          <input name="latitude" type="hidden" value="" />
-          <input name="longitude" type="hidden" value="" />
-        </>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -554,10 +530,3 @@ function isValidCoordinate(latitude: number, longitude: number): boolean {
   );
 }
 
-function getMarkerColor(): string {
-  if (typeof window === "undefined") {
-    return "#1a6b3a";
-  }
-
-  return getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#1a6b3a";
-}

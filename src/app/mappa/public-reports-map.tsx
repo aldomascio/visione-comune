@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import type { PublicMapConfig } from "@/shared/config/map";
+import { createSharedMapMarkerElement } from "@/shared/map-marker";
 import type { PublicReportMapView } from "@/modules/reports/application/public-map";
 import { PUBLIC_REPORT_STATUS_LABELS } from "@/modules/reports/domain";
 import { Badge, Card, CardContent, Select, cn } from "@/shared/ui";
@@ -321,26 +322,14 @@ function createMarkerElement(
   onSelect: () => void
 ): HTMLButtonElement {
   const categoryStyle = getMapCategoryStyle(report.categoryName, categories);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = categoryStyle.markerClassName;
-  button.dataset.testid = `map-marker-${report.publicCode}`;
-  button.setAttribute("aria-label", `${report.categoryName}: ${report.title}. Stato ${report.publicStatusLabel}. Apri il popup sulla mappa.`);
 
-  const inner = document.createElement("span");
-  inner.className = "public-map-marker__dot";
-  inner.setAttribute("aria-hidden", "true");
-  button.append(inner);
-
-  button.addEventListener("click", onSelect);
-  button.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      button.click();
-    }
-  });
-
-  return button;
+  return createSharedMapMarkerElement({
+    ariaLabel: `${report.categoryName}: ${report.title}. Stato ${report.publicStatusLabel}. Apri il popup sulla mappa.`,
+    className: categoryStyle.markerClassName.replace("public-map-marker ", ""),
+    onClick: onSelect,
+    testId: `map-marker-${report.publicCode}`,
+    type: "button"
+  }) as HTMLButtonElement;
 }
 
 function createPopupContent(report: PublicReportMapView): HTMLElement {

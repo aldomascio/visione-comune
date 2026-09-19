@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TrackReportByPublicCodeUseCase, type TrackReportResult } from "@/modules/reports/application/public-report";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input } from "@/shared/ui";
+import { Button, Input } from "@/shared/ui";
 
 type TrackingPageProps = {
   searchParams?: Promise<{ codice?: string }>;
@@ -21,46 +20,31 @@ export default async function TrackingPage({ searchParams }: TrackingPageProps) 
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto grid w-full max-w-6xl gap-8">
-        <section className="grid gap-3 text-center">
-          <p className="text-sm font-semibold text-primary">Visione Comune</p>
+    <main className="flex flex-1 items-center bg-background px-6 py-14 text-foreground sm:px-8 lg:px-12">
+      <div className="mx-auto grid w-full max-w-xl gap-8">
+        <section className="grid gap-3">
           <h1 className="font-serif text-4xl font-semibold tracking-normal">Controlla una segnalazione</h1>
-          <p className="text-base leading-7 text-muted-foreground">
-            Inserisci il codice ricevuto dopo l&apos;invio. Non servono account, email o altri dati personali.
-          </p>
+          <p className="text-base leading-7 text-muted-foreground">Inserisci il codice ricevuto dopo l&apos;invio.</p>
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Codice segnalazione</CardTitle>
-            <CardDescription>Il formato e simile a VC-XXXXXXXX.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-5">
-            <form action="/segnalazione" className="grid gap-4" method="get">
-              <Field htmlFor="codice" label="Codice segnalazione">
-                <Input
-                  autoCapitalize="characters"
-                  defaultValue={code}
-                  id="codice"
-                  name="codice"
-                  pattern="VC-[0-9A-Z]{8}"
-                  placeholder="VC-XXXXXXXX"
-                  required
-                />
-              </Field>
-              <Button type="submit">Controlla segnalazione</Button>
-            </form>
+        <form action="/segnalazione" className="grid gap-4" method="get">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium leading-none text-muted-foreground" htmlFor="codice">Codice segnalazione</label>
+            <Input
+              autoCapitalize="characters"
+              className="uppercase tracking-wide"
+              defaultValue={code}
+              id="codice"
+              name="codice"
+              pattern="VC-[0-9A-Z]{8}"
+              placeholder="VC-XXXXXXXX"
+              required
+            />
+          </div>
+          <Button className="w-full sm:w-fit" type="submit">Controlla la segnalazione</Button>
+        </form>
 
-            {result ? <TrackingResult result={result} /> : null}
-          </CardContent>
-        </Card>
-
-        <div className="text-center text-sm text-muted-foreground">
-          <Link className="font-semibold text-primary hover:underline" href="/segnala">
-            Invia una nuova segnalazione
-          </Link>
-        </div>
+        {result ? <TrackingResult result={result} /> : null}
       </div>
     </main>
   );
@@ -82,36 +66,36 @@ async function trackReport(publicCode: string): Promise<TrackReportResult> {
 function TrackingResult({ result }: { result: Exclude<TrackReportResult, { status: "published" }> }) {
   if (result.status === "invalid_code") {
     return (
-      <MessageCard tone="error" title="Codice non valido">
-        Controlla il codice e riprova. Deve avere il formato VC-XXXXXXXX.
-      </MessageCard>
+      <MessageBlock tone="error" title="Codice non valido">
+        Controlla il codice e riprova.
+      </MessageBlock>
     );
   }
 
   if (result.status === "not_found") {
     return (
-      <MessageCard tone="error" title="Segnalazione non trovata">
+      <MessageBlock tone="error" title="Segnalazione non trovata">
         Non abbiamo trovato una segnalazione associata a questo codice.
-      </MessageCard>
+      </MessageBlock>
     );
   }
 
   if (result.status === "pending") {
     return (
-      <MessageCard title="Segnalazione ricevuta">
-        Stiamo verificando la tua segnalazione. Non e ancora pubblica e non compare nelle pagine pubbliche.
-      </MessageCard>
+      <MessageBlock title="Segnalazione ricevuta">
+        La segnalazione è in verifica e non è ancora pubblica.
+      </MessageBlock>
     );
   }
 
   return (
-    <MessageCard title="La segnalazione non e stata pubblicata">
-      Il codice e valido, ma la segnalazione non e disponibile come scheda pubblica.
-    </MessageCard>
+    <MessageBlock title="La segnalazione non è stata pubblicata">
+      Il codice è valido, ma la scheda pubblica non è disponibile.
+    </MessageBlock>
   );
 }
 
-function MessageCard({
+function MessageBlock({
   children,
   title,
   tone = "info"
@@ -122,11 +106,7 @@ function MessageCard({
 }) {
   return (
     <div
-      className={
-        tone === "error"
-          ? "rounded-lg border border-destructive/30 bg-destructive/10 p-4"
-          : "rounded-lg border border-primary/30 bg-primary/10 p-4"
-      }
+      className={tone === "error" ? "border-t border-destructive/40 pt-4" : "border-t border-border pt-4"}
       role={tone === "error" ? "alert" : "status"}
     >
       <p className="font-semibold">{title}</p>

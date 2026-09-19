@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Check, CheckCircle2, CircleAlert, Lightbulb, MapPin, Pencil, Road, ShieldCheck, Trash2, Trees, Upload, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import type { PublicMapConfig } from "@/shared/config/map";
 import {
   Badge,
   Button,
+  Input,
   Textarea,
   cn
 } from "@/shared/ui";
@@ -19,13 +21,14 @@ type ReportFormProps = {
   categories: CategoryOption[];
   mapConfig: PublicMapConfig;
   onExitConfirmationChange?: (requiresConfirmation: boolean) => void;
-  onStepChange?: (step: WizardStep) => void;
+  onStepChange?: (step: number) => void;
 };
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 type WizardValues = {
   categoryId: string;
+  title: string;
   description: string;
   address: string;
   latitude: string;
@@ -36,8 +39,10 @@ type WizardValues = {
 type WizardFieldErrors = CreateReportActionState["fieldErrors"];
 
 const totalSteps = 5;
+const titleMinLength = 5;
+const titleMaxLength = 180;
 const descriptionMinLength = 20;
-const descriptionMaxLength = 4000;
+const descriptionMaxLength = 500;
 const addressMaxLength = 500;
 
 export function ReportForm({ categories, mapConfig, onExitConfirmationChange, onStepChange }: ReportFormProps) {
@@ -70,6 +75,11 @@ export function ReportForm({ categories, mapConfig, onExitConfirmationChange, on
     onStepChange?.(currentStep);
   }, [currentStep, onStepChange]);
 
+  useEffect(() => {
+    if (actionState.status === "success") {
+      onStepChange?.(0);
+    }
+  }, [actionState.status, onStepChange]);
 
   if (actionState.status === "success" && actionState.publicCode) {
     return <SuccessState publicCode={actionState.publicCode} />;
@@ -177,7 +187,7 @@ export function ReportForm({ categories, mapConfig, onExitConfirmationChange, on
   }
 
   return (
-    <div className="grid gap-8" data-testid="report-wizard">
+    <div className="grid gap-7" data-testid="report-wizard">
       {actionState.status === "error" && actionState.message ? (
         <AlertMessage message={actionState.message} fieldErrors={fieldErrors} />
       ) : null}
@@ -188,7 +198,7 @@ export function ReportForm({ categories, mapConfig, onExitConfirmationChange, on
         </div>
       ) : null}
 
-      <section aria-labelledby="report-wizard-title" className="grid gap-8">
+      <section aria-labelledby="report-wizard-title" className="grid gap-7">
         <StepHeader currentStep={currentStep} />
 
         {currentStep === 1 ? (
@@ -257,47 +267,59 @@ export function ReportForm({ categories, mapConfig, onExitConfirmationChange, on
 }
 
 function StepHeader({ currentStep }: { currentStep: WizardStep }) {
-  const content: Record<WizardStep, { title: string; description?: string }> = {
-    1: { title: "Segnala un problema" },
+  const content: Record<WizardStep, { title: string; eyebrow?: string; description?: string }> = {
+    1: { title: "Segnala un problema", description: "Segui la procedura guidata per lasciare una segnalazione." },
     2: { title: "Cosa vuoi segnalare?" },
-    3: { title: "Dove si trova il problema?" },
-    4: { title: "Vuoi aggiungere una foto?", description: "Opzionale" },
+    3: { title: "Dove si trova?" },
+    4: { title: "Aggiungi una foto", eyebrow: "Opzionale" },
     5: { title: "Controlla la segnalazione" }
   };
 
   const step = content[currentStep];
 
   return (
-    <div className="grid gap-3">
-      {step.description ? <Badge className="w-fit" variant="secondary">{step.description}</Badge> : null}
+    <div className="grid gap-1 text-left">
+      {step.eyebrow ? <p className="text-sm font-medium text-muted-foreground">{step.eyebrow}</p> : null}
       <h2 className="font-serif text-3xl font-semibold tracking-normal sm:text-4xl" id="report-wizard-title" tabIndex={-1}>
         {step.title}
       </h2>
+      {step.description ? <p className="text-base leading-7 text-muted-foreground sm:text-lg">{step.description}</p> : null}
     </div>
   );
 }
 
 function IntroStep({ onStart }: { onStart: () => void }) {
-  const items = ["Descrivi", "Indica dove", "Segui lo stato"];
+  const items = [
+    { title: "Descrivi", description: "Cosa non funziona" },
+    { title: "Indica dove", description: "Sulla mappa o via" },
+    { title: "Segui lo stato", description: "Fino alla risoluzione" }
+  ];
 
   return (
-    <div className="grid justify-items-center gap-7">
-      <p className="text-base leading-7 text-muted-foreground sm:text-lg">Ti guidiamo in pochi passaggi.</p>
-
-      <ol className="grid w-full gap-3 border-y border-border py-5 sm:grid-cols-3">
+    <div className="grid justify-items-start gap-8">
+      <ol className="grid w-full max-w-2xl gap-3 sm:grid-cols-3">
         {items.map((item, index) => (
-          <li className="flex items-center justify-center gap-3" key={item}>
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+          <li className="grid justify-items-start gap-2 rounded-xl bg-muted/40 px-4 py-5 text-left" key={item.title}>
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {index + 1}
             </span>
-            <span className="font-medium text-foreground">{item}</span>
+            <div className="grid gap-1">
+              <span className="text-sm font-semibold text-foreground">{item.title}</span>
+              <span className="text-sm leading-5 text-muted-foreground">{item.description}</span>
+            </div>
           </li>
         ))}
       </ol>
 
-      <div className="grid w-fit justify-items-center gap-3">
-        <Button onClick={onStart} type="button">Inizia la segnalazione</Button>
-        <p className="text-sm text-muted-foreground">Non servono account o dati personali.</p>
+      <div className="grid w-fit justify-items-start gap-3">
+        <Button className="gap-2" onClick={onStart} type="button">
+          Inizia la segnalazione
+          <ArrowRight aria-hidden="true" className="size-4" />
+        </Button>
+        <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <ShieldCheck aria-hidden="true" className="size-4" />
+          <span>Non servono account o dati personali.</span>
+        </p>
       </div>
     </div>
   );
@@ -327,15 +349,16 @@ function ProblemStep({
         aria-invalid={Boolean(fieldErrors.categoryId)}
         className="grid gap-4"
       >
-        <legend className="mb-4 block text-sm font-medium leading-none text-foreground">Che tipo di problema vuoi segnalare?</legend>
+        <legend className="mb-4 block text-sm font-medium leading-none text-muted-foreground">Categoria</legend>
         <div className="flex flex-wrap gap-2">
           {categories.map((category) => {
             const selected = values.categoryId === category.id;
+            const CategoryIcon = getCategoryIcon(category);
 
             return (
               <label
                 className={cn(
-                  "flex min-h-10 cursor-pointer items-center rounded-full border px-3.5 py-2 text-sm font-medium transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
+                  "flex min-h-10 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
                   selected
                     ? "border-primary bg-primary text-primary-foreground shadow-sm"
                     : "border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
@@ -353,6 +376,7 @@ function ProblemStep({
                   type="radio"
                   value={category.id}
                 />
+                <CategoryIcon aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
                 <span>{category.name}</span>
               </label>
             );
@@ -363,14 +387,35 @@ function ProblemStep({
 
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-sm font-medium leading-none text-foreground" htmlFor="description">Descrivi il problema</label>
-          <p className="text-sm text-muted-foreground">Minimo {descriptionMinLength} caratteri</p>
+          <label className="text-sm font-medium leading-none text-muted-foreground" htmlFor="title">Titolo</label>
+          <p className="text-sm text-muted-foreground">{values.title.length} / {titleMaxLength}</p>
+        </div>
+        <Input
+          aria-describedby={fieldErrors.title ? "title-error" : undefined}
+          aria-invalid={Boolean(fieldErrors.title)}
+          disabled={disabled}
+          id="title"
+          maxLength={titleMaxLength}
+          name="title"
+          onChange={(event) => onUpdate("title", event.currentTarget.value)}
+          placeholder="Es. Buca profonda sulla carreggiata"
+          required
+          value={values.title}
+        />
+        <FieldError id="title-error" message={fieldErrors.title} />
+      </div>
+
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-sm font-medium leading-none text-muted-foreground" htmlFor="description">Descrivi il problema</label>
+          <p className="text-sm text-muted-foreground">{values.description.length} / {descriptionMaxLength}</p>
         </div>
         <Textarea
           aria-describedby={fieldErrors.description ? "description-error" : undefined}
           aria-invalid={Boolean(fieldErrors.description)}
           disabled={disabled}
           id="description"
+          maxLength={descriptionMaxLength}
           name="description"
           onChange={(event) => onUpdate("description", event.currentTarget.value)}
           placeholder="Spiega cosa succede, da quanto tempo e dove si trova il problema."
@@ -445,15 +490,27 @@ function PhotoStep({
 }) {
   return (
     <div className="grid gap-6 text-left">
-      <div className="grid gap-3 rounded-xl border border-dashed border-border bg-muted/30 p-5">
-        <div>
-          <p className="text-lg font-semibold">Aggiungi una foto del problema</p>
-          <p className="mt-1 text-sm text-muted-foreground">JPEG, PNG o WebP · max 10 MB</p>
+      {photoPreviewUrl && values.photo ? (
+        <div className="relative mx-auto grid w-full max-w-sm">
+          <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-xl bg-muted">
+            <img alt="Anteprima della foto selezionata" className="h-full w-full object-cover" src={photoPreviewUrl} />
+          </div>
+          <button
+            aria-label="Rimuovi foto"
+            className="absolute -right-2 -top-2 z-10 flex size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onClick={() => onPhotoChange(null)}
+            type="button"
+          >
+            <X aria-hidden="true" className="size-5" strokeWidth={2.5} />
+          </button>
         </div>
-        <div>
+      ) : (
+        <div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-5 py-8 text-center">
+          <Upload aria-hidden="true" className="size-7 text-muted-foreground" strokeWidth={1.8} />
+          <p className="text-sm text-muted-foreground">JPEG, PNG o WebP · max 10 MB</p>
           <input
-            accept="image/jpeg,image/png,image/webp"
-            aria-describedby={fieldErrors.photo ? "photo-error" : "photo-help"}
+            accept="image/*"
+            aria-describedby={fieldErrors.photo ? "photo-error" : undefined}
             aria-invalid={Boolean(fieldErrors.photo)}
             className="sr-only"
             disabled={disabled}
@@ -469,21 +526,8 @@ function PhotoStep({
           >
             Scegli foto
           </label>
+          <FieldError id="photo-error" message={fieldErrors.photo} />
         </div>
-        <p className="text-sm leading-6 text-muted-foreground" id="photo-help">La foto sarà verificata prima della pubblicazione.</p>
-        <FieldError id="photo-error" message={fieldErrors.photo} />
-      </div>
-
-      {photoPreviewUrl && values.photo ? (
-        <div className="grid gap-3 border-y border-border py-5">
-          <img alt="Anteprima della foto selezionata" className="max-h-72 w-full rounded-xl object-cover" src={photoPreviewUrl} />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="truncate text-sm text-muted-foreground">{values.photo.name}</p>
-            <Button onClick={() => onPhotoChange(null)} type="button" variant="secondary">Rimuovi foto</Button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">Puoi continuare anche senza foto.</p>
       )}
 
       <WizardActions onBack={onBack} onNext={onNext} nextLabel="Continua" />
@@ -531,10 +575,11 @@ function ReviewStep({
 
   return (
     <div className="grid gap-8 text-left">
-      <div className="grid gap-6 border-y border-border py-6">
+      <div className="grid divide-y divide-border">
         <ReviewSection title="Problema" onEdit={() => onEdit(2)}>
           <dl className="grid gap-3 text-sm">
             <InfoRow label="Categoria" value={selectedCategoryName} />
+            <InfoRow label="Titolo" value={values.title} />
             <div>
               <dt className="font-medium text-muted-foreground">Descrizione</dt>
               <dd className="mt-1 whitespace-pre-wrap leading-6 text-foreground">{values.description}</dd>
@@ -543,14 +588,21 @@ function ReviewStep({
         </ReviewSection>
 
         <ReviewSection title="Posizione" onEdit={() => onEdit(3)}>
-          <p className="text-sm leading-6 text-foreground">{values.address || "Punto selezionato sulla mappa"}</p>
+          <div className="text-sm">
+            <p className="font-medium text-muted-foreground">Indirizzo</p>
+            <div className="mt-1 flex items-start gap-1.5 leading-6 text-foreground">
+              <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-foreground" />
+              <p>{values.address}</p>
+            </div>
+          </div>
         </ReviewSection>
 
         <ReviewSection title="Foto" onEdit={() => onEdit(4)}>
           {photoPreviewUrl && values.photo ? (
             <div className="grid gap-3">
-              <img alt="Anteprima della foto selezionata" className="max-h-56 w-full rounded-xl object-cover" src={photoPreviewUrl} />
-              <p className="text-sm text-muted-foreground">{values.photo.name}</p>
+              <div className="flex size-28 items-center justify-center overflow-hidden rounded-xl bg-muted sm:size-32">
+                <img alt="Anteprima della foto selezionata" className="h-full w-full object-cover" src={photoPreviewUrl} />
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Nessuna foto.</p>
@@ -560,15 +612,15 @@ function ReviewStep({
 
       {Object.keys(fieldErrors).length > 0 ? <AlertMessage message="Controlla i campi evidenziati." fieldErrors={fieldErrors} /> : null}
 
-      <div className="grid gap-2 text-sm leading-6 text-muted-foreground">
-        <p>La segnalazione sarà verificata da Visione Comune prima della pubblicazione.</p>
-        <p>Dopo l&apos;invio riceverai un codice da conservare.</p>
-      </div>
-
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <Button onClick={onBack} type="button" variant="secondary">Indietro</Button>
-        <Button className="w-full sm:w-auto" disabled={formDisabled} onClick={onSubmit} type="button">
-          {submitting ? "Invio in corso..." : "Invia segnalazione"}
+        <Button className="w-full gap-2 sm:w-auto" disabled={formDisabled} onClick={onSubmit} type="button">
+          {submitting ? "Invio in corso..." : (
+            <>
+              <Check aria-hidden="true" className="size-4" />
+              Invia segnalazione
+            </>
+          )}
         </Button>
       </div>
     </div>
@@ -626,25 +678,31 @@ function DuplicateInterruption({
 
 function SuccessState({ publicCode }: { publicCode: string }) {
   return (
-    <section aria-labelledby="report-created-title" className="grid gap-8 py-4" role="status">
-      <div className="grid gap-4 text-center sm:text-left">
-        <Badge className="mx-auto w-fit sm:mx-0">Segnalazione ricevuta</Badge>
-        <h2 className="font-serif text-4xl font-semibold tracking-normal" id="report-created-title">Segnalazione ricevuta</h2>
-        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-          La segnalazione è in verifica. Usa questo codice per seguirne gli aggiornamenti.
-        </p>
+    <section aria-labelledby="report-created-title" className="grid justify-items-center gap-7 py-4 text-center" role="status">
+      <div className="grid justify-items-center gap-4">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <CheckCircle2 aria-hidden="true" className="size-5" />
+        </span>
+        <div className="grid justify-items-center gap-3">
+          <h2 className="font-serif text-4xl font-semibold tracking-normal" id="report-created-title">Segnalazione ricevuta</h2>
+          <p className="max-w-lg text-base leading-7 text-muted-foreground">
+            La segnalazione è in verifica. Usa questo codice per seguirne gli aggiornamenti.
+          </p>
+        </div>
       </div>
-      <div className="rounded-2xl border border-primary/30 bg-primary/10 p-6 text-center sm:text-left">
-        <p className="text-sm font-medium text-muted-foreground">Codice segnalazione</p>
-        <p className="mt-3 font-mono text-4xl font-semibold tracking-wide text-foreground sm:text-5xl">{publicCode}</p>
+
+      <div className="grid w-full max-w-lg justify-items-center gap-3 rounded-xl bg-muted/40 px-6 py-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Codice segnalazione</p>
+        <p className="font-mono text-3xl font-semibold tracking-[0.16em] text-foreground sm:text-4xl">{publicCode}</p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
+
+      <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
         <CopyPublicCodeButton publicCode={publicCode} />
         <Link
-          className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          href={`/segnalazione?codice=${publicCode}`}
+          className="inline-flex min-h-10 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          href="/mappa"
         >
-          Controlla lo stato
+          Vai alla mappa
         </Link>
       </div>
     </section>
@@ -653,10 +711,17 @@ function SuccessState({ publicCode }: { publicCode: string }) {
 
 function ReviewSection({ children, onEdit, title }: { children: ReactNode; onEdit: () => void; title: string }) {
   return (
-    <section className="grid gap-3">
+    <section className="grid gap-3 py-5 first:pt-0 last:pb-0">
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-lg font-semibold">{title}</h3>
-        <Button onClick={onEdit} type="button" variant="ghost">Modifica</Button>
+        <button
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          onClick={onEdit}
+          type="button"
+        >
+          <Pencil aria-hidden="true" className="size-4" />
+          Modifica
+        </button>
       </div>
       {children}
     </section>
@@ -672,11 +737,36 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function getCategoryIcon(category: CategoryOption): LucideIcon {
+  const value = `${category.slug} ${category.name}`.toLowerCase();
+
+  if (value.includes("strad") || value.includes("buc") || value.includes("marciapied")) {
+    return Road;
+  }
+
+  if (value.includes("illumin") || value.includes("luce") || value.includes("lamp")) {
+    return Lightbulb;
+  }
+
+  if (value.includes("verde") || value.includes("alber") || value.includes("parc")) {
+    return Trees;
+  }
+
+  if (value.includes("rifiut") || value.includes("decoro") || value.includes("spazz")) {
+    return Trash2;
+  }
+
+  return CircleAlert;
+}
+
 function WizardActions({ onBack, onNext, nextLabel }: { onBack: () => void; onNext: () => void; nextLabel: string }) {
   return (
     <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
       <Button onClick={onBack} type="button" variant="secondary">Indietro</Button>
-      <Button className="w-full sm:w-auto" onClick={onNext} type="button">{nextLabel}</Button>
+      <Button className="w-full gap-2 sm:w-auto" onClick={onNext} type="button">
+        {nextLabel}
+        <ArrowRight aria-hidden="true" className="size-4" />
+      </Button>
     </div>
   );
 }
@@ -709,6 +799,7 @@ function getFieldErrorsFromActionResult(result: CreateReportActionState): Wizard
 function buildReportFormData(values: WizardValues, forceDuplicateCreation: boolean): FormData {
   const formData = new FormData();
   formData.set("categoryId", values.categoryId);
+  formData.set("title", values.title);
   formData.set("description", values.description);
   formData.set("address", values.address);
   formData.set("latitude", values.latitude);
@@ -740,10 +831,19 @@ function validateStep(step: WizardStep, values: WizardValues): WizardFieldErrors
 
 function validateProblemStep(values: WizardValues): WizardFieldErrors {
   const errors: WizardFieldErrors = {};
+  const title = values.title.trim().replace(/\s+/g, " ");
   const description = values.description.trim().replace(/\s+/g, " ");
 
   if (!values.categoryId) {
     errors.categoryId = "Seleziona una categoria.";
+  }
+
+  if (!title) {
+    errors.title = "Inserisci un titolo.";
+  } else if (title.length < titleMinLength) {
+    errors.title = `Il titolo deve avere almeno ${titleMinLength} caratteri.`;
+  } else if (title.length > titleMaxLength) {
+    errors.title = `Il titolo non puo superare ${titleMaxLength} caratteri.`;
   }
 
   if (!description) {
@@ -772,13 +872,15 @@ function validateLocationStep(values: WizardValues): WizardFieldErrors {
 
   if (values.address.trim().length > addressMaxLength) {
     errors.address = `L'indirizzo non puo superare ${addressMaxLength} caratteri.`;
+  } else if (!values.address.trim()) {
+    errors.address = "Seleziona un indirizzo riconoscibile.";
   }
 
   return errors;
 }
 
 function getFirstInvalidStep(fieldErrors: WizardFieldErrors): WizardStep {
-  if (fieldErrors.categoryId || fieldErrors.description) return 2;
+  if (fieldErrors.categoryId || fieldErrors.title || fieldErrors.description) return 2;
   if (fieldErrors.address || fieldErrors.latitude || fieldErrors.longitude) return 3;
   if (fieldErrors.photo) return 4;
   return 5;
@@ -811,6 +913,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 function getVisibleFieldErrors(fieldErrors: WizardFieldErrors) {
   const labels = {
     categoryId: { fieldId: "categoryId", label: "Categoria" },
+    title: { fieldId: "title", label: "Titolo" },
     address: { fieldId: "address", label: "Indirizzo" },
     latitude: { fieldId: "address", label: "Posizione" },
     longitude: { fieldId: "address", label: "Posizione" },
@@ -830,6 +933,7 @@ function getVisibleFieldErrors(fieldErrors: WizardFieldErrors) {
 function hasWizardData(values: WizardValues): boolean {
   return Boolean(
     values.categoryId ||
+    values.title.trim() ||
     values.description.trim() ||
     values.address.trim() ||
     values.latitude.trim() ||
@@ -840,6 +944,7 @@ function hasWizardData(values: WizardValues): boolean {
 
 const initialWizardValues: WizardValues = {
   categoryId: "",
+  title: "",
   description: "",
   address: "",
   latitude: "",

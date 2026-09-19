@@ -55,7 +55,7 @@ export class PhotonGeocodingProvider implements GeocodingProvider {
     }
 
     const payload = await this.fetchJson(url);
-    return mapPhotonResponse(payload);
+    return mapPhotonResponse(payload, query);
   }
 
   async reverseGeocode(input: Parameters<GeocodingProvider["reverseGeocode"]>[0]): Promise<GeocodingResult | null> {
@@ -97,7 +97,7 @@ export class PhotonGeocodingProvider implements GeocodingProvider {
   }
 }
 
-export function mapPhotonResponse(payload: PhotonResponse): GeocodingResult[] {
+export function mapPhotonResponse(payload: PhotonResponse, query?: string): GeocodingResult[] {
   return (payload.features ?? []).flatMap((feature, index) => {
     const coordinates = feature.geometry?.coordinates;
     const longitude = coordinates?.[0];
@@ -108,7 +108,9 @@ export function mapPhotonResponse(payload: PhotonResponse): GeocodingResult[] {
     }
 
     const properties = feature.properties ?? {};
-    const label = buildPhotonLabel(properties);
+    const street = properties.street ?? properties.name;
+    const housenumber = properties.housenumber ?? inferHouseNumberFromQuery(query, street);
+    const label = buildPhotonLabel(properties, housenumber);
 
     if (!label) {
       return [];
@@ -121,18 +123,47 @@ export function mapPhotonResponse(payload: PhotonResponse): GeocodingResult[] {
         latitude,
         longitude,
         ...(properties.city ?? properties.town ?? properties.village ? { city: properties.city ?? properties.town ?? properties.village } : {}),
-        ...(properties.street ? { street: properties.street } : {})
+        ...(street ? { street } : {})
       }
     ];
   });
 }
 
-function buildPhotonLabel(properties: NonNullable<PhotonFeature["properties"]>): string {
-  const streetLine = [properties.street ?? properties.name, properties.housenumber].filter(Boolean).join(" ");
+function buildPhotonLabel(properties: NonNullable<PhotonFeature["properties"]>, housenumber?: string): string {
+  const streetLine = [properties.street ?? properties.name, housenumber].filter(Boolean).join(" ");
   const locality = properties.city ?? properties.town ?? properties.village ?? properties.county;
   const parts = [streetLine, locality, properties.state, properties.country]
     .map((part) => part?.trim())
     .filter((part): part is string => Boolean(part));
 
   return Array.from(new Set(parts)).join(", ");
+}
+
+function inferHouseNumberFromQuery(query: string | undefined, street: string | undefined): string | undefined {
+  if (!query || !street) {
+    return undefined;
+  }
+
+  const normalizedQuery = normalizeForHouseNumber(query);
+  const normalizedStreet = normalizeForHouseNumber(street);
+  const streetIndex = normalizedQuery.indexOf(normalizedStreet);
+
+  if (streetIndex === -1) {
+    return undefined;
+  }
+
+  const afterStreet = normalizedQuery.slice(streetIndex + normalizedStreet.length).trim();
+  const match = afterStreet.match(/(?:^|\s)(\d{1,4}[a-z]?(?:\/[a-z0-9]+)?)(?=\s|,|$)/i);
+
+  return match?.[1]?.toUpperCase();
+}
+
+function normalizeForHouseNumber(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9/]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }

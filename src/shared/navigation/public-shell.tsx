@@ -29,10 +29,10 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       {pathname === "/segnala" ? null : <PublicHeader pathname={pathname} />}
       {children}
-      <PublicFooter />
+      {pathname === "/segnala" ? null : <PublicFooter />}
     </div>
   );
 }

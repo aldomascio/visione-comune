@@ -40,7 +40,7 @@ export function ReportTaskShell({ categories, mapConfig }: ReportTaskShellProps)
         onHelpOpenChange={setHelpOpen}
       />
 
-      <main className="grid min-h-[calc(100vh-6.5rem)] px-6 py-10 sm:px-8 lg:min-h-[calc(100vh-8.5rem)] lg:px-12">
+      <main className="grid min-h-[calc(100vh-5.5rem)] px-6 py-10 sm:px-8 lg:px-12">
         <section className="mx-auto grid w-full max-w-3xl content-center gap-8 text-center" aria-label="Procedura guidata segnalazione">
           <ReportForm
             categories={categories}
@@ -75,7 +75,7 @@ function ReportTaskHeader({
           </Button>
 
           <span aria-label="Visione Comune" className="justify-self-center" role="img">
-            <LogoMark className="h-14 w-14 lg:h-20 lg:w-20" />
+            <LogoMark className="h-14 w-14" />
           </span>
 
           <Button
@@ -88,9 +88,11 @@ function ReportTaskHeader({
             ?
           </Button>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-border" aria-hidden="true">
-          <div className="h-full bg-primary transition-[width] duration-300 ease-out" style={{ width: `${((currentStep - 1) / 4) * 100}%` }} />
-        </div>
+        {currentStep > 0 ? (
+          <div className="absolute inset-x-0 bottom-0 h-[3px] bg-border" aria-hidden="true">
+            <div className="h-full bg-primary transition-[width] duration-300 ease-out" style={{ width: `${((currentStep - 1) / 4) * 100}%` }} />
+          </div>
+        ) : null}
       </header>
 
       {helpOpen ? <ReportHelpDialog onClose={() => onHelpOpenChange(false)} /> : null}

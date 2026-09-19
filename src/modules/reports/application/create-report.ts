@@ -18,14 +18,16 @@ import {
 import type { PublicCodeGenerator } from "./public-code-generator";
 
 export const CREATE_REPORT_DESCRIPTION_MIN_LENGTH = 20;
-export const CREATE_REPORT_DESCRIPTION_MAX_LENGTH = 4000;
+export const CREATE_REPORT_DESCRIPTION_MAX_LENGTH = 500;
 export const CREATE_REPORT_ADDRESS_MAX_LENGTH = 500;
+export const CREATE_REPORT_TITLE_MIN_LENGTH = 5;
 export const CREATE_REPORT_TITLE_MAX_LENGTH = 180;
 export const CREATE_REPORT_PUBLIC_CODE_MAX_RETRIES = 5;
 
 export type CreateReportInput = {
   categoryId: string;
   description: string;
+  title?: string;
   latitude: string | number;
   longitude: string | number;
   address?: string;
@@ -57,7 +59,7 @@ export class PublicCodeGenerationExhaustedError extends Error {
 }
 
 export type CreateReportFieldErrors = Partial<
-  Record<"categoryId" | "source" | "createdByAdminId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
+  Record<"categoryId" | "source" | "createdByAdminId" | "title" | "description" | "latitude" | "longitude" | "address" | "photo", string>
 >;
 
 export type CreateReportUseCaseDependencies = {
@@ -85,6 +87,7 @@ export class CreateReportUseCase {
   async execute(input: CreateReportInput): Promise<CreateReportResult> {
     return createReportWithSource(this.dependencies, {
       input,
+      requireTitle: true,
       source: "platform",
       now: this.now,
       createId: this.createId,
@@ -123,6 +126,7 @@ async function createReportWithSource(
   dependencies: CreateReportUseCaseDependencies,
   options: {
     input: CreateReportInput;
+    requireTitle?: boolean;
     source: ReportSource;
     createdByAdminId?: string;
     now: () => Date;
@@ -130,7 +134,7 @@ async function createReportWithSource(
     maxPublicCodeRetries: number;
   }
 ): Promise<CreateReportResult> {
-  const validatedInput = validateCreateReportInput(options.input);
+  const validatedInput = validateCreateReportInput(options.input, { requireTitle: options.requireTitle });
   const category = await dependencies.categoryRepository.findActiveById(
     validatedInput.categoryId
   );
@@ -145,7 +149,7 @@ async function createReportWithSource(
     ? await processReportImage({ buffer: options.input.photo.buffer, declaredMimeType: options.input.photo.mimeType })
     : undefined;
 
-  const title = deriveReportTitle({
+  const title = validatedInput.title ?? deriveReportTitle({
     categoryName: category.name,
     address: validatedInput.address,
     description: validatedInput.description
@@ -257,22 +261,32 @@ export function parseCreateReportSource(value: string): ReportSource {
   return normalizedValue;
 }
 
-export function validateCreateReportInput(input: CreateReportInput): {
+export function validateCreateReportInput(input: CreateReportInput, options: { requireTitle?: boolean } = {}): {
   categoryId: string;
   description: string;
   latitude: number;
   longitude: number;
   address?: string;
+  title?: string;
 } {
   const fieldErrors: CreateReportFieldErrors = {};
   const categoryId = normalizeText(input.categoryId);
   const description = normalizeText(input.description);
+  const title = normalizeText(input.title ?? "");
   const address = normalizeText(input.address ?? "");
   const latitude = parseCoordinate(input.latitude);
   const longitude = parseCoordinate(input.longitude);
 
   if (!categoryId) {
     fieldErrors.categoryId = "Seleziona una categoria.";
+  }
+
+  if (options.requireTitle && !title) {
+    fieldErrors.title = "Inserisci un titolo.";
+  } else if (options.requireTitle && title.length < CREATE_REPORT_TITLE_MIN_LENGTH) {
+    fieldErrors.title = `Il titolo deve avere almeno ${CREATE_REPORT_TITLE_MIN_LENGTH} caratteri.`;
+  } else if (title.length > CREATE_REPORT_TITLE_MAX_LENGTH) {
+    fieldErrors.title = `Il titolo non puo superare ${CREATE_REPORT_TITLE_MAX_LENGTH} caratteri.`;
   }
 
   if (!description) {
@@ -315,6 +329,7 @@ export function validateCreateReportInput(input: CreateReportInput): {
   return {
     categoryId,
     description,
+    ...(title ? { title } : {}),
     latitude: latitude as number,
     longitude: longitude as number,
     ...(address ? { address } : {})

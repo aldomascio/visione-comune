@@ -37,6 +37,52 @@ describe("PhotonGeocodingProvider", () => {
     expect(mapPhotonResponse({ features: [{ geometry: { coordinates: [200, 100] }, properties: { name: "Bad" } }] })).toEqual([]);
   });
 
+  it("preserves a typed house number when Photon returns only the matching street", () => {
+    expect(
+      mapPhotonResponse(
+        {
+          features: [
+            {
+              geometry: { coordinates: [14.043, 41.482] },
+              properties: {
+                osm_id: 123,
+                osm_type: "way",
+                name: "Via Colonia Giulia",
+                city: "Venafro",
+                state: "Molise",
+                country: "Italia"
+              }
+            }
+          ]
+        },
+        "Via Colonia Giulia 10 Venafro"
+      )[0]?.label
+    ).toBe("Via Colonia Giulia 10, Venafro, Molise, Italia");
+  });
+
+  it("preserves a typed house number after the locality when Photon returns only the matching street", () => {
+    expect(
+      mapPhotonResponse(
+        {
+          features: [
+            {
+              geometry: { coordinates: [14.0443, 41.4836] },
+              properties: {
+                osm_id: 123,
+                osm_type: "way",
+                name: "Corso Campano",
+                city: "Venafro",
+                state: "Molise",
+                country: "Italia"
+              }
+            }
+          ]
+        },
+        "Corso Campano Venafro 14"
+      )[0]?.label
+    ).toBe("Corso Campano 14, Venafro, Molise, Italia");
+  });
+
   it("maps search results through fetch", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
@@ -53,10 +99,10 @@ describe("PhotonGeocodingProvider", () => {
     );
     const provider = new PhotonGeocodingProvider({ baseUrl: "https://example.test", fetchImpl });
 
-    await expect(provider.searchAddress({ query: "Corso Campano", limit: 3, bias: { latitude: 41.4821, longitude: 14.0474 } })).resolves.toEqual([
-      expect.objectContaining({ label: "Corso Campano, Venafro, Italia", latitude: 41.4836, longitude: 14.0443 })
+    await expect(provider.searchAddress({ query: "Corso Campano 12", limit: 3, bias: { latitude: 41.4821, longitude: 14.0474 } })).resolves.toEqual([
+      expect.objectContaining({ label: "Corso Campano 12, Venafro, Italia", latitude: 41.4836, longitude: 14.0443 })
     ]);
-    expect(String(fetchImpl.mock.calls[0]?.[0])).toContain("q=Corso+Campano");
+    expect(String(fetchImpl.mock.calls[0]?.[0])).toContain("q=Corso+Campano+12");
     expect(String(fetchImpl.mock.calls[0]?.[0])).toContain("lat=41.4821");
   });
 

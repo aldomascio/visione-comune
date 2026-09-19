@@ -21,6 +21,7 @@ export async function createReportAction(
 ): Promise<CreateReportActionState> {
   const values = {
     categoryId: getFormValue(formData, "categoryId"),
+    title: getFormValue(formData, "title"),
     description: getFormValue(formData, "description"),
     latitude: getFormValue(formData, "latitude"),
     longitude: getFormValue(formData, "longitude"),
@@ -35,7 +36,7 @@ export async function createReportAction(
     const reportRepository = new DrizzleReportRepository(connection.db);
 
     if (!forceCreation) {
-      const validatedInput = validateCreateReportInput(values);
+      const validatedInput = validateCreateReportInput(values, { requireTitle: true });
       const duplicateUseCase = new FindPotentialDuplicateReportsUseCase({ reportRepository });
       const duplicateCandidates = await duplicateUseCase.execute({
         categoryId: validatedInput.categoryId,
@@ -53,6 +54,7 @@ export async function createReportAction(
           fieldErrors: {},
           values: {
             categoryId: validatedInput.categoryId,
+            title: validatedInput.title ?? values.title,
             description: validatedInput.description,
             latitude: String(validatedInput.latitude),
             longitude: String(validatedInput.longitude),
@@ -91,6 +93,7 @@ export async function createReportAction(
       fieldErrors: error instanceof CreateReportValidationError ? error.fieldErrors : {},
       values: {
         categoryId: values.categoryId,
+        title: values.title,
         description: values.description,
         latitude: values.latitude,
         longitude: values.longitude,

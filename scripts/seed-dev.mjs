@@ -9,22 +9,10 @@ if (!databaseUrl) {
 
 const sql = postgres(databaseUrl, { max: 1 });
 
-const provisionalCategories = [
-  {
-    id: "provisional-roads",
-    name: "Strade e marciapiedi (provvisoria)",
-    slug: "strade-marciapiedi-provvisoria"
-  },
-  {
-    id: "provisional-lighting",
-    name: "Illuminazione pubblica (provvisoria)",
-    slug: "illuminazione-pubblica-provvisoria"
-  },
-  {
-    id: "provisional-waste-decorum",
-    name: "Rifiuti e decoro urbano (provvisoria)",
-    slug: "rifiuti-decoro-urbano-provvisoria"
-  }
+const legacyProvisionalCategoryIds = [
+  "provisional-roads",
+  "provisional-lighting",
+  "provisional-waste-decorum"
 ];
 
 function contentDocumentFromText(value) {
@@ -149,17 +137,11 @@ Questa distinzione evita promesse implicite e rende piu chiaro a che punto si tr
 ];
 
 try {
-  for (const category of provisionalCategories) {
-    await sql`
-      insert into categories (id, name, slug, active)
-      values (${category.id}, ${category.name}, ${category.slug}, true)
-      on conflict (id) do update set
-        name = excluded.name,
-        slug = excluded.slug,
-        active = true,
-        updated_at = now()
-    `;
-  }
+  await sql`
+    update categories
+    set active = false, updated_at = now()
+    where id in ${sql(legacyProvisionalCategoryIds)}
+  `;
 
   const baseDate = new Date("2026-09-01T09:00:00.000Z");
   for (const [index, post] of newsPosts.entries()) {
@@ -206,7 +188,7 @@ try {
     `;
   }
 
-  console.log(`Seeded ${provisionalCategories.length} provisional development categories.`);
+  console.log("Disabled legacy provisional development categories.");
   console.log(`Seeded ${newsPosts.length} development news posts.`);
 } finally {
   await sql.end();

@@ -7,10 +7,11 @@ export type CreateReportActionState = {
   duplicateCandidates?: PotentialDuplicateReportCandidate[];
   photoSelectedBeforeDuplicateCheck?: boolean;
   fieldErrors: Partial<
-    Record<"categoryId" | "description" | "latitude" | "longitude" | "address" | "photo", string>
+    Record<"categoryId" | "title" | "description" | "latitude" | "longitude" | "address" | "photo", string>
   >;
   values: {
     categoryId: string;
+    title: string;
     description: string;
     latitude: string;
     longitude: string;
@@ -23,6 +24,7 @@ export const initialCreateReportActionState: CreateReportActionState = {
   fieldErrors: {},
   values: {
     categoryId: "",
+    title: "",
     description: "",
     latitude: "",
     longitude: "",

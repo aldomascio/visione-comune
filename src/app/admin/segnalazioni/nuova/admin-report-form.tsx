@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import { REPORT_SOURCE_LABELS } from "@/modules/reports/domain";
 import type { PublicMapConfig } from "@/shared/config/map";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input, Select, Textarea } from "@/shared/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Select, Textarea } from "@/shared/ui";
 import { LocationPicker } from "@/app/segnala/location-picker";
 import { createAdminReportAction } from "../actions";
 import { initialCreateAdminReportActionState } from "./form-state";
@@ -122,7 +122,10 @@ export function AdminReportForm({ categories, mapConfig }: AdminReportFormProps)
       </Field>
 
       <Field hint="Opzionale. Riusa gli stessi limiti del form pubblico: JPEG, PNG o WebP fino a 10 MB." htmlFor="photo" label="Foto opzionale">
-        <Input accept="image/jpeg,image/png,image/webp" aria-describedby={state.fieldErrors.photo ? "photo-error" : undefined} aria-invalid={Boolean(state.fieldErrors.photo)} disabled={formDisabled} id="photo" name="photo" type="file" />
+        <input accept="image/*" aria-describedby={state.fieldErrors.photo ? "photo-error" : undefined} aria-invalid={Boolean(state.fieldErrors.photo)} className="sr-only" disabled={formDisabled} id="photo" name="photo" type="file" />
+        <label className="inline-flex min-h-10 w-fit cursor-pointer items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background" htmlFor="photo">
+          Scegli foto
+        </label>
         <FieldError id="photo-error" message={state.fieldErrors.photo} />
       </Field>
 

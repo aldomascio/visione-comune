@@ -27,8 +27,7 @@ export function ConfirmReportForm({ publicCode, alreadyConfirmed, confirmable, p
 
   if (!confirmable) {
     return (
-      <div className="grid gap-3">
-        <Button disabled type="button">Conferme raccolte sulla principale</Button>
+      <div className="grid gap-2">
         <p className="text-sm leading-6 text-muted-foreground">
           Le nuove conferme vengono raccolte sulla segnalazione principale{primaryPublicCode ? ` ${primaryPublicCode}` : ""}.
         </p>

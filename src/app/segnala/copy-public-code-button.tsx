@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Copy } from "lucide-react";
 import { Button } from "@/shared/ui";
 
 export function CopyPublicCodeButton({ publicCode }: { publicCode: string }) {
@@ -13,8 +14,8 @@ export function CopyPublicCodeButton({ publicCode }: { publicCode: string }) {
         setCopied(true);
       }}
       type="button"
-      variant="secondary"
     >
+      <Copy aria-hidden="true" className="size-4" />
       {copied ? "Codice copiato" : "Copia codice"}
     </Button>
   );

@@ -35,6 +35,7 @@ const category: CategoryOption = {
 function createValidInput() {
   return {
     categoryId: category.id,
+    title: "Buca profonda vicino alla scuola",
     description: "Sono presenti buche profonde vicino alla scuola e serve una verifica.",
     latitude: "41.4821",
     longitude: "14.0474",
@@ -53,7 +54,7 @@ describe("CreateReportUseCase", () => {
     expect(reportRepository.savedReports[0]?.toSnapshot()).toMatchObject({
       id: "report-1",
       publicCode: "VC-23456789",
-      title: "Strade e marciapiedi: Via Roma, Venafro",
+      title: "Buca profonda vicino alla scuola",
       categoryId: "test-roads",
       source: "platform",
       moderationStatus: "pending_review",
@@ -67,6 +68,18 @@ describe("CreateReportUseCase", () => {
         metadata: { source: "platform" }
       }
     ]);
+  });
+
+  it("uses an explicit report title when provided", async () => {
+    const reportRepository = new InMemoryReportRepository();
+    const useCase = createUseCase({ reportRepository });
+
+    await useCase.execute({
+      ...createValidInput(),
+      title: "Buca profonda sulla carreggiata"
+    });
+
+    expect(reportRepository.savedReports[0]?.toSnapshot().title).toBe("Buca profonda sulla carreggiata");
   });
 
   it("creates an admin report with the selected source as pending review", async () => {
@@ -158,6 +171,7 @@ describe("CreateReportUseCase", () => {
     await expect(
       useCase.execute({
         categoryId: " ",
+        title: " ",
         description: "troppo corta",
         latitude: "non valida",
         longitude: "999",
@@ -166,10 +180,21 @@ describe("CreateReportUseCase", () => {
     ).rejects.toMatchObject({
       fieldErrors: {
         categoryId: "Seleziona una categoria.",
+        title: "Inserisci un titolo.",
         description: "Descrivi il problema con almeno 20 caratteri.",
         latitude: "Inserisci una latitudine valida tra -90 e 90.",
         longitude: "Inserisci una longitudine valida tra -180 e 180.",
         address: "L'indirizzo non puo superare 500 caratteri."
+      }
+    });
+  });
+
+  it("rejects a too short explicit title in public submissions", async () => {
+    const useCase = createUseCase();
+
+    await expect(useCase.execute({ ...createValidInput(), title: "abc" })).rejects.toMatchObject({
+      fieldErrors: {
+        title: "Il titolo deve avere almeno 5 caratteri."
       }
     });
   });

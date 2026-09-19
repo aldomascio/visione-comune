@@ -723,10 +723,13 @@ function ResolutionCard({
         {canUploadResolutionPhoto && !attachment ? (
           <form action={addResolutionPhotoAction} className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4">
             <input name="publicCode" type="hidden" value={publicCode} />
-            <label className="grid gap-2 text-sm font-medium" htmlFor="resolutionPhoto">
-              Carica foto di risoluzione
-              <Input accept="image/jpeg,image/png,image/webp" id="resolutionPhoto" name="resolutionPhoto" type="file" />
-            </label>
+            <div className="grid gap-2 text-sm font-medium">
+              <span>Carica foto di risoluzione</span>
+              <input accept="image/*" className="sr-only" id="resolutionPhoto" name="resolutionPhoto" type="file" />
+              <label className="inline-flex min-h-10 w-fit cursor-pointer items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background" htmlFor="resolutionPhoto">
+                Scegli foto
+              </label>
+            </div>
             <Button type="submit">Carica foto risoluzione</Button>
           </form>
         ) : null}

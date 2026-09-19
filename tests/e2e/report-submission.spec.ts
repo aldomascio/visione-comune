@@ -10,6 +10,7 @@ const categoryName = "Categoria E2E (provvisoria)";
 const adminEmail = "report-upload-admin.e2e@example.com";
 const adminPassword = "Correct horse battery upload 2026!";
 const argon2Async = promisify(argon2);
+const defaultTitle = "Buca profonda vicino alla scuola";
 const defaultDescription = "Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.";
 
 test.describe.configure({ mode: "serial" });
@@ -58,12 +59,14 @@ test("preserves entered data while moving back and forward through the wizard", 
 
   await startWizard(page);
   await page.getByText(categoryName, { exact: true }).click();
+  await page.getByLabel("Titolo").fill(defaultTitle);
   await page.getByLabel("Descrivi il problema").fill(defaultDescription);
   await page.getByRole("button", { name: "Continua" }).click();
-  await expect(page.getByRole("heading", { name: "Dove si trova il problema?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dove si trova?" })).toBeVisible();
 
   await page.getByRole("button", { name: "Indietro" }).click();
   await expect(page.getByRole("radio", { name: categoryName })).toBeChecked();
+  await expect(page.getByLabel("Titolo")).toHaveValue(defaultTitle);
   await expect(page.getByLabel("Descrivi il problema")).toHaveValue(defaultDescription);
 
   await page.getByRole("button", { name: "Continua" }).click();
@@ -73,7 +76,8 @@ test("preserves entered data while moving back and forward through the wizard", 
 
   await page.getByRole("button", { name: "Indietro" }).click();
   await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Via Roma, Venafro, Molise, Italia");
-  await expect(page.getByTestId("report-location-map")).toHaveCount(0);
+  await expect(page.getByTestId("report-location-map")).toBeVisible();
+  await expect(page.getByTestId("report-location-marker")).toHaveCount(0);
 });
 
 test("continues when geolocation permission is denied and the user selects an address", async ({ page }) => {
@@ -103,7 +107,8 @@ test("continues when geolocation permission is denied and the user selects an ad
 
   await page.getByRole("button", { name: "Usa la mia posizione" }).click();
   await expect(page.getByText(/Permesso negato/)).toBeVisible();
-  await expect(page.getByTestId("report-location-map")).toHaveCount(0);
+  await expect(page.getByTestId("report-location-map")).toBeVisible();
+  await expect(page.getByTestId("report-location-marker")).toHaveCount(0);
   await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page.getByRole("button", { name: "Continua" }).click();
   await skipPhotoStep(page);
@@ -155,7 +160,6 @@ test("requires a new location confirmation after editing a selected address", as
   await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page.getByLabel("Inserisci indirizzo").fill("Via modificata senza selezione");
   await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Via modificata senza selezione");
-  await expect(page.getByText(/Hai modificato l\'indirizzo/)).toBeVisible();
   await expect(page.locator('input[name="latitude"]')).toHaveValue("");
   await expect(page.locator('input[name="longitude"]')).toHaveValue("");
   await page.getByRole("button", { name: "Continua" }).click();
@@ -171,7 +175,8 @@ test("continues with address selection after address search provider fails", asy
   await completeProblemStep(page);
   await page.getByLabel("Inserisci indirizzo").fill("fail provider");
   await expect(page.getByText(/Non siamo riusciti a trovare l'indirizzo/)).toBeVisible();
-  await expect(page.getByTestId("report-location-map")).toHaveCount(0);
+  await expect(page.getByTestId("report-location-map")).toBeVisible();
+  await expect(page.getByTestId("report-location-marker")).toHaveCount(0);
   await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page.getByRole("button", { name: "Continua" }).click();
   await skipPhotoStep(page);
@@ -190,15 +195,16 @@ test("previews, removes, and reselects a photo before submitting", async ({ page
 
   await page.setInputFiles("#photo", { name: "prima.png", mimeType: "image/png", buffer: await validPng("red") });
   await expect(page.getByAltText("Anteprima della foto selezionata")).toBeVisible();
-  await expect(page.getByText("prima.png")).toBeVisible();
+  await expect(page.getByText("prima.png")).toHaveCount(0);
   await page.getByRole("button", { name: "Rimuovi foto" }).click();
-  await expect(page.getByText("Puoi continuare anche senza foto.")).toBeVisible();
+  await expect(page.getByAltText("Anteprima della foto selezionata")).toHaveCount(0);
 
   await page.setInputFiles("#photo", { name: "problema.png", mimeType: "image/png", buffer: await validPng("blue") });
-  await expect(page.getByText("problema.png")).toBeVisible();
+  await expect(page.getByAltText("Anteprima della foto selezionata")).toBeVisible();
+  await expect(page.getByText("problema.png")).toHaveCount(0);
   await page.getByRole("button", { name: "Continua" }).click();
   await expect(page.getByRole("heading", { name: "Controlla la segnalazione" })).toBeVisible();
-  await expect(page.getByText("problema.png")).toBeVisible();
+  await expect(page.getByText("problema.png")).toHaveCount(0);
   await submitReviewStep(page);
 
   await expectSuccessState(page);
@@ -286,10 +292,12 @@ async function startWizard(page: Page): Promise<void> {
 async function completeProblemStep(page: Page, description = defaultDescription): Promise<void> {
   await startWizard(page);
   await page.getByText(categoryName, { exact: true }).click();
+  await page.getByLabel("Titolo").fill(defaultTitle);
   await page.getByLabel("Descrivi il problema").fill(description);
   await page.getByRole("button", { name: "Continua" }).click();
-  await expect(page.getByRole("heading", { name: "Dove si trova il problema?" })).toBeVisible();
-  await expect(page.getByTestId("report-location-map")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Dove si trova?" })).toBeVisible();
+  await expect(page.getByTestId("report-location-map")).toBeVisible();
+  await expect(page.getByTestId("report-location-marker")).toHaveCount(0);
 }
 
 async function completeLocationStepWithAddress(page: Page): Promise<void> {

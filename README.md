@@ -130,7 +130,7 @@ Pagine pubbliche disponibili in locale:
 
 Mappa pubblica:
 
-`/mappa` usa MapLibre GL JS. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato, in locale viene usato lo style raster OpenStreetMap, adatto allo sviluppo ma non scelto come provider definitivo di produzione.
+`/mappa` usa MapLibre GL JS con uno stile vettoriale coordinato alla palette dell'applicazione. Lo style URL puo essere configurato con `NEXT_PUBLIC_MAP_STYLE_URL`; se non impostato viene usato lo style Liberty di OpenFreeMap, trasformato centralmente nei colori Visione Comune. Il provider definitivo di produzione resta sostituibile.
 
 Geocoding nel form segnalazione:
 
@@ -164,4 +164,3 @@ PEC, AI e newsletter non sono ancora configurati.
 La Home pubblica (`/`) e la porta di ingresso dell'MVP: presenta il flusso di segnalazione, i collegamenti principali, metriche aggregate pubbliche, ultime notizie pubblicate, tracking tramite codice, newsletter e ultimi problemi risolti quando disponibili.
 
 La Home riusa application layer e repository esistenti; non carica MapLibre direttamente e non espone metriche interne amministrative.
-

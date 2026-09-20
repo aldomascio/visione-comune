@@ -5,6 +5,7 @@ import { ArrowRight, Check, CheckCircle2, CircleAlert, Lightbulb, MapPin, Pencil
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { CategoryOption } from "@/modules/categories/application/category-repository";
 import type { PublicMapConfig } from "@/shared/config/map";
+import { formatStreetAddress } from "@/shared/format/address";
 import {
   Badge,
   Button,
@@ -592,7 +593,7 @@ function ReviewStep({
             <p className="font-medium text-muted-foreground">Indirizzo</p>
             <div className="mt-1 flex items-start gap-1.5 leading-6 text-foreground">
               <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-foreground" />
-              <p>{values.address}</p>
+              <p>{formatStreetAddress(values.address)}</p>
             </div>
           </div>
         </ReviewSection>
@@ -652,7 +653,7 @@ function DuplicateInterruption({
           <li className="grid gap-3 rounded-lg border border-border bg-background p-4 sm:grid-cols-[1fr_auto] sm:items-center" key={candidate.publicCode}>
             <div className="grid gap-1">
               <p className="font-medium text-foreground">{candidate.title}</p>
-              <p className="text-sm text-muted-foreground">{candidate.categoryName}{candidate.address ? ` · ${candidate.address}` : ""}</p>
+              <p className="text-sm text-muted-foreground">{candidate.categoryName}{candidate.address ? ` · ${formatStreetAddress(candidate.address)}` : ""}</p>
               <p className="text-sm text-muted-foreground">Circa {formatDistance(candidate.distanceMeters)} · Stato {candidate.publicStatusLabel} · pubblicata il {formatDate(candidate.publishedAt)}</p>
             </div>
             <Link

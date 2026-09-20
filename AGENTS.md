@@ -25,6 +25,15 @@ Prima di modificare il codice:
 - Non cambiare silenziosamente UX flow esistenti.
 - Se una decisione non è definita, fermati a una proposta e documenta l'incertezza.
 
+## Contenuti e stile dell'interfaccia
+
+- Non inventare mai contenuti, dati, testi, immagini o informazioni placeholder. Mostra esclusivamente informazioni realmente disponibili nel prodotto, nel database o nella documentazione approvata. Quando un dato manca, usa uno stato vuoto coerente invece di sostituirlo con contenuto fittizio.
+- Non aggiungere dati demo, valori di esempio o fallback presentati come informazioni reali, salvo richiesta esplicita dell'utente.
+- Non hardcodare stili nei componenti. Usa sempre token del tema, primitive del design system e classi condivise già disponibili.
+- Non usare attributi `style`, colori letterali, misure arbitrarie o CSS inline, salvo richiesta esplicita dell'utente o necessità tecnica documentata che non possa essere espressa attraverso il design system.
+- Se uno stile ricorre o rappresenta una variante di un componente, centralizzalo nel componente o nella relativa configurazione invece di duplicarlo nei punti di utilizzo.
+- Un'eccezione a queste regole è consentita solo quando l'utente la richiede esplicitamente per la modifica corrente.
+
 ## Prima di chiudere una task
 
 Esegui, se disponibili:

@@ -392,12 +392,12 @@ Scelte operative:
 
 - `ListPublicReportsForMapUseCase` restituisce il payload minimo necessario alla mappa;
 - il repository espone `listPublicForMap()` e filtra nel database `moderationStatus = approved`, `publicStatus` non nullo e `publishedAt` non nullo;
-- il payload pubblico contiene solo `publicCode`, titolo, categoria, latitude, longitude, address opzionale, `publicStatus`, label stato e `publishedAt`;
+- il payload pubblico contiene solo `publicCode`, titolo, categoria, latitude, longitude, address opzionale, `publicStatus`, label stato, `publishedAt` e l'eventuale URL applicativa di una foto approvata;
 - la UI usa MapLibre GL JS in un client component isolato, mentre la pagina server recupera i dati dal layer applicativo;
 - la mappa parte centrata su Venafro;
 - sono disponibili filtri client-side semplici per stato e categoria sui soli dati gia pubblici;
 - la lista accessibile sotto la mappa mostra gli stessi report visibili e consente di aprire `/segnalazioni/[publicCode]`;
-- lo style URL si configura con `NEXT_PUBLIC_MAP_STYLE_URL`; il fallback raster OpenStreetMap e solo per sviluppo locale.
+- lo style URL si configura con `NEXT_PUBLIC_MAP_STYLE_URL`; il default tecnico corrente e lo style vettoriale Liberty di OpenFreeMap, trasformato nella palette Visione Comune da un unico modulo condiviso.
 
 Restano fuori scope:
 

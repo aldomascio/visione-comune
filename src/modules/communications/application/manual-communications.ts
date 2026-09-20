@@ -3,6 +3,7 @@ import type { CategoryRepository } from "@/modules/categories/application/catego
 import type { CategoryRecipient, RecipientRepository } from "@/modules/recipients/application/recipient-repository";
 import { InvalidPublicCodeError, InvalidReportTransitionError, PublicCode, type Report, type ReportDomainEvent } from "@/modules/reports/domain";
 import type { ReportRepository } from "@/modules/reports/application/report-repository";
+import { formatStreetAddress } from "@/shared/format/address";
 import type {
   NewOutboundCommunication,
   OutboundCommunication,
@@ -271,7 +272,7 @@ export function buildCommunicationTemplate(input: {
   description: string;
   appUrl?: string;
 }): CommunicationTemplate {
-  const place = input.address?.trim() || "Luogo non indicato";
+  const place = formatStreetAddress(input.address);
   const reportUrl = `${normalizeAppUrl(input.appUrl)}/segnalazioni/${input.publicCode}`;
 
   return {

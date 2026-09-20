@@ -273,31 +273,68 @@
 }
 
 @layer components {
+  .vc-map-surface {
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .vc-map-surface .maplibregl-ctrl-group {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .vc-map-surface .maplibregl-ctrl-group button {
+    background-color: var(--background);
+    color: var(--foreground);
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .vc-map-surface .maplibregl-ctrl-group button + button {
+    border-color: var(--border);
+  }
+
+  .vc-map-surface .maplibregl-ctrl-group button:hover,
+  .vc-map-surface .maplibregl-ctrl-group button:focus-visible {
+    background-color: var(--secondary);
+  }
+
+  .vc-map-surface .maplibregl-ctrl-attrib {
+    background: color-mix(in oklab, var(--background) 88%, transparent);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+  }
+
+  .vc-map-surface .maplibregl-ctrl-attrib a {
+    color: inherit;
+  }
+
   .public-map-marker {
-    --public-map-marker-bg: var(--primary);
-    --public-map-marker-fg: var(--primary-foreground);
-    --public-map-marker-border: var(--background);
     align-items: center;
     appearance: none;
-    background: var(--public-map-marker-bg);
-    border: 2px solid var(--public-map-marker-border);
-    border-radius: 9999px 9999px 9999px 0.25rem;
-    box-shadow: var(--shadow-md);
-    color: var(--public-map-marker-fg);
+    background: transparent;
+    border: 0;
+    color: var(--primary);
     display: inline-flex;
-    height: 1.85rem;
+    filter: drop-shadow(0 2px 2px color-mix(in oklab, var(--foreground) 22%, transparent));
+    height: 2.5rem;
     justify-content: center;
     padding: 0;
-    transform: rotate(-45deg);
-    transform-origin: 50% 90%;
-    transition: box-shadow 150ms ease, transform 150ms ease;
-    width: 1.85rem;
+    transform-origin: 50% 100%;
+    transition: filter 150ms ease, transform 150ms ease;
+    width: 2rem;
   }
 
   .public-map-marker:hover,
   .public-map-marker:focus-visible {
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent), var(--shadow-lg);
-    transform: rotate(-45deg) translateY(-1px);
+    filter: drop-shadow(0 3px 3px color-mix(in oklab, var(--foreground) 28%, transparent));
+    transform: translateY(-2px);
   }
 
   .public-map-marker:focus-visible {
@@ -305,46 +342,68 @@
     outline-offset: 3px;
   }
 
-  .public-map-marker__dot {
-    background: currentColor;
-    border-radius: 9999px;
+  .public-map-marker__icon {
     display: block;
-    height: 0.48rem;
-    transform: rotate(45deg);
-    width: 0.48rem;
+    height: 100%;
+    overflow: visible;
+    width: 100%;
   }
 
-  .public-map-marker--category-primary {
-    --public-map-marker-bg: var(--primary);
-    --public-map-marker-fg: var(--primary-foreground);
-    --public-map-marker-border: var(--background);
+  .public-map-marker__shape {
+    fill: currentColor;
+    stroke: var(--background);
+    stroke-linejoin: round;
+    stroke-width: 1.5;
   }
 
-  .public-map-marker--category-foreground {
-    --public-map-marker-bg: var(--foreground);
-    --public-map-marker-fg: var(--background);
-    --public-map-marker-border: var(--background);
+  .public-map-marker__dot {
+    fill: var(--primary-foreground);
   }
 
-  .public-map-marker--category-accent {
-    --public-map-marker-bg: var(--accent);
-    --public-map-marker-fg: var(--accent-foreground);
-    --public-map-marker-border: var(--background);
+  .public-map-cluster {
+    align-items: center;
+    appearance: none;
+    background: var(--primary);
+    border: 3px solid var(--background);
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px color-mix(in oklab, var(--foreground) 24%, transparent);
+    color: var(--primary-foreground);
+    display: inline-flex;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    height: 2.5rem;
+    justify-content: center;
+    line-height: 1;
+    min-width: 2.5rem;
+    padding-inline: 0.45rem;
+    transition: box-shadow 150ms ease, transform 150ms ease;
   }
 
-  .public-map-marker--category-muted {
-    --public-map-marker-bg: var(--muted);
-    --public-map-marker-fg: var(--foreground);
-    --public-map-marker-border: var(--foreground);
+  .public-map-cluster:hover,
+  .public-map-cluster:focus-visible {
+    box-shadow: 0 3px 10px color-mix(in oklab, var(--foreground) 30%, transparent);
+    transform: scale(1.06);
   }
 
-  .public-map-popup .maplibregl-popup-content {
+  .public-map-cluster:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  .maplibregl-popup.public-map-popup .maplibregl-popup-content {
     background: var(--background);
     border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-xl);
     color: var(--foreground);
-    padding: 0.85rem;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 0 !important;
+  }
+
+  .maplibregl-popup.public-map-popup .maplibregl-popup-content > article {
+    margin: 0;
   }
 
   .public-map-popup .maplibregl-popup-tip {
@@ -352,9 +411,14 @@
   }
 
   .public-map-popup .maplibregl-popup-close-button {
+    background: var(--background);
+    border-radius: 9999px;
     color: var(--muted-foreground);
-    font-size: 1.25rem;
-    padding: 0.25rem 0.45rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    margin: 0.45rem;
+    padding: 0.18rem 0.38rem;
+    z-index: 1;
   }
 
   .public-map-popup .maplibregl-popup-close-button:hover,

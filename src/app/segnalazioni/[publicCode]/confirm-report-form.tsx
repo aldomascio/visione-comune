@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useActionState } from "react";
 import { Button } from "@/shared/ui";
 import {
@@ -38,15 +39,17 @@ export function ConfirmReportForm({ publicCode, alreadyConfirmed, confirmable, p
   return (
     <form action={formAction} className="grid gap-3">
       <Button disabled={confirmed || pending} type="submit">
-        {confirmed
-          ? "Segnalazione confermata"
-          : pending
-            ? "Conferma in corso..."
-            : "Conferma anche tu"}
+        {confirmed ? (
+          <>
+            <Check aria-hidden="true" />
+            Hai confermato
+          </>
+        ) : pending ? (
+          "Conferma in corso..."
+        ) : (
+          "Conferma anche tu"
+        )}
       </Button>
-      {confirmed ? (
-        <p className="text-sm font-medium text-primary">Hai confermato questa segnalazione.</p>
-      ) : null}
       {state.status === "error" && state.message ? (
         <p className="text-sm font-medium text-destructive" role="alert">
           {state.message}

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GetPublishedNewsPostBySlugUseCase } from "@/modules/news/application/manage-news-posts";
 import { NewsPostContentRenderer } from "@/modules/news/ui/news-post-content-renderer";
@@ -24,9 +23,6 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
     <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
       <article className="mx-auto grid w-full max-w-6xl gap-8">
         <header className="grid gap-4">
-          <Link className="text-sm font-semibold text-primary hover:underline" href="/notizie">
-            ← Torna alle notizie
-          </Link>
           <p className="text-sm font-medium text-muted-foreground">{formatPublicDate(post.publishedAt)}</p>
           <h1 className="max-w-3xl font-serif text-4xl font-semibold tracking-normal sm:text-5xl">{post.title}</h1>
           {post.excerpt ? <p className="max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p> : null}

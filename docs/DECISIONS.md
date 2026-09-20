@@ -222,7 +222,7 @@ Motivo:
 la mappa deve essere utile al cittadino senza esporre dati interni, note di moderazione, identificativi database o segnalazioni non pubbliche.
 
 Conseguenza:
-il provider tile resta sostituibile tramite `NEXT_PUBLIC_MAP_STYLE_URL`. In locale, se la variabile non e impostata, si usa lo style raster OpenStreetMap solo come fallback di sviluppo; la scelta del provider cartografico definitivo resta da deliberare prima della produzione.
+il provider tile resta sostituibile tramite `NEXT_PUBLIC_MAP_STYLE_URL`. In assenza della variabile, l'app usa lo style vettoriale Liberty di OpenFreeMap e applica centralmente una palette Visione Comune chiara e minimale. OpenFreeMap e il default tecnico corrente, mentre la scelta infrastrutturale definitiva per la produzione resta da deliberare.
 
 ### ADR-026 — Upload immagini con storage locale sostituibile
 

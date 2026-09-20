@@ -5,9 +5,10 @@ import type { ReportModerationFilter } from "@/modules/reports/application/repor
 import { MODERATION_STATUS_LABELS } from "@/modules/reports/domain";
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
+import { formatStreetAddress } from "@/shared/format/address";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 import { formatAdminDate } from "./format";
-import { ModerationStatusBadge } from "./status-badge";
+import { ModerationStatusBadge, PublicStatusBadge } from "./status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -96,11 +97,15 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
                       <p className="font-mono text-sm font-semibold">{report.publicCode}</p>
                       <div>
                         <p className="font-medium">{report.title}</p>
-                        {report.address ? <p className="mt-1 text-sm text-muted-foreground">{report.address}</p> : null}
+                        {report.address ? <p className="mt-1 text-sm text-muted-foreground">{formatStreetAddress(report.address)}</p> : null}
                       </div>
                       <p className="text-sm text-muted-foreground md:text-foreground">{report.categoryName}</p>
                       <p className="text-sm text-muted-foreground">{formatAdminDate(report.createdAt)}</p>
-                      <ModerationStatusBadge status={report.moderationStatus} />
+                      {report.publicStatus ? (
+                        <PublicStatusBadge status={report.publicStatus} />
+                      ) : (
+                        <ModerationStatusBadge status={report.moderationStatus} />
+                      )}
                       <Link className="text-sm font-semibold text-primary hover:underline" href={`/admin/segnalazioni/${report.publicCode}`}>
                         Apri
                       </Link>

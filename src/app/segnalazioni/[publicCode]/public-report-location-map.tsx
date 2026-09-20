@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import type { PublicMapConfig } from "@/shared/config/map";
+import { formatStreetAddress } from "@/shared/format/address";
 import { createSharedMapMarkerElement } from "@/shared/map-marker";
+import { configureMapLibreWorker, loadVisioneComuneMapStyle } from "@/shared/map-style";
 
 type PublicReportLocationMapProps = {
   address?: string | null;
@@ -30,21 +32,29 @@ export function PublicReportLocationMap({ address, config, latitude, longitude, 
 
       try {
         const maplibregl = await import("maplibre-gl");
+        configureMapLibreWorker(maplibregl);
 
         if (cancelled || !containerRef.current) {
           return;
         }
 
         const center: LngLatLike = [longitude, latitude];
+        const style = await loadVisioneComuneMapStyle(config.style);
+
+        if (cancelled || !containerRef.current) {
+          return;
+        }
+
         const map = new maplibregl.Map({
           attributionControl: false,
           center,
           container: containerRef.current,
-          interactive: false,
-          style: config.style,
+          style,
+          maxPitch: 0,
           zoom: Math.max(config.initialZoom, 15)
         });
 
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ customAttribution: config.attribution }), "bottom-right");
         mapRef.current = map;
 
@@ -91,8 +101,8 @@ export function PublicReportLocationMap({ address, config, latitude, longitude, 
 
   return (
     <div
-      aria-label={address ? `Mappa della posizione: ${address}` : "Mappa della posizione della segnalazione"}
-      className="h-64 min-h-64 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm sm:h-72 sm:min-h-72"
+      aria-label={address ? `Mappa della posizione: ${formatStreetAddress(address)}` : "Mappa della posizione della segnalazione"}
+      className="vc-map-surface h-64 min-h-64 w-full sm:h-72 sm:min-h-72"
       ref={containerRef}
       role="region"
     />

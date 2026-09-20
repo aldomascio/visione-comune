@@ -22,7 +22,7 @@ describe("manual communications", () => {
       appUrl: "https://visione.example.test/"
     });
 
-    expect(template.subject).toBe("Segnalazione civica VC-ABC12345 | Strade / Buche | Via Roma, Venafro");
+    expect(template.subject).toBe("Segnalazione civica VC-ABC12345 | Strade / Buche | Via Roma");
     expect(template.body).toContain("Codice segnalazione: VC-ABC12345");
     expect(template.body).toContain("Scheda pubblica: https://visione.example.test/segnalazioni/VC-ABC12345");
     expect(template.body).not.toContain("email");

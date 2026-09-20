@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 
 export default function ManifestoPlaceholderPage() {
@@ -19,9 +18,6 @@ export default function ManifestoPlaceholderPage() {
             Questa pagina serve a completare la navigazione pubblica senza introdurre ancora contenuti editoriali definitivi.
           </CardContent>
         </Card>
-        <Link className="text-sm font-semibold text-primary hover:underline" href="/">
-          Torna alla Home
-        </Link>
       </div>
     </main>
   );

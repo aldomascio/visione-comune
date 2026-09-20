@@ -1,14 +1,17 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import type { PublicMapConfig } from "@/shared/config/map";
 import { createSharedMapMarkerElement } from "@/shared/map-marker";
+import { configureMapLibreWorker, loadVisioneComuneMapStyle } from "@/shared/map-style";
+import { formatStreetAddress } from "@/shared/format/address";
 import type { PublicReportMapView } from "@/modules/reports/application/public-map";
 import { PUBLIC_REPORT_STATUS_LABELS } from "@/modules/reports/domain";
-import { Badge, Card, CardContent, Select, cn } from "@/shared/ui";
-import { getMapCategoryStyle, getMapStatusBadgeStyle } from "./map-status-style";
+import { Select, cn } from "@/shared/ui";
+import { getMapStatusBadgeStyle } from "./map-status-style";
 
 type PublicReportsMapProps = {
   reports: PublicReportMapView[];
@@ -19,13 +22,17 @@ const defaultStatusesOption = "active";
 const allStatusesOption = "all";
 const allCategoriesOption = "all";
 
+const statusFilters = [
+  { value: defaultStatusesOption, label: "Tutti" },
+  ...Object.entries(PUBLIC_REPORT_STATUS_LABELS).map(([value, label]) => ({ value, label }))
+];
+
 export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>(defaultStatusesOption);
   const [selectedCategory, setSelectedCategory] = useState<string>(allCategoriesOption);
-  const [selectedPublicCode, setSelectedPublicCode] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -61,6 +68,13 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
 
       try {
         const maplibregl = await import("maplibre-gl");
+        configureMapLibreWorker(maplibregl);
+
+        if (cancelled || !containerRef.current) {
+          return;
+        }
+
+        const style = await loadVisioneComuneMapStyle(config.style);
 
         if (cancelled || !containerRef.current) {
           return;
@@ -68,11 +82,13 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
 
         const map = new maplibregl.Map({
           container: containerRef.current,
-          style: config.style,
+          style,
           center: [config.initialCenter.longitude, config.initialCenter.latitude] as LngLatLike,
           zoom: config.initialZoom,
+          maxPitch: 0,
           attributionControl: false
         });
+
 
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ customAttribution: config.attribution }), "bottom-right");
@@ -121,28 +137,46 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
         return;
       }
 
+      const renderVisibleMarkers = () => {
+        markersRef.current.forEach((marker) => marker.remove());
+        markersRef.current = groupNearbyReports(map, visibleReports).map((group) => {
+          if (group.length > 1) {
+            const longitude = group.reduce((sum, report) => sum + report.longitude, 0) / group.length;
+            const latitude = group.reduce((sum, report) => sum + report.latitude, 0) / group.length;
+            const element = createClusterElement(group.length, () => {
+              map.easeTo({
+                center: [longitude, latitude],
+                duration: 450,
+                zoom: Math.min(map.getZoom() + 2, 18)
+              });
+            });
+
+            return new maplibregl.Marker({ element })
+              .setLngLat([longitude, latitude])
+              .addTo(map);
+          }
+
+          const report = group[0];
+          const popup = new maplibregl.Popup({
+            closeButton: true,
+            className: "public-map-popup",
+            focusAfterOpen: false,
+            maxWidth: "22rem",
+            offset: 24
+          }).setDOMContent(createPopupContent(report));
+          const element = createMarkerElement(report);
+          const marker = new maplibregl.Marker({ element, anchor: "bottom" })
+            .setLngLat([report.longitude, report.latitude])
+            .setPopup(popup)
+            .addTo(map);
+
+          return marker;
+        });
+      };
+
       map.resize();
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = visibleReports.map((report) => {
-        const popup = new maplibregl.Popup({
-          offset: 22,
-          closeButton: true,
-          className: "public-map-popup"
-        }).setDOMContent(createPopupContent(report));
-        const element = createMarkerElement(report, categories, () => {
-          setSelectedPublicCode(report.publicCode);
-        });
-        const marker = new maplibregl.Marker({ element, anchor: "bottom" })
-          .setLngLat([report.longitude, report.latitude])
-          .setPopup(popup)
-          .addTo(map);
-
-        popup.on("close", () => {
-          setSelectedPublicCode((current) => (current === report.publicCode ? null : current));
-        });
-
-        return marker;
-      });
+      renderVisibleMarkers();
+      map.on("moveend", renderVisibleMarkers);
 
       if (visibleReports.length === 1) {
         const [report] = visibleReports;
@@ -152,159 +186,143 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
       } else if (visibleReports.length > 1) {
         const bounds = new maplibregl.LngLatBounds();
         visibleReports.forEach((report) => bounds.extend([report.longitude, report.latitude]));
-        map.fitBounds(bounds, { padding: window.innerWidth < 640 ? 44 : 76, maxZoom: 15.5, duration: 0 });
+        map.fitBounds(bounds, { padding: window.innerWidth < 640 ? 44 : 76, maxZoom: 15.5 });
       } else {
         map.setCenter([config.initialCenter.longitude, config.initialCenter.latitude]);
         map.setZoom(config.initialZoom);
       }
+
+      return () => map.off("moveend", renderVisibleMarkers);
     }
 
-    void renderMarkers();
+    let removeMapListener: (() => void) | undefined;
+    void renderMarkers().then((cleanup) => {
+      if (cancelled) {
+        cleanup?.();
+      } else {
+        removeMapListener = cleanup;
+      }
+    });
 
     return () => {
       cancelled = true;
+      removeMapListener?.();
     };
   }, [categories, config.initialCenter.latitude, config.initialCenter.longitude, config.initialZoom, mapReady, visibleReports]);
 
   function resetFilters() {
     setSelectedStatus(defaultStatusesOption);
     setSelectedCategory(allCategoriesOption);
-    setSelectedPublicCode(null);
   }
 
   return (
-    <div className="grid gap-6">
-      <section aria-labelledby="public-map-title" className="grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+    <div className="grid gap-8">
+      <section aria-labelledby="public-map-title" className="grid gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="grid gap-2">
-            <h2 id="public-map-title" className="font-serif text-2xl font-semibold">
-              Mappa pubblica
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Mostra solo segnalazioni verificate e pubblicate da Visione Comune. Usa i filtri per leggere meglio stato e categoria.
-            </p>
+            <h2 id="public-map-title" className="sr-only">Mappa pubblica</h2>
+            <Select
+              aria-label="Filtra per categoria"
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+            >
+              <option value={allCategoriesOption}>Tutte le categorie</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </Select>
           </div>
-          <div className="grid gap-3 lg:min-w-[30rem]">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-medium">
-                Stato
-                <Select
-                  aria-label="Filtra per stato"
-                  value={selectedStatus}
-                  onChange={(event) => setSelectedStatus(event.target.value)}
+
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Stato</span>
+            {statusFilters.map((filter) => {
+              const selected = selectedStatus === filter.value;
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  key={filter.value}
+                  onClick={() => setSelectedStatus(filter.value)}
+                  type="button"
                 >
-                  <option value={defaultStatusesOption}>Segnalate e comunicate</option>
-                  <option value={allStatusesOption}>Tutti gli stati</option>
-                  {Object.entries(PUBLIC_REPORT_STATUS_LABELS).map(([status, label]) => (
-                    <option key={status} value={status}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="grid gap-1 text-sm font-medium">
-                Categoria
-                <Select
-                  aria-label="Filtra per categoria"
-                  value={selectedCategory}
-                  onChange={(event) => setSelectedCategory(event.target.value)}
-                >
-                  <option value={allCategoriesOption}>Tutte le categorie</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-              <span>{visibleReports.length} di {reports.length} segnalazioni visibili</span>
+                  {filter.label}
+                </button>
+              );
+            })}
+            {hasActiveFilters ? (
               <button
-                className="rounded-md px-2 py-1 font-semibold text-primary hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={!hasActiveFilters}
+                className="rounded-full px-3 py-1 text-sm font-semibold text-primary transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={resetFilters}
                 type="button"
               >
-                Azzera filtri
+                Azzera
               </button>
-            </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-muted shadow-sm">
+        <div className="vc-map-surface relative">
           <div
             ref={containerRef}
             aria-label="Mappa delle segnalazioni pubbliche"
-            className="h-[72vh] min-h-[28rem] w-full sm:h-[38rem]"
+            className="h-[62vh] min-h-[24rem] w-full sm:h-[34rem]"
             data-testid="public-reports-map"
             role="region"
           />
         </div>
+
 
         {mapError ? (
           <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
             {mapError}
           </p>
         ) : null}
-        {visibleReports.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            Non ci sono segnalazioni pubblicate per i filtri selezionati.
-          </p>
-        ) : null}
       </section>
 
       <section aria-labelledby="public-map-list-title" className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="public-map-list-title" className="font-serif text-2xl font-semibold">
-              Segnalazioni visibili
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Lista accessibile degli stessi report mostrati sulla mappa.
-            </p>
-          </div>
-          <Badge variant="secondary">{visibleReports.length} visibili</Badge>
-        </div>
+        <h2 id="public-map-list-title" className="font-serif text-3xl font-semibold tracking-normal">
+          Elenco delle segnalazioni nell&apos;area
+        </h2>
 
         {visibleReports.length === 0 ? (
-          <Card>
-            <CardContent className="py-6 text-sm text-muted-foreground">
-              Non ci sono segnalazioni pubblicate per i filtri selezionati.
-            </CardContent>
-          </Card>
+          <p className="border-y border-border py-6 text-sm text-muted-foreground">
+            Non ci sono segnalazioni pubblicate per i filtri selezionati.
+          </p>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="divide-y divide-border">
             {visibleReports.map((report) => {
-              const categoryStyle = getMapCategoryStyle(report.categoryName, categories);
               const statusStyle = getMapStatusBadgeStyle(report.publicStatus);
               return (
                 <li key={report.publicCode}>
                   <article
-                    className={cn(
-                      "grid min-h-full gap-3 rounded-xl border border-l-4 bg-card p-5 shadow-sm transition-colors",
-                      selectedPublicCode === report.publicCode ? "border-primary bg-accent/40" : "border-border",
-                      categoryStyle.listAccentClassName
-                    )}
+                    className="grid gap-3 py-5 sm:grid-cols-[1fr_auto] sm:items-center"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="grid gap-1.5">
+                      <h3 className="font-semibold text-foreground">
+                        <Link
+                          className="transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          href={`/segnalazioni/${report.publicCode}`}
+                        >
+                          {report.title}
+                        </Link>
+                      </h3>
+                      {report.address ? (
+                        <p className="inline-flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                          <MapPin aria-hidden="true" className="size-4 shrink-0" />
+                          <span>{formatStreetAddress(report.address)}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold leading-none", statusStyle.badgeClassName)}>
                         {report.publicStatusLabel}
                       </span>
-                      <span className="text-sm text-muted-foreground">{report.categoryName}</span>
                     </div>
-                    <div className="grid gap-1">
-                      <h3 className="font-semibold">{report.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {report.address ?? "Indirizzo non indicato"}
-                      </p>
-                    </div>
-                    <Link
-                      className="text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      href={`/segnalazioni/${report.publicCode}`}
-                    >
-                      Vedi segnalazione
-                    </Link>
                   </article>
                 </li>
               );
@@ -316,17 +334,45 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
   );
 }
 
-function createMarkerElement(
-  report: PublicReportMapView,
-  categories: string[],
-  onSelect: () => void
-): HTMLButtonElement {
-  const categoryStyle = getMapCategoryStyle(report.categoryName, categories);
+function groupNearbyReports(
+  map: MapLibreMap,
+  reports: PublicReportMapView[],
+  radius = 42
+): PublicReportMapView[][] {
+  const groups: PublicReportMapView[][] = [];
 
+  reports.forEach((report) => {
+    const point = map.project([report.longitude, report.latitude]);
+    const nearbyGroup = groups.find((group) => {
+      const reference = group[0];
+      const referencePoint = map.project([reference.longitude, reference.latitude]);
+      return Math.hypot(point.x - referencePoint.x, point.y - referencePoint.y) < radius;
+    });
+
+    if (nearbyGroup) {
+      nearbyGroup.push(report);
+    } else {
+      groups.push([report]);
+    }
+  });
+
+  return groups;
+}
+
+function createClusterElement(count: number, onClick: () => void): HTMLButtonElement {
+  const element = document.createElement("button");
+  element.type = "button";
+  element.className = "public-map-cluster";
+  element.setAttribute("aria-label", `${count} segnalazioni vicine. Ingrandisci la mappa.`);
+  element.textContent = String(count);
+  element.addEventListener("click", onClick);
+  return element;
+}
+
+function createMarkerElement(report: PublicReportMapView): HTMLButtonElement {
   return createSharedMapMarkerElement({
     ariaLabel: `${report.categoryName}: ${report.title}. Stato ${report.publicStatusLabel}. Apri il popup sulla mappa.`,
-    className: categoryStyle.markerClassName.replace("public-map-marker ", ""),
-    onClick: onSelect,
+    onClick: () => undefined,
     testId: `map-marker-${report.publicCode}`,
     type: "button"
   }) as HTMLButtonElement;
@@ -334,38 +380,55 @@ function createMarkerElement(
 
 function createPopupContent(report: PublicReportMapView): HTMLElement {
   const wrapper = document.createElement("article");
-  wrapper.className = "grid max-w-72 gap-3 p-1 text-sm text-foreground";
+  wrapper.className = "flex h-28 max-w-80 text-sm text-foreground";
+
+  if (report.reportPhotoUrl) {
+    const image = document.createElement("img");
+    image.alt = `Foto della segnalazione ${report.title}`;
+    image.className = "h-28 w-24 shrink-0 object-cover";
+    image.loading = "lazy";
+    image.src = report.reportPhotoUrl;
+    wrapper.append(image);
+  }
+
+  const content = document.createElement("div");
+  content.className = "grid min-w-0 flex-1 content-center gap-2 p-3 pr-8";
 
   const title = document.createElement("h3");
   title.className = "font-semibold leading-snug";
-  title.textContent = report.title;
-  wrapper.append(title);
-
-  const meta = document.createElement("div");
-  meta.className = "flex flex-wrap items-center gap-2";
-
-  const statusStyle = getMapStatusBadgeStyle(report.publicStatus);
-  const state = document.createElement("span");
-  state.className = `inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold leading-none ${statusStyle.badgeClassName}`;
-  state.textContent = report.publicStatusLabel;
-  meta.append(state);
-
-  const category = document.createElement("span");
-  category.className = "text-xs text-muted-foreground";
-  category.textContent = report.categoryName;
-  meta.append(category);
-  wrapper.append(meta);
-
-  const address = document.createElement("p");
-  address.className = "text-sm leading-5 text-muted-foreground";
-  address.textContent = report.address ?? "Indirizzo non indicato";
-  wrapper.append(address);
-
   const link = document.createElement("a");
   link.href = `/segnalazioni/${encodeURIComponent(report.publicCode)}`;
-  link.textContent = "Vedi segnalazione";
-  link.className = "inline-flex min-h-9 items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  wrapper.append(link);
+  link.textContent = report.title;
+  link.className = "line-clamp-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:underline";
+  title.append(link);
+  content.append(title);
+
+  const address = document.createElement("p");
+  address.className = "flex items-start gap-1 text-sm leading-5 text-muted-foreground";
+
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("class", "mt-0.5 size-4 shrink-0");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("fill", "none");
+  icon.setAttribute("stroke", "currentColor");
+  icon.setAttribute("stroke-width", "2");
+  icon.setAttribute("stroke-linecap", "round");
+  icon.setAttribute("stroke-linejoin", "round");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0");
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", "12");
+  circle.setAttribute("cy", "10");
+  circle.setAttribute("r", "3");
+  icon.append(path, circle);
+
+  const addressText = document.createElement("span");
+  addressText.textContent = formatStreetAddress(report.address);
+  address.append(icon, addressText);
+  content.append(address);
+
+  wrapper.append(content);
 
   return wrapper;
 }

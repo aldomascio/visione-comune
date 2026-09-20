@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 
 export default function PrivacyPlaceholderPage() {
@@ -19,9 +18,6 @@ export default function PrivacyPlaceholderPage() {
             Questa pagina non sostituisce l&apos;informativa privacy definitiva. Serve solo a evitare link non risolti nella navigazione pubblica.
           </CardContent>
         </Card>
-        <Link className="text-sm font-semibold text-primary hover:underline" href="/">
-          Torna alla Home
-        </Link>
       </div>
     </main>
   );

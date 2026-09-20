@@ -4,6 +4,7 @@ import { requireActiveAdmin } from "../../admin-auth";
 import { GetTransmissionUseCase } from "@/modules/communications/application/transmissions";
 import { DrizzleOutboundCommunicationRepository } from "@/modules/communications/infrastructure/drizzle-outbound-communication-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
+import { formatStreetAddress } from "@/shared/format/address";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 import { formatAdminDate } from "../../segnalazioni/format";
 import { markTransmissionDeliveredAction, markTransmissionFailedAction, markTransmissionSentAction } from "../actions";
@@ -55,7 +56,7 @@ export default async function TransmissionDetailPage({ params, searchParams }: P
                     <div className="grid gap-1">
                       <p className="font-mono text-xs font-semibold text-muted-foreground">{report.publicCode}</p>
                       <p className="font-semibold">{report.title}</p>
-                      <p className="text-muted-foreground">{report.categoryName} · {report.address ?? "Luogo non indicato"} · {formatAdminDate(report.publishedAt)}</p>
+                      <p className="text-muted-foreground">{report.categoryName} · {formatStreetAddress(report.address)} · {formatAdminDate(report.publishedAt)}</p>
                     </div>
                     <Link className="font-semibold text-primary hover:underline" href={`/admin/segnalazioni/${report.publicCode}`}>Apri</Link>
                   </div>

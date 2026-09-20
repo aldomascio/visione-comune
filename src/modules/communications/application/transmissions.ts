@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { RecipientRepository } from "@/modules/recipients/application/recipient-repository";
 import { InvalidReportTransitionError, type Report, type ReportDomainEvent } from "@/modules/reports/domain";
 import type { ReportRepository } from "@/modules/reports/application/report-repository";
+import { formatStreetAddress } from "@/shared/format/address";
 import {
   COMMUNICATION_BODY_MAX_LENGTH,
   COMMUNICATION_SUBJECT_MAX_LENGTH,
@@ -303,7 +304,7 @@ export function buildTransmissionTemplate(reports: EligibleTransmissionReport[],
     ...reports.flatMap((report, index) => [
       `${index + 1}. ${report.publicCode} — ${report.title}`,
       `Categoria: ${report.categoryName}`,
-      `Luogo: ${report.address?.trim() || "Luogo non indicato"}`,
+      `Luogo: ${formatStreetAddress(report.address)}`,
       `Data pubblicazione: ${formatDate(report.publishedAt)}`,
       `Scheda pubblica: ${normalizeAppUrl(appUrl)}/segnalazioni/${report.publicCode}`,
       "Descrizione:",

@@ -5,6 +5,7 @@ import { DrizzleOutboundCommunicationRepository } from "@/modules/communications
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { readBaseEnv } from "@/shared/config/env";
 import { createDatabaseConnection } from "@/shared/db/client";
+import { formatStreetAddress } from "@/shared/format/address";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
 import { formatAdminDate } from "../../segnalazioni/format";
 import { createTransmissionAction } from "../actions";
@@ -87,7 +88,7 @@ export default async function NewTransmissionPage({ searchParams }: PageProps) {
                         <span className="grid gap-1">
                           <span className="font-mono text-xs font-semibold text-muted-foreground">{report.publicCode}</span>
                           <span className="font-semibold">{report.title}</span>
-                          <span className="text-muted-foreground">{report.categoryName} · {report.address ?? "Luogo non indicato"} · {formatAdminDate(report.publishedAt)}</span>
+                          <span className="text-muted-foreground">{report.categoryName} · {formatStreetAddress(report.address)} · {formatAdminDate(report.publishedAt)}</span>
                         </span>
                       </label>
                     ))}

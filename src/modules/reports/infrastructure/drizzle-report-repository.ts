@@ -413,6 +413,7 @@ export class DrizzleReportRepository implements ReportRepository {
         categoryName: categories.name,
         createdAt: reports.createdAt,
         moderationStatus: reports.moderationStatus,
+        publicStatus: reports.publicStatus,
         source: reports.source,
         address: reports.address,
       })
@@ -429,6 +430,7 @@ export class DrizzleReportRepository implements ReportRepository {
       categoryName: row.categoryName,
       createdAt: row.createdAt,
       moderationStatus: row.moderationStatus,
+      ...(row.publicStatus ? { publicStatus: row.publicStatus } : {}),
       source: row.source,
       ...(row.address ? { address: row.address } : {}),
     }));
@@ -606,11 +608,20 @@ export class DrizzleReportRepository implements ReportRepository {
         latitude: reports.latitude,
         longitude: reports.longitude,
         address: reports.address,
+        reportPhotoId: reportAttachments.id,
         publicStatus: reports.publicStatus,
         publishedAt: reports.publishedAt,
       })
       .from(reports)
       .innerJoin(categories, eq(reports.categoryId, categories.id))
+      .leftJoin(
+        reportAttachments,
+        and(
+          eq(reportAttachments.reportId, reports.id),
+          eq(reportAttachments.type, "report_photo"),
+          eq(reportAttachments.reviewStatus, "approved"),
+        ),
+      )
       .where(
         and(
           eq(reports.moderationStatus, "approved"),
@@ -634,6 +645,7 @@ export class DrizzleReportRepository implements ReportRepository {
           latitude: row.latitude,
           longitude: row.longitude,
           ...(row.address ? { address: row.address } : {}),
+          ...(row.reportPhotoId ? { reportPhotoUrl: `/api/report-images/${row.publicCode}?type=report_photo` } : {}),
           publicStatus: row.publicStatus,
           publishedAt: row.publishedAt,
         },

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui";
 
 export default function NewsletterPlaceholderPage() {
@@ -19,9 +18,6 @@ export default function NewsletterPlaceholderPage() {
             La pagina e un placeholder di navigazione. La gestione newsletter resta fuori scope per questa task.
           </CardContent>
         </Card>
-        <Link className="text-sm font-semibold text-primary hover:underline" href="/">
-          Torna alla Home
-        </Link>
       </div>
     </main>
   );

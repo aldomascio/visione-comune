@@ -27,6 +27,7 @@ import { DrizzleCategoryRepository } from "@/modules/categories/infrastructure/d
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { DrizzleRecipientRepository } from "@/modules/recipients/infrastructure/drizzle-recipient-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
+import { formatStreetAddress } from "@/shared/format/address";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, Textarea } from "@/shared/ui";
 import { addInternalReportNoteAction, addResolutionPhotoAction, approveReportAction, approveReportAttachmentAction, changeReportCategoryAction, createManualCommunicationAction, markCommunicationDeliveredAction, markCommunicationFailedAction, markReportDuplicateAction, rejectReportAction, rejectReportAttachmentAction, removeReportDuplicateLinkAction } from "../actions";
 import { ResolveReportForm } from "./resolve-report-form";
@@ -108,7 +109,7 @@ export default async function AdminReportDetailPage({ params, searchParams }: Re
                 <InfoBlock label="Fonte" value={REPORT_SOURCE_LABELS[report.source]} />
                 <InfoBlock label="Creato da" value={report.createdByAdmin ? report.createdByAdmin.email : "Form pubblico"} />
                 <InfoBlock label="Data invio" value={formatAdminDate(report.createdAt)} />
-                <InfoBlock label="Indirizzo" value={report.location.address ?? "Non indicato"} />
+                <InfoBlock label="Indirizzo" value={formatStreetAddress(report.location.address)} />
                 <InfoBlock label="Coordinate" value={`${report.location.latitude}, ${report.location.longitude}`} />
               </section>
 

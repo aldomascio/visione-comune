@@ -5,6 +5,7 @@ import type { LngLatLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { LocateFixed } from "lucide-react";
 import type { PublicMapConfig } from "@/shared/config/map";
 import { createSharedMapMarkerElement } from "@/shared/map-marker";
+import { configureMapLibreWorker, loadVisioneComuneMapStyle } from "@/shared/map-style";
 import { Button, Input } from "@/shared/ui";
 
 type GeocodingResult = {
@@ -136,6 +137,13 @@ export function LocationPicker({
 
       try {
         const maplibregl = await import("maplibre-gl");
+        configureMapLibreWorker(maplibregl);
+
+        if (cancelled || !containerRef.current) {
+          return;
+        }
+
+        const style = await loadVisioneComuneMapStyle(mapConfig.style);
 
         if (cancelled || !containerRef.current) {
           return;
@@ -143,9 +151,10 @@ export function LocationPicker({
 
         const map = new maplibregl.Map({
           container: containerRef.current,
-          style: mapConfig.style,
+          style,
           center: [mapConfig.initialCenter.longitude, mapConfig.initialCenter.latitude] as LngLatLike,
           zoom: mapConfig.initialZoom,
+          maxPitch: 0,
           attributionControl: false
         });
 
@@ -457,7 +466,7 @@ export function LocationPicker({
       <div className="grid gap-3">
         <div
           aria-label="Mappa della posizione selezionata"
-          className="h-60 min-h-60 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm sm:h-64 sm:min-h-64"
+          className="vc-map-surface h-60 min-h-60 w-full sm:h-64 sm:min-h-64"
           data-testid="report-location-map"
           ref={containerRef}
           role="region"
@@ -529,4 +538,3 @@ function isValidCoordinate(latitude: number, longitude: number): boolean {
     longitude <= 180
   );
 }
-

@@ -14,7 +14,7 @@ export function createSharedMapMarkerElement({
   type = onClick ? "button" : "div"
 }: SharedMapMarkerOptions): HTMLButtonElement | HTMLDivElement {
   const element = document.createElement(type);
-  element.className = className ? `public-map-marker ${className}` : "public-map-marker public-map-marker--category-primary";
+  element.className = className ? `public-map-marker ${className}` : "public-map-marker";
   element.setAttribute("aria-label", ariaLabel);
 
   if (testId) {
@@ -36,10 +36,23 @@ export function createSharedMapMarkerElement({
     }
   }
 
-  const inner = document.createElement("span");
-  inner.className = "public-map-marker__dot";
-  inner.setAttribute("aria-hidden", "true");
-  element.append(inner);
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("class", "public-map-marker__icon");
+  icon.setAttribute("viewBox", "0 0 24 24");
+
+  const pin = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  pin.setAttribute("d", "M12 22s7-6.1 7-13a7 7 0 1 0-14 0c0 6.9 7 13 7 13Z");
+  pin.setAttribute("class", "public-map-marker__shape");
+
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  dot.setAttribute("cx", "12");
+  dot.setAttribute("cy", "9");
+  dot.setAttribute("r", "2.75");
+  dot.setAttribute("class", "public-map-marker__dot");
+
+  icon.append(pin, dot);
+  element.append(icon);
 
   return element;
 }

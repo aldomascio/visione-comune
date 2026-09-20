@@ -57,6 +57,7 @@ export type ReportModerationSummary = {
   categoryName: string;
   createdAt: Date;
   moderationStatus: ModerationStatus;
+  publicStatus?: PublicReportStatus;
   source: ReportSource;
   address?: string;
 };
@@ -139,6 +140,7 @@ export type PublicReportMapItem = {
   latitude: number;
   longitude: number;
   address?: string;
+  reportPhotoUrl?: string;
   publicStatus: PublicReportStatus;
   publishedAt: Date;
 };
@@ -186,6 +188,7 @@ export type PotentialDuplicateReportRecord = {
   latitude: number;
   longitude: number;
   address?: string;
+  reportPhotoUrl?: string;
   publicStatus: PublicReportStatus;
   publishedAt: Date;
 };

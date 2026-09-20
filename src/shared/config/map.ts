@@ -1,3 +1,5 @@
+import type { StyleSpecification } from "maplibre-gl";
+
 export type RasterMapStyle = {
   version: 8;
   sources: Record<
@@ -17,7 +19,7 @@ export type RasterMapStyle = {
 };
 
 export type PublicMapConfig = {
-  style: string | RasterMapStyle;
+  style: string | StyleSpecification;
   styleUrl?: string;
   attribution?: string;
   initialCenter: {
@@ -37,6 +39,7 @@ export const VENAFRO_MAP_CENTER = {
 export const VENAFRO_MAP_ZOOM = 13;
 
 export const OPENSTREETMAP_RASTER_ATTRIBUTION = "© OpenStreetMap contributors";
+export const OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export const OPENSTREETMAP_RASTER_STYLE: RasterMapStyle = {
   version: 8,
@@ -62,9 +65,9 @@ export function readPublicMapConfig(source: EnvSource = process.env): PublicMapC
   const attribution = readOptionalEnv(source, "NEXT_PUBLIC_MAP_ATTRIBUTION");
 
   return {
-    style: styleUrl ?? OPENSTREETMAP_RASTER_STYLE,
-    ...(styleUrl ? { styleUrl } : {}),
-    attribution: attribution ?? (styleUrl ? undefined : OPENSTREETMAP_RASTER_ATTRIBUTION),
+    style: styleUrl ?? OPENFREEMAP_STYLE_URL,
+    styleUrl: styleUrl ?? OPENFREEMAP_STYLE_URL,
+    attribution,
     initialCenter: VENAFRO_MAP_CENTER,
     initialZoom: VENAFRO_MAP_ZOOM
   };

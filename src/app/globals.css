@@ -360,6 +360,37 @@
     fill: var(--primary-foreground);
   }
 
+  .admin-brand-logo {
+    background-color: var(--foreground);
+    display: block;
+    -webkit-mask: url("/logo.svg") center / contain no-repeat;
+    mask: url("/logo.svg") center / contain no-repeat;
+  }
+
+  .admin-shell-content {
+    background-color: var(--card);
+    min-height: 100vh;
+  }
+
+  .admin-shell-content > main {
+    background-color: transparent !important;
+  }
+
+  .admin-shell-content .bg-card {
+    background-color: var(--background) !important;
+  }
+
+  @media (min-width: 64rem) {
+    .admin-shell-content > main {
+      padding: calc(var(--spacing) * 6) !important;
+    }
+
+    .admin-shell-content > main > :first-child {
+      margin-inline: 0 !important;
+      max-width: none !important;
+    }
+  }
+
   .public-map-cluster {
     align-items: center;
     appearance: none;

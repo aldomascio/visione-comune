@@ -98,6 +98,7 @@ export default async function Home() {
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <PrimaryLink href="/segnala">Segnala un problema</PrimaryLink>
+                  <SecondaryLink href="/proponi">Proponi un&apos;idea</SecondaryLink>
                   <SecondaryLink href="/mappa">Esplora la mappa</SecondaryLink>
                 </div>
               </div>

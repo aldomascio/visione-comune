@@ -1,9 +1,9 @@
 import { LogOut, UserRound } from "lucide-react";
-import Link from "next/link";
 import { adminLogoutAction } from "@/app/admin/actions";
-import { Button, cn } from "@/shared/ui";
+import { cn } from "@/shared/ui";
 import { AdminNavigation } from "./admin-navigation";
 import { adminNavigationItemClassName } from "./admin-navigation-styles";
+import { AdminMobileHeader } from "./admin-mobile-header";
 
 export function AdminShell({
   activeAdminEmail,
@@ -15,14 +15,10 @@ export function AdminShell({
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
       <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-border bg-background p-5 lg:flex">
-        <Link
-          aria-label="Visione Comune admin - Dashboard"
-          className="mb-8 flex w-fit items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          href="/admin"
-        >
+        <div className="mb-8 flex w-fit items-center gap-3">
           <span aria-hidden="true" className="admin-brand-logo size-12" />
           <span className="text-sm font-semibold">Area amministrativa</span>
-        </Link>
+        </div>
 
         <AdminNavigation />
 
@@ -47,27 +43,7 @@ export function AdminShell({
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="border-b border-border bg-background px-6 py-4 sm:px-8 lg:hidden">
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <Link
-                aria-label="Visione Comune admin - Dashboard"
-                className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                href="/admin"
-              >
-                <span aria-hidden="true" className="admin-brand-logo size-10" />
-                <span className="text-sm font-semibold">Area amministrativa</span>
-              </Link>
-              <form action={adminLogoutAction}>
-                <Button aria-label={`Esci da ${activeAdminEmail}`} type="submit" variant="ghost">
-                  <LogOut aria-hidden="true" />
-                  Esci
-                </Button>
-              </form>
-            </div>
-            <AdminNavigation compact />
-          </div>
-        </header>
+        <AdminMobileHeader activeAdminEmail={activeAdminEmail} />
 
         <div className="admin-shell-content">{children}</div>
       </div>

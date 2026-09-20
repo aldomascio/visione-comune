@@ -305,3 +305,6 @@ Eventi interni aggiunti a `report_event_type`:
 - `InternalNoteAdded`: registra una nota interna immutabile. Metadata previsti: `internalNote`, `actorAdminId`, `actorAdminEmail`.
 
 Le note interne restano eventi `visibility = internal` e non sono restituite dalla timeline pubblica. Il cambio categoria aggiorna solo `reports.category_id` e il registro interno: non modifica trasmissioni gia create, snapshot destinatari o storico smistamento. Lo smistamento suggerito futuro viene invece riletto dalla matrice categoria-destinatari della nuova categoria.
+# Proposal
+
+`proposals` conserva titolo, ambito proprio delle proposte, contenuto, modalità di invio, email opzionale, stato interno e timestamp. Gli stati sono `new`, `reviewing`, `archived`. La modalità `anonymous` richiede email nulla; la modalità `contact` richiede un'email normalizzata. Le proposte non hanno relazioni con report, categorie delle segnalazioni, destinatari o trasmissioni.

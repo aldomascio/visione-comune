@@ -56,6 +56,53 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  --motion-duration-drawer: 240ms;
+  --motion-ease-drawer: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes mobile-drawer-enter {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes mobile-drawer-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mobile-drawer-exit {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes mobile-drawer-backdrop-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.mobile-drawer-panel {
+  animation: mobile-drawer-enter var(--motion-duration-drawer) var(--motion-ease-drawer);
+}
+
+.mobile-drawer-backdrop {
+  animation: mobile-drawer-backdrop-enter var(--motion-duration-drawer) ease-out;
+}
+
+.mobile-drawer-panel-exit {
+  animation: mobile-drawer-exit var(--motion-duration-drawer) ease-in forwards;
+}
+
+.mobile-drawer-backdrop-exit {
+  animation: mobile-drawer-backdrop-exit var(--motion-duration-drawer) ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-drawer-panel,
+  .mobile-drawer-backdrop,
+  .mobile-drawer-panel-exit,
+  .mobile-drawer-backdrop-exit {
+    animation: none;
+  }
 }
 
 .dark {

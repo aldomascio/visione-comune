@@ -47,3 +47,6 @@ Il core non deve dipendere direttamente da un singolo vendor.
 ## Regola
 
 Non introdurre astrazioni generiche senza un bisogno concreto. Preferire confini chiari e codice esplicito.
+# Modulo proposals
+
+Il modulo `proposals` segue il flusso UI → application use case → repository contract → adapter Drizzle → PostgreSQL. È un confine autonomo rispetto a `reports` e non espone route pubbliche di lettura. Il backoffice autenticato è l'unico punto di consultazione e gestione dello stato.

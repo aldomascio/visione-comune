@@ -69,10 +69,10 @@ function ReportTaskHeader({
     <>
       <header className="sticky top-0 z-40 bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-8 lg:px-12">
         <div className="mx-auto grid max-w-6xl grid-cols-3 items-center gap-4 py-3">
-          <Button className="justify-self-start gap-2 px-2 sm:px-3" onClick={onExit} type="button" variant="ghost">
+          <button className="inline-flex items-center gap-2 justify-self-start text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={onExit} type="button">
             <ArrowLeft aria-hidden="true" className="size-4" strokeWidth={2} />
             Esci
-          </Button>
+          </button>
 
           <span aria-label="Visione Comune" className="justify-self-center" role="img">
             <LogoMark className="h-14 w-14" />

@@ -85,6 +85,34 @@ export const newsPostStatusEnum = pgEnum("news_post_status", [
   "published",
 ]);
 
+export const proposalCategoryEnum = pgEnum("proposal_category", [
+  "environment", "mobility", "public_spaces", "culture", "social", "development", "other"
+]);
+export const proposalSubmissionModeEnum = pgEnum("proposal_submission_mode", ["anonymous", "contact"]);
+export const proposalStatusEnum = pgEnum("proposal_status", ["new", "reviewing", "archived"]);
+
+export const proposals = pgTable(
+  "proposals",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    title: varchar("title", { length: 180 }).notNull(),
+    category: proposalCategoryEnum("category").notNull(),
+    content: varchar("content", { length: 5000 }).notNull(),
+    submissionMode: proposalSubmissionModeEnum("submission_mode").notNull(),
+    contactEmail: varchar("contact_email", { length: 320 }),
+    status: proposalStatusEnum("status").notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("proposals_status_created_at_idx").on(table.status, table.createdAt),
+    check("proposals_title_not_empty", sql`length(trim(${table.title})) > 0`),
+    check("proposals_content_not_empty", sql`length(trim(${table.content})) > 0`),
+    check("proposals_contact_consistent", sql`(${table.submissionMode} = 'anonymous' and ${table.contactEmail} is null) or (${table.submissionMode} = 'contact' and ${table.contactEmail} is not null and length(trim(${table.contactEmail})) > 0)`),
+    check("proposals_email_normalized", sql`${table.contactEmail} is null or ${table.contactEmail} = lower(trim(${table.contactEmail}))`),
+  ],
+);
+
 export const categories = pgTable(
   "categories",
   {
@@ -590,3 +618,5 @@ export type NewsPostRecord = typeof newsPosts.$inferSelect;
 export type NewNewsPostRecord = typeof newsPosts.$inferInsert;
 export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;
+export type ProposalRecord = typeof proposals.$inferSelect;
+export type NewProposalRecord = typeof proposals.$inferInsert;

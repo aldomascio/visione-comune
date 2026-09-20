@@ -583,3 +583,6 @@ le route pubbliche servono una foto solo se il report e approvato/pubblico e l'a
 - Se e quando introdurre prossima azione/scadenza operativa persistita.
 - Eventuali filtri admin persistenti sullo stato operativo derivato, se la lista cresce e la derivazione lato query diventa insufficiente.
 - Eventi futuri per ricezione risposte ente, solleciti, verifiche operative e ricevute PEC reali.
+# Proposte private
+
+È approvata una funzione separata `Proposal`, privata e non assimilata alle segnalazioni. Gli ambiti sono indipendenti dalle categorie dei report. L'unico dato personale ammesso è l'email opzionale per il ricontatto; non comporta account o iscrizione newsletter. Gli stati interni sono Nuova, Da approfondire e Archiviata. Pubblicazione, voti, commenti, allegati, posizione, notifiche, PEC, trasmissioni, routing e moderazione AI restano fuori scope.

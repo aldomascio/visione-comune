@@ -103,3 +103,10 @@ La creazione di una bozza o la marcatura come `Inviata` non cambia lo stato pubb
 
 ### BR-033
 Le regole future di aggregazione, frequenza, soglia e sollecito delle trasmissioni devono restare configurabili e non sono hardcoded nell'MVP corrente.
+# Regole delle proposte
+
+- **BR-P01** — Una proposta è privata e separata da una segnalazione.
+- **BR-P02** — L'invio anonimo non conserva dati di contatto.
+- **BR-P03** — L'invio con contatto richiede un'email valida, usata solo per la proposta.
+- **BR-P04** — Gli stati Nuova, Da approfondire e Archiviata sono esclusivamente interni.
+- **BR-P05** — L'invio richiede la presa visione esplicita dell'informativa privacy; non costituisce consenso marketing o iscrizione alla newsletter.

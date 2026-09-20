@@ -18,9 +18,9 @@ type ReportsPageProps = {
 
 const filters: Array<{ label: string; value: ReportModerationFilter }> = [
   { label: "Da verificare", value: "pending_review" },
+  { label: "Tutte", value: "all" },
   { label: "Approvate", value: "approved" },
-  { label: "Rifiutate", value: "rejected" },
-  { label: "Tutte", value: "all" }
+  { label: "Rifiutate", value: "rejected" }
 ];
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
@@ -39,7 +39,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             </Link>
             <h1 className="font-serif text-4xl font-semibold tracking-normal">Segnalazioni</h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              La vista privilegia le segnalazioni da verificare. Usa i filtri solo per controllare quelle gia moderate.
+              La vista iniziale mostra le segnalazioni da verificare. Usa i filtri per consultare anche quelle già moderate.
             </p>
           </div>
           <Link className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:w-auto" href="/admin/segnalazioni/nuova">

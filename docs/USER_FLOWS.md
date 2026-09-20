@@ -121,3 +121,6 @@
 10. L'amministratore puo marcare manualmente la trasmissione come `Consegnata`: le segnalazioni incluse ancora `Segnalata` diventano `Comunicata` e ricevono evento pubblico in timeline.
 11. L'amministratore puo marcare manualmente la trasmissione come `Fallita`, senza cambiare lo stato pubblico delle segnalazioni.
 12. Il dettaglio admin di ogni segnalazione mostra le trasmissioni collegate.
+# Invio di una proposta
+
+Il cittadino apre `/proponi`, descrive titolo, ambito e contenuto, sceglie obbligatoriamente tra invio anonimo e ricontatto via email, controlla il riepilogo e invia. La conferma non contiene codici o link di tracking. Un amministratore consulta la proposta nel backoffice e può impostarla come Nuova, Da approfondire o Archiviata.

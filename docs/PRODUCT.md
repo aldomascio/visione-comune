@@ -58,3 +58,6 @@ Permettere ai cittadini di segnalare problemi del territorio senza creare un acc
 - nuove funzioni AI;
 - dashboard pubbliche più ricche;
 - strumenti di partecipazione.
+# Proposte private
+
+Il percorso pubblico `/proponi` permette di inviare privatamente a Visione Comune un'idea per il territorio, in forma anonima oppure lasciando una sola email di ricontatto. Una `Proposal` è distinta da un `Report`: non viene pubblicata, geolocalizzata, trasmessa agli enti o inclusa in mappe, feed e metriche pubbliche.

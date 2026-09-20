@@ -4,9 +4,9 @@ import {
   Building2,
   FileText,
   LayoutDashboard,
+  Lightbulb,
   MapPinned,
   Newspaper,
-  Palette,
   Send,
   Tags,
   type LucideIcon
@@ -28,12 +28,12 @@ const adminNavItems: Array<{
 }> = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
   { href: "/admin/segnalazioni", icon: FileText, label: "Segnalazioni" },
-  { href: "/admin/categorie", icon: Tags, label: "Categorie" },
-  { href: "/admin/notizie", icon: Newspaper, label: "Notizie" },
+  { href: "/admin/proposte", icon: Lightbulb, label: "Proposte" },
   { href: "/admin/trasmissioni", icon: Send, label: "Trasmissioni" },
+  { href: "/admin/notizie", icon: Newspaper, label: "Notizie" },
+  { href: "/admin/categorie", icon: Tags, label: "Categorie" },
   { href: "/admin/destinatari", icon: Building2, label: "Destinatari" },
-  { href: "/admin/smistamento", icon: MapPinned, label: "Smistamento" },
-  { href: "/admin/design-system", icon: Palette, label: "Design system" }
+  { href: "/admin/smistamento", icon: MapPinned, label: "Smistamento" }
 ];
 
 export function AdminNavigation({ compact = false }: AdminNavigationProps) {

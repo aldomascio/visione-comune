@@ -615,3 +615,9 @@ Comportamento: il duplicato e escluso dalla mappa pubblica e dalle liste aggrega
 - Cambio categoria dopo trasmissioni gia create: le trasmissioni esistenti non vengono modificate e continuano a mostrare gli snapshot del destinatario usato al momento della creazione.
 - Note interne vuote: l'azione viene rifiutata e non crea eventi.
 - Note interne pubbliche: la timeline pubblica filtra solo eventi `visibility = public`, quindi `InternalNoteAdded` e `ReportCategoryChanged` non vengono esposti ai cittadini.
+# Proposte
+
+- In modalità anonima qualsiasi email presente nel payload viene eliminata prima della persistenza.
+- In modalità contatto un'email assente o non valida impedisce l'invio.
+- Un ambito estraneo all'elenco delle proposte viene rifiutato lato server.
+- Le proposte non hanno URL pubblico di dettaglio e non entrano nei flussi dei report.

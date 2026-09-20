@@ -16,6 +16,7 @@ import { getMapStatusBadgeStyle } from "./map-status-style";
 type PublicReportsMapProps = {
   reports: PublicReportMapView[];
   config: PublicMapConfig;
+  compact?: boolean;
 };
 
 const defaultStatusesOption = "active";
@@ -27,7 +28,7 @@ const statusFilters = [
   ...Object.entries(PUBLIC_REPORT_STATUS_LABELS).map(([value, label]) => ({ value, label }))
 ];
 
-export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
+export function PublicReportsMap({ reports, config, compact = false }: PublicReportsMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
@@ -218,7 +219,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
   return (
     <div className="grid gap-8">
       <section aria-labelledby="public-map-title" className="grid gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        {compact ? null : <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="grid gap-2">
             <h2 id="public-map-title" className="sr-only">Mappa pubblica</h2>
             <Select
@@ -264,13 +265,13 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
               </button>
             ) : null}
           </div>
-        </div>
+        </div>}
 
         <div className="vc-map-surface relative">
           <div
             ref={containerRef}
             aria-label="Mappa delle segnalazioni pubbliche"
-            className="h-[62vh] min-h-[24rem] w-full sm:h-[34rem]"
+            className={compact ? "h-72 w-full sm:h-80" : "h-[62vh] min-h-[24rem] w-full sm:h-[34rem]"}
             data-testid="public-reports-map"
             role="region"
           />
@@ -284,7 +285,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
         ) : null}
       </section>
 
-      <section aria-labelledby="public-map-list-title" className="grid gap-4">
+      {compact ? null : <section aria-labelledby="public-map-list-title" className="grid gap-4">
         <h2 id="public-map-list-title" className="font-serif text-3xl font-semibold tracking-normal">
           Elenco delle segnalazioni nell&apos;area
         </h2>
@@ -329,7 +330,7 @@ export function PublicReportsMap({ reports, config }: PublicReportsMapProps) {
             })}
           </ul>
         )}
-      </section>
+      </section>}
     </div>
   );
 }

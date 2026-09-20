@@ -44,6 +44,7 @@ function isTaskRoute(pathname: string) {
 }
 
 function PublicHeader({ pathname }: { pathname: string }) {
+  const onHomeHero = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
 
@@ -68,24 +69,24 @@ function PublicHeader({ pathname }: { pathname: string }) {
   }
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-8 lg:px-12">
+      <header className={cn("z-40 px-6 transition-colors sm:px-8 lg:px-12", onHomeHero ? "absolute inset-x-0 top-0 bg-transparent text-primary-foreground" : "sticky top-0 border-b border-border bg-background/95 text-foreground backdrop-blur supports-[backdrop-filter]:bg-background/80")}>
         <nav aria-label="Navigazione principale" className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-3">
-        <Link aria-label="Visione Comune - Home" className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" href="/">
+        <Link aria-label="Visione Comune - Home" className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/">
           <LogoMark className="h-14 w-14 lg:h-20 lg:w-20" />
         </Link>
 
         <div className="hidden items-center gap-6 lg:flex">
           {publicNavItems.map((item) => (
-            <PublicNavLink className="text-sm font-semibold" item={item} key={item.href} pathname={pathname} />
+            <PublicNavLink className="text-sm font-semibold" item={item} key={item.href} onHero={onHomeHero} pathname={pathname} />
           ))}
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
           <Link
-            className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             href="/segnala"
           >
-            Segnala un problema
+            Segnala
           </Link>
         </div>
 
@@ -93,7 +94,7 @@ function PublicHeader({ pathname }: { pathname: string }) {
           aria-controls="mobile-public-navigation"
           aria-expanded={menuOpen && !menuClosing}
           aria-label="Apri menu principale"
-          className="inline-flex items-center justify-center text-foreground lg:hidden"
+          className="inline-flex items-center justify-center text-current lg:hidden"
           onClick={openMenu}
           type="button"
         >
@@ -135,11 +136,13 @@ function PublicNavLink({
   className,
   item,
   onClick,
+  onHero = false,
   pathname
 }: {
   className?: string;
   item: { href: string; label: string; exact?: boolean };
   onClick?: () => void;
+  onHero?: boolean;
   pathname: string;
 }) {
   const active = isActivePath(pathname, item.href, item.exact);
@@ -149,7 +152,7 @@ function PublicNavLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex items-center no-underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+        onHero ? "text-primary-foreground/80 hover:text-primary-foreground" : active ? "text-primary" : "text-muted-foreground hover:text-foreground",
         className
       )}
       href={item.href}
@@ -195,7 +198,7 @@ function LogoMark({ className }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={cn("block bg-foreground", className)}
+      className={cn("block bg-current", className)}
       style={{
         WebkitMask: "url('/logo.svg') center / contain no-repeat",
         mask: "url('/logo.svg') center / contain no-repeat"

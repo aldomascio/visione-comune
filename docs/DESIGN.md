@@ -55,11 +55,11 @@ La variante `.dark` e stata mantenuta con i token forniti. Non e ancora stato im
 Il tema definisce:
 
 - `--font-sans`: `Public Sans, ui-sans-serif, sans-serif, system-ui`;
-- `--font-serif`: `Newsreader, ui-serif, serif`;
+- `--font-serif`: Lora, caricata e ottimizzata tramite `next/font`, con fallback `ui-serif`;
 - `--font-mono`: `Source Code Pro, monospace`;
 - `--tracking-normal`: `0em`.
 
-Il `body` usa `--font-sans`. La preview tecnica usa `font-serif` solo per verificare il token serif. La strategia definitiva di caricamento dei font web non e ancora stata deliberata: al momento i nomi font sono dichiarati nel tema e usano fallback di sistema se i font non sono disponibili nel browser.
+Il `body` usa `--font-sans`. Titoli e contenuti editoriali che usano `font-serif` ricevono Lora dal token globale; il font viene distribuito localmente dall'applicazione tramite `next/font`.
 
 ## Radius e shadow
 

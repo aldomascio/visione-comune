@@ -586,3 +586,7 @@ le route pubbliche servono una foto solo se il report e approvato/pubblico e l'a
 # Proposte private
 
 È approvata una funzione separata `Proposal`, privata e non assimilata alle segnalazioni. Gli ambiti sono indipendenti dalle categorie dei report. L'unico dato personale ammesso è l'email opzionale per il ricontatto; non comporta account o iscrizione newsletter. Gli stati interni sono Nuova, Da approfondire e Archiviata. Pubblicazione, voti, commenti, allegati, posizione, notifiche, PEC, trasmissioni, routing e moderazione AI restano fuori scope.
+
+# Widget di accessibilità AccessiYes
+
+AccessiYes viene caricato globalmente dal CDN ufficiale tramite un componente client centralizzato. La configurazione abilita desktop e mobile, lingua italiana, scorciatoia `Alt/Option + A`, icona `accessibility` e una variante più scura del token `--primary` del tema. Il link alla dichiarazione di accessibilità resta disabilitato finché non esiste una pagina pubblica dedicata. Il widget integra gli strumenti del sito ma non sostituisce verifiche e correzioni WCAG nel codice applicativo.

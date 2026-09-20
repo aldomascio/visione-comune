@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Lora } from "next/font/google";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { AccessiYesWidget } from "@/shared/accessibility/accessiyes-widget";
 import { PublicShell } from "@/shared/navigation";
 import "./globals.css";
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-lora"
+});
 
 export const metadata: Metadata = {
   title: "Visione Comune",
@@ -18,9 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it">
-      <body suppressHydrationWarning><PublicShell>{children}</PublicShell></body>
+    <html className={lora.variable} lang="it">
+      <body suppressHydrationWarning>
+        <PublicShell>{children}</PublicShell>
+        <AccessiYesWidget />
+      </body>
     </html>
   );
 }
-

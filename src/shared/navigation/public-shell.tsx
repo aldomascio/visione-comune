@@ -165,11 +165,12 @@ function PublicNavLink({
 
 function PublicFooter() {
   return (
-    <footer className="border-t border-border bg-muted/30 px-6 py-10 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
-        <div className="grid gap-3">
+    <footer className="public-footer px-6 pb-10 pt-10 sm:px-8 lg:px-12">
+      <div aria-hidden="true" className="public-footer-divider" />
+      <div className="relative z-10 mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
+        <div className="grid content-start gap-3">
           <LogoMark className="h-14 w-14" />
-          <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+          <p className="max-w-sm text-sm leading-6 text-primary-foreground/70">
             Piattaforma civica per segnalazioni, consultazione pubblica e dialogo operativo con gli enti.
           </p>
         </div>
@@ -177,7 +178,7 @@ function PublicFooter() {
         <nav aria-label="Link principali footer" className="grid gap-2 text-sm">
           <p className="font-semibold">Navigazione</p>
           {footerLinks.map((link) => (
-            <Link className="text-muted-foreground hover:text-primary hover:underline" href={link.href} key={link.href}>
+            <Link className="text-primary-foreground/70 hover:text-primary-foreground hover:underline" href={link.href} key={link.href}>
               {link.label}
             </Link>
           ))}
@@ -185,7 +186,7 @@ function PublicFooter() {
 
         <div className="grid content-start gap-2 text-sm">
           <p className="font-semibold">Contatti</p>
-          <p className="leading-6 text-muted-foreground">
+          <p className="leading-6 text-primary-foreground/70">
             Area contatti in preparazione. Per ora usa i canali pubblici di Visione Comune.
           </p>
         </div>

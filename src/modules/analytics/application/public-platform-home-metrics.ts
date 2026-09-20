@@ -17,7 +17,7 @@ export function buildHomePublicMetricCards(metrics: PublicPlatformMetrics): Home
     },
     {
       key: "communicated",
-      label: "Comunicate agli enti",
+      label: "Portate agli enti competenti",
       value: formatInteger(metrics.communicated),
       hint: "Segnalazioni comunicate o già risolte."
     },

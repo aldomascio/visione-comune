@@ -12,6 +12,7 @@
   --popover-foreground: oklch(0.3132 0 0);
   --primary: #1a6b3a;
   --primary-foreground: oklch(1.0000 0 0);
+  --footer-background: #0d3520;
   --secondary: oklch(0.9461 0 0);
   --secondary-foreground: oklch(0.3829 0 0);
   --muted: oklch(0.9551 0 0);
@@ -111,6 +112,33 @@
   mix-blend-mode: soft-light;
   opacity: 0.15;
   pointer-events: none;
+}
+
+.home-territory-section {
+  --home-territory-background: color-mix(in oklab, var(--primary) 5%, var(--background));
+  background: var(--home-territory-background);
+  box-shadow: 0 0 0 100vmax var(--home-territory-background);
+  clip-path: inset(0 -100vmax);
+}
+
+.public-footer {
+  --footer-divider-height: 20vw;
+  background: var(--footer-background);
+  color: var(--primary-foreground);
+  isolation: isolate;
+  margin-top: var(--footer-divider-height);
+  position: relative;
+  z-index: 0;
+}
+
+.public-footer-divider {
+  background: url("/images/footer-divider.svg?v=3") left bottom / calc(100% + 2px) calc(100% + 2px) no-repeat;
+  bottom: calc(100% - 2px);
+  height: var(--footer-divider-height);
+  inset-inline: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

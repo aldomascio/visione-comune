@@ -271,7 +271,7 @@ export function PublicReportsMap({ reports, config, compact = false }: PublicRep
           <div
             ref={containerRef}
             aria-label="Mappa delle segnalazioni pubbliche"
-            className={compact ? "h-72 w-full sm:h-80" : "h-[62vh] min-h-[24rem] w-full sm:h-[34rem]"}
+            className={compact ? "h-[28rem] w-full sm:h-[32rem]" : "h-[62vh] min-h-[24rem] w-full sm:h-[34rem]"}
             data-testid="public-reports-map"
             role="region"
           />

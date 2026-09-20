@@ -15,6 +15,7 @@ import type { RecentResolvedPublicReport } from "@/modules/reports/application/r
 import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzle-report-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
 import { readPublicMapConfig, type PublicMapConfig } from "@/shared/config/map";
+import { cn } from "@/shared/ui";
 import { PublicReportsMap } from "./mappa/public-reports-map";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,35 @@ type HomePageData = {
   mapConfig: PublicMapConfig;
 };
 
-const quickActions: Array<{ title: string; href: string; icon: LucideIcon }> = [
-  { title: "Segnala un problema", href: "/segnala", icon: CircleAlert },
-  { title: "Guarda la mappa", href: "/mappa", icon: Map },
-  { title: "Controlla una segnalazione", href: "/segnalazione", icon: Search },
-  { title: "Proponi un’idea", href: "/proponi", icon: Lightbulb }
+const quickActions: Array<{ title: string; description: string; linkLabel: string; href: string; icon: LucideIcon }> = [
+  {
+    title: "Segnala un problema",
+    description: "Raccontaci cosa non va e dove si trova.",
+    linkLabel: "Inizia la segnalazione",
+    href: "/segnala",
+    icon: CircleAlert
+  },
+  {
+    title: "Esplora la mappa",
+    description: "Guarda le segnalazioni pubblicate sul territorio.",
+    linkLabel: "Vai alla mappa",
+    href: "/mappa",
+    icon: Map
+  },
+  {
+    title: "Segui una segnalazione",
+    description: "Controlla stato e aggiornamenti con il tuo codice.",
+    linkLabel: "Controlla una segnalazione",
+    href: "/segnalazione",
+    icon: Search
+  },
+  {
+    title: "Proponi un’idea",
+    description: "Condividi una proposta direttamente con Visione Comune.",
+    linkLabel: "Invia una proposta",
+    href: "/proponi",
+    icon: Lightbulb
+  }
 ];
 
 const homeMetricKeys = new Set(["published", "communicated", "resolved"]);
@@ -75,37 +100,45 @@ export default async function Home() {
       <div className="px-6 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24" id="esplora-progetto">
         <div className="mx-auto grid w-full max-w-6xl gap-20 lg:gap-28">
           <section aria-labelledby="azioni-home" className="grid gap-8">
-            <h2 className="font-serif text-4xl font-semibold" id="azioni-home">Cosa vuoi fare?</h2>
-            <div className="grid border-t border-border sm:grid-cols-2">
-              {quickActions.map(({ href, icon: Icon, title }) => (
-                <Link className="group flex items-center justify-between gap-4 border-b border-border py-5 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:odd:pr-8 sm:even:border-l sm:even:pl-8" href={href} key={href}>
-                  <span className="flex items-center gap-3"><Icon aria-hidden="true" className="size-5 text-muted-foreground transition-colors group-hover:text-primary" /><span className="font-medium">{title}</span></span>
-                  <ArrowRight aria-hidden="true" className="size-4" />
-                </Link>
+            <div className="grid gap-2">
+              <h2 className="font-serif text-4xl font-semibold" id="azioni-home">Partecipa a Visione Comune</h2>
+              <p className="text-base leading-7 text-muted-foreground">Gli strumenti per partecipare, informarti e contribuire alla vita del territorio.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {quickActions.map(({ description, href, icon: Icon, linkLabel, title }) => (
+                <article className="flex h-full flex-col rounded-xl bg-card p-6" key={href}>
+                  <span className="flex size-11 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Icon aria-hidden="true" className="size-5" />
+                  </span>
+                  <h3 className="mt-5 font-serif text-xl font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+                  <TextLink className="mt-auto pt-8" href={href}>{linkLabel}</TextLink>
+                </article>
               ))}
             </div>
           </section>
 
-          <section aria-labelledby="attivita-home" className="grid gap-8 lg:grid-cols-[0.6fr_1fr] lg:gap-16">
-            <div className="grid content-start gap-3">
-              <h2 className="font-serif text-4xl font-semibold" id="attivita-home">Attività sul territorio</h2>
-              <p className="text-sm leading-6 text-muted-foreground">I dati pubblici aggiornati della piattaforma.</p>
+          <section aria-labelledby="attivita-home" className="home-territory-section grid gap-8 py-16 sm:py-20">
+            <div className="grid gap-2">
+              <h2 className="font-serif text-4xl font-semibold" id="attivita-home">Cosa sta succedendo sul territorio</h2>
+              <p className="text-base leading-7 text-muted-foreground">Uno sguardo ai problemi segnalati e a come stanno evolvendo.</p>
             </div>
-            <dl className="grid gap-8 border-t border-border pt-6 sm:grid-cols-3">
+            <dl className="grid divide-y divide-border overflow-hidden rounded-xl bg-background sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               {visibleMetrics.map((metric) => (
-                <div className="grid gap-2" data-testid={`home-metric-${metric.key}`} key={metric.key}>
-                  <dt className="text-sm text-muted-foreground">{metric.label}</dt>
-                  <dd className="font-serif text-4xl font-semibold">{metric.value}</dd>
+                <div className="grid gap-2 p-6 sm:p-8" data-testid={`home-metric-${metric.key}`} key={metric.key}>
+                  <dt className="order-2 font-serif text-xl font-medium">{metric.label}</dt>
+                  <dd className="order-1 font-serif text-5xl font-semibold text-primary">{metric.value}</dd>
+                  <p className="order-3 text-sm leading-6 text-muted-foreground">{metric.hint}</p>
                 </div>
               ))}
             </dl>
           </section>
 
           <section aria-labelledby="mappa-home" className="grid gap-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="grid gap-2">
                 <h2 className="font-serif text-4xl font-semibold" id="mappa-home">Mappa delle segnalazioni</h2>
-                <p className="text-sm leading-6 text-muted-foreground">Una vista sul territorio e sui problemi già pubblicati.</p>
+                <p className="text-base leading-7 text-muted-foreground">Una vista sul territorio e sui problemi già pubblicati.</p>
               </div>
               <TextLink href="/mappa">Esplora la mappa</TextLink>
             </div>
@@ -113,12 +146,15 @@ export default async function Home() {
           </section>
 
           <section aria-labelledby="aggiornamenti-home" className="grid gap-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <h2 className="font-serif text-4xl font-semibold" id="aggiornamenti-home">Ultimi aggiornamenti</h2>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="grid gap-2">
+                <h2 className="font-serif text-4xl font-semibold" id="aggiornamenti-home">Ultimi aggiornamenti</h2>
+                <p className="text-base leading-7 text-muted-foreground">Notizie, iniziative e aggiornamenti da Visione Comune.</p>
+              </div>
               <TextLink href="/notizie">Vedi tutte le notizie</TextLink>
             </div>
             {latestNews.length === 0 ? <EmptyBlock text="Non ci sono aggiornamenti pubblicati." /> : (
-              <div className="divide-y divide-border border-y border-border">
+              <div className="divide-y divide-border">
                 {latestNews.map((post) => (
                   <article className="grid gap-3 py-6 md:grid-cols-[10rem_1fr] md:gap-8" key={post.id}>
                     <p className="text-sm text-muted-foreground">{formatPublicDate(post.publishedAt)}</p>
@@ -146,10 +182,6 @@ export default async function Home() {
             </section>
           ) : null}
 
-          <section aria-labelledby="newsletter-home" className="grid gap-5 border-t border-border pt-10 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="grid gap-2"><h2 className="font-serif text-4xl font-semibold" id="newsletter-home">Resta aggiornato</h2><p className="text-muted-foreground">Ricevi gli aggiornamenti di Visione Comune.</p></div>
-            <SecondaryLink href="/newsletter">Iscriviti</SecondaryLink>
-          </section>
         </div>
       </div>
     </main>
@@ -178,6 +210,5 @@ async function getHomePageData(): Promise<HomePageData> {
 function EmptyBlock({ text }: { text: string }) { return <p className="border-y border-border py-6 text-sm text-muted-foreground">{text}</p>; }
 function PrimaryLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={href}>{children}</Link>; }
 function HeroSecondaryLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex min-h-11 items-center justify-center rounded-md border border-primary-foreground/60 bg-transparent px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground" href={href}>{children}</Link>; }
-function SecondaryLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-background px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={href}>{children}</Link>; }
-function TextLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href={href}>{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>; }
+function TextLink({ children, className, href }: { children: ReactNode; className?: string; href: string }) { return <Link className={cn("inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline", className)} href={href}>{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>; }
 function formatPublicDate(date: Date | null): string { return date ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(date) : "Data non disponibile"; }

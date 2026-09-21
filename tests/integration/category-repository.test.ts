@@ -131,6 +131,7 @@ maybeDescribe("category management with PostgreSQL", () => {
 
     await expect(
       useCase.execute({
+        title: "Segnalazione categoria inattiva",
         categoryId: categoryIds[2],
         description: "Descrizione sufficientemente lunga per creare una segnalazione di test.",
         latitude: "41.4821",

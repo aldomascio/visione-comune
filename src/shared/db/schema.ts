@@ -91,6 +91,22 @@ export const proposalCategoryEnum = pgEnum("proposal_category", [
 export const proposalSubmissionModeEnum = pgEnum("proposal_submission_mode", ["anonymous", "contact"]);
 export const proposalStatusEnum = pgEnum("proposal_status", ["new", "reviewing", "archived"]);
 
+export const sitePublicSettings = pgTable(
+  "site_public_settings",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(),
+    facebookUrl: varchar("facebook_url", { length: 500 }),
+    instagramUrl: varchar("instagram_url", { length: 500 }),
+    tiktokUrl: varchar("tiktok_url", { length: 500 }),
+    contactEmail: varchar("contact_email", { length: 320 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("site_public_settings_singleton", sql`${table.id} = 'public-contact'`),
+    check("site_public_settings_contact_email_normalized", sql`${table.contactEmail} is null or ${table.contactEmail} = lower(trim(${table.contactEmail}))`),
+  ],
+);
+
 export const proposals = pgTable(
   "proposals",
   {
@@ -620,3 +636,5 @@ export type AdminUserRecord = typeof adminUsers.$inferSelect;
 export type NewAdminUserRecord = typeof adminUsers.$inferInsert;
 export type ProposalRecord = typeof proposals.$inferSelect;
 export type NewProposalRecord = typeof proposals.$inferInsert;
+export type SitePublicSettingsRecord = typeof sitePublicSettings.$inferSelect;
+export type NewSitePublicSettingsRecord = typeof sitePublicSettings.$inferInsert;

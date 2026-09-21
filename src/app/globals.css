@@ -13,6 +13,7 @@
   --primary: #1a6b3a;
   --primary-foreground: oklch(1.0000 0 0);
   --footer-background: #0d3520;
+  --footer-border: color-mix(in oklab, var(--footer-background) 78%, black);
   --secondary: oklch(0.9461 0 0);
   --secondary-foreground: oklch(0.3829 0 0);
   --muted: oklch(0.9551 0 0);
@@ -225,6 +226,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-footer-border: var(--footer-border);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

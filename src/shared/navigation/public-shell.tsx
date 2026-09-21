@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Mail, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { FaFacebookF, FaInstagram, FaTiktok } from "react-icons/fa6";
+import type { PublicContactKind, PublicContactLink } from "@/shared/config/public-contact";
 import { cn } from "@/shared/ui";
 
 const publicNavItems = [
@@ -13,17 +15,29 @@ const publicNavItems = [
   { href: "/newsletter", label: "Newsletter" }
 ];
 
-const footerLinks = [
-  { href: "/mappa", label: "Mappa" },
-  { href: "/manifesto", label: "Manifesto" },
-  { href: "/notizie", label: "Notizie" },
-  { href: "/newsletter", label: "Newsletter" },
-  { href: "/proponi", label: "Proponi un’idea" },
-  { href: "/segnalazione", label: "Controlla segnalazione" },
-  { href: "/privacy", label: "Privacy" }
+const footerParticipationLinks = [
+  { href: "/segnala", label: "Segnala un problema" },
+  { href: "/mappa", label: "Guarda la mappa" },
+  { href: "/segnalazione", label: "Controlla una segnalazione" },
+  { href: "/proponi", label: "Proponi un’idea" }
 ];
 
-export function PublicShell({ children }: { children: React.ReactNode }) {
+const footerInformationLinks = [
+  { href: "/notizie", label: "Notizie" },
+  { href: "/manifesto", label: "Manifesto" },
+  { href: "/newsletter", label: "Newsletter" }
+];
+
+const footerLegalLinks = [
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/cookie-policy", label: "Cookie Policy" },
+  { href: "/accessibilita", label: "Accessibilità" },
+  { href: "/termini", label: "Termini e condizioni" }
+];
+
+const footerLinkClassName = "text-primary-foreground/70 no-underline transition-colors hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground";
+
+export function PublicShell({ children, contactLinks }: { children: React.ReactNode; contactLinks: PublicContactLink[] }) {
   const pathname = usePathname();
 
   if (pathname.startsWith("/admin")) {
@@ -34,7 +48,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       {isTaskRoute(pathname) ? null : <PublicHeader pathname={pathname} />}
       {children}
-      {isTaskRoute(pathname) ? null : <PublicFooter />}
+      {isTaskRoute(pathname) ? null : <PublicFooter contactLinks={contactLinks} />}
     </div>
   );
 }
@@ -163,36 +177,82 @@ function PublicNavLink({
   );
 }
 
-function PublicFooter() {
+function PublicFooter({ contactLinks }: { contactLinks: PublicContactLink[] }) {
   return (
-    <footer className="public-footer px-6 pb-10 pt-10 sm:px-8 lg:px-12">
+    <footer className="public-footer pt-10">
       <div aria-hidden="true" className="public-footer-divider" />
-      <div className="relative z-10 mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_1fr_1fr]">
-        <div className="grid content-start gap-3">
-          <LogoMark className="h-14 w-14" />
-          <p className="max-w-sm text-sm leading-6 text-primary-foreground/70">
-            Piattaforma civica per segnalazioni, consultazione pubblica e dialogo operativo con gli enti.
-          </p>
-        </div>
-
-        <nav aria-label="Link principali footer" className="grid gap-2 text-sm">
-          <p className="font-semibold">Navigazione</p>
-          {footerLinks.map((link) => (
-            <Link className="text-primary-foreground/70 hover:text-primary-foreground hover:underline" href={link.href} key={link.href}>
-              {link.label}
+      <div className="relative z-10 px-6 sm:px-8 lg:px-12">
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div className="grid content-start gap-3">
+            <Link aria-label="Visione Comune - Home" className="w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground" href="/">
+              <LogoMark className="h-14 w-14 lg:h-20 lg:w-20" />
             </Link>
-          ))}
-        </nav>
+            <p className="max-w-sm text-sm leading-6 text-primary-foreground/70">
+              Uno spazio per partecipare, segnalare e proporre idee per il territorio.
+            </p>
+            {contactLinks.length > 0 ? (
+              <nav aria-label="Contatti e canali social" className="flex flex-wrap items-center gap-1">
+                {contactLinks.map((link) => (
+                  <a
+                    aria-label={link.label}
+                    className="inline-flex size-10 items-center justify-center text-primary-foreground/70 transition-colors hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"
+                    href={link.href}
+                    key={link.kind}
+                    rel={link.external ? "noopener noreferrer" : undefined}
+                    target={link.external ? "_blank" : undefined}
+                  >
+                    <FooterContactIcon kind={link.kind} />
+                  </a>
+                ))}
+              </nav>
+            ) : null}
+          </div>
 
-        <div className="grid content-start gap-2 text-sm">
-          <p className="font-semibold">Contatti</p>
-          <p className="leading-6 text-primary-foreground/70">
-            Area contatti in preparazione. Per ora usa i canali pubblici di Visione Comune.
-          </p>
+          <nav aria-label="Partecipa" className="grid content-start gap-2 text-sm">
+            <p className="font-semibold">Partecipa</p>
+            {footerParticipationLinks.map((link) => (
+              <Link className={footerLinkClassName} href={link.href} key={link.href}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <FooterLinkGroup ariaLabel="Informati" links={footerInformationLinks} title="Informati" />
+          <FooterLinkGroup ariaLabel="Link legali" links={footerLegalLinks} title="Legale" />
+        </div>
+      </div>
+      <div className="relative z-10 mt-8 border-t border-footer-border">
+        <div className="px-6 sm:px-8 lg:px-12">
+          <div className="mx-auto flex max-w-6xl flex-col justify-center gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-primary-foreground/60">© 2026 Visione Comune. Tutti i diritti riservati.</p>
+            <Link className={cn(footerLinkClassName, "w-fit text-sm")} href="/cookie-policy#gestisci-preferenze">
+              Gestisci preferenze cookie
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
   );
+}
+
+function FooterLinkGroup({ ariaLabel, links, title }: { ariaLabel: string; links: Array<{ href: string; label: string }>; title: string }) {
+  return (
+    <nav aria-label={ariaLabel} className="grid content-start gap-2 text-sm">
+      <p className="font-semibold">{title}</p>
+      {links.map((link) => (
+        <Link className={footerLinkClassName} href={link.href} key={link.href}>
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function FooterContactIcon({ kind }: { kind: PublicContactKind }) {
+  if (kind === "facebook") return <FaFacebookF aria-hidden="true" className="size-5" />;
+  if (kind === "instagram") return <FaInstagram aria-hidden="true" className="size-5" />;
+  if (kind === "tiktok") return <FaTiktok aria-hidden="true" className="size-5" />;
+  return <Mail aria-hidden="true" className="size-5" />;
 }
 
 function LogoMark({ className }: { className?: string }) {

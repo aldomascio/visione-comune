@@ -2,6 +2,17 @@
 
 Modello concettuale. Non è ancora uno schema ORM definitivo.
 
+## SitePublicSettings
+
+Configurazione singleton dei contatti mostrati nelle aree pubbliche del sito.
+
+- `id`: valore fisso `public-contact`, protetto da check constraint;
+- `facebookUrl`, `instagramUrl`, `tiktokUrl`: URL HTTPS opzionali;
+- `contactEmail`: email pubblica opzionale, normalizzata in minuscolo;
+- `updatedAt`: data dell'ultimo salvataggio amministrativo.
+
+I campi vuoti non producono link nel footer. In assenza del record, l'applicazione può leggere le corrispondenti variabili ambiente come configurazione iniziale; dopo il primo salvataggio il record database è la fonte autorevole, anche quando alcuni campi sono null.
+
 ## Report
 
 - id

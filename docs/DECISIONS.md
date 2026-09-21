@@ -590,3 +590,13 @@ le route pubbliche servono una foto solo se il report e approvato/pubblico e l'a
 # Widget di accessibilità AccessiYes
 
 AccessiYes viene caricato globalmente dal CDN ufficiale tramite un componente client centralizzato. La configurazione abilita desktop e mobile, lingua italiana, scorciatoia `Alt/Option + A`, icona `accessibility` e una variante più scura del token `--primary` del tema. Il link alla dichiarazione di accessibilità resta disabilitato finché non esiste una pagina pubblica dedicata. Il widget integra gli strumenti del sito ma non sostituisce verifiche e correzioni WCAG nel codice applicativo.
+
+## Impostazioni contatti pubblici
+
+### APPROVATO
+
+- Facebook, Instagram, TikTok ed email pubblica sono gestibili dagli amministratori tramite `/admin/impostazioni`.
+- La configurazione è specifica e tipizzata; non viene introdotto un archivio generico di impostazioni arbitrarie.
+- I link social accettano solo URL HTTPS e l'email viene validata e normalizzata lato server.
+- I canali non configurati non compaiono nel footer e non vengono inseriti URL fittizi.
+- Le variabili ambiente restano un fallback iniziale quando il record database non esiste. Dopo il primo salvataggio, il database diventa la fonte autorevole per tutti i campi.

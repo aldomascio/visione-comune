@@ -8,6 +8,7 @@ import {
   MapPinned,
   Newspaper,
   Send,
+  Settings,
   Tags,
   type LucideIcon
 } from "lucide-react";
@@ -33,7 +34,8 @@ const adminNavItems: Array<{
   { href: "/admin/notizie", icon: Newspaper, label: "Notizie" },
   { href: "/admin/categorie", icon: Tags, label: "Categorie" },
   { href: "/admin/destinatari", icon: Building2, label: "Destinatari" },
-  { href: "/admin/smistamento", icon: MapPinned, label: "Smistamento" }
+  { href: "/admin/smistamento", icon: MapPinned, label: "Smistamento" },
+  { href: "/admin/impostazioni", icon: Settings, label: "Impostazioni" }
 ];
 
 export function AdminNavigation({ compact = false }: AdminNavigationProps) {

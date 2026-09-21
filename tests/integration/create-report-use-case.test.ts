@@ -49,6 +49,7 @@ maybeDescribe("CreateReportUseCase with PostgreSQL", () => {
     const useCase = createUseCase(connection, { publicCodes: ["VC-23456789"] });
 
     const result = await useCase.execute({
+      title: "Buca vicino alla scuola",
       categoryId: testCategoryId,
       description: "Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.",
       latitude: "41.4821",
@@ -175,6 +176,7 @@ function createAdminUseCase(connection: DatabaseConnection, input: { publicCodes
 
 function validInput() {
   return {
+    title: "Buca vicino alla scuola",
     categoryId: testCategoryId,
     description: "Una buca profonda rende difficile il passaggio pedonale vicino alla scuola.",
     latitude: "41.4821",

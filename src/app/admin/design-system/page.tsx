@@ -11,7 +11,10 @@ const colorTokens = [
   { name: "Secondary", className: "bg-secondary", textClassName: "text-secondary-foreground" },
   { name: "Muted", className: "bg-muted", textClassName: "text-muted-foreground" },
   { name: "Accent", className: "bg-accent", textClassName: "text-accent-foreground" },
-  { name: "Destructive", className: "bg-destructive", textClassName: "text-destructive-foreground" },
+  { name: "Success", className: "bg-success", textClassName: "text-success-foreground" },
+  { name: "Warning", className: "bg-warning", textClassName: "text-warning-foreground" },
+  { name: "Info", className: "bg-info", textClassName: "text-info-foreground" },
+  { name: "Danger", className: "bg-destructive", textClassName: "text-destructive-foreground" },
   { name: "Card", className: "bg-card", textClassName: "text-card-foreground" }
 ];
 
@@ -105,6 +108,10 @@ export default function AdminDesignSystemPage() {
                 <Badge variant="secondary">Secondary</Badge>
                 <Badge variant="outline">Outline</Badge>
                 <Badge variant="muted">Muted</Badge>
+                <Badge variant="success">Success</Badge>
+                <Badge variant="warning">Warning</Badge>
+                <Badge variant="danger">Danger</Badge>
+                <Badge variant="info">Info</Badge>
               </div>
               <div className="flex flex-wrap gap-2">
                 <ModerationStatusBadge status="pending_review" />
@@ -154,12 +161,12 @@ export default function AdminDesignSystemPage() {
               <CardDescription>Messaggi operativi e stati vuoti.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
-                <p className="font-semibold text-foreground">Operazione completata</p>
+              <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm">
+                <p className="font-semibold text-success">Operazione completata</p>
                 <p className="mt-1 text-muted-foreground">Messaggio di conferma breve e specifico.</p>
               </div>
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
-                <p className="font-semibold text-foreground">Controlla i campi evidenziati</p>
+                <p className="font-semibold text-destructive">Controlla i campi evidenziati</p>
                 <p className="mt-1 text-muted-foreground">Spiega come correggere il problema.</p>
               </div>
               <div className="rounded-lg border border-dashed border-border bg-muted/40 p-6 text-sm leading-6 text-muted-foreground">

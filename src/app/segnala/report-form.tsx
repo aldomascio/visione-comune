@@ -776,7 +776,7 @@ function AlertMessage({ fieldErrors, message }: { fieldErrors: WizardFieldErrors
   const visibleFieldErrors = getVisibleFieldErrors(fieldErrors);
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-foreground" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
       <p className="font-medium">{message}</p>
       {visibleFieldErrors.length > 0 ? (
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">

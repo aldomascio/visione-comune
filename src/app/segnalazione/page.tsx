@@ -20,10 +20,10 @@ export default async function TrackingPage({ searchParams }: TrackingPageProps) 
   }
 
   return (
-    <main className="flex flex-1 items-center bg-background px-6 py-14 text-foreground sm:px-8 lg:px-12">
+    <main className="min-h-screen bg-background px-6 pb-10 pt-16 text-foreground sm:px-8 sm:pt-20 lg:px-12">
       <div className="mx-auto grid w-full max-w-xl gap-8">
         <section className="grid gap-3">
-          <h1 className="font-serif text-4xl font-semibold tracking-normal">Controlla una segnalazione</h1>
+          <h1 className="font-serif text-4xl font-semibold tracking-normal sm:text-5xl">Controlla una segnalazione</h1>
           <p className="text-base leading-7 text-muted-foreground">Inserisci il codice ricevuto dopo l&apos;invio.</p>
         </section>
 

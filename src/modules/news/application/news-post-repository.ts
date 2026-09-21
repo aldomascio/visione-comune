@@ -50,6 +50,7 @@ export type NewsPostRepository = {
   findById(postId: string): Promise<NewsPostDetails | null>;
   findBySlug(slug: string): Promise<NewsPostDetails | null>;
   listAdmin(): Promise<NewsPostListItem[]>;
-  listPublished(limit?: number): Promise<NewsPostListItem[]>;
+  listPublished(limit?: number, offset?: number): Promise<NewsPostListItem[]>;
+  countPublished(): Promise<number>;
   findPublishedBySlug(slug: string): Promise<NewsPostDetails | null>;
 };

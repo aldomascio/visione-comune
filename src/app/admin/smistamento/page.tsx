@@ -56,7 +56,7 @@ function RoutingCard({ recipients, row }: { recipients: RecipientListItem[]; row
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-center gap-2"><CardTitle>{row.category.name}</CardTitle><Badge variant={row.category.active ? "primary" : "muted"}>{row.category.active ? "Categoria attiva" : "Categoria disattivata"}</Badge></div>
+        <div className="flex flex-wrap items-center gap-2"><CardTitle>{row.category.name}</CardTitle><Badge variant={row.category.active ? "success" : "muted"}>{row.category.active ? "Categoria attiva" : "Categoria disattivata"}</Badge></div>
         <CardDescription>{row.recipients.length ? `Destinatari associati: ${row.recipients.map((recipient) => `${recipient.name} — ${recipient.organization}`).join(", ")}` : "Nessun destinatario configurato."}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -72,7 +72,7 @@ function RoutingCard({ recipients, row }: { recipients: RecipientListItem[]; row
                     <td className="px-4 py-3"><input aria-label={`Principale ${recipient.name}`} defaultChecked={recipient.id === primaryRecipientId} name="primaryRecipientId" type="radio" value={recipient.id} /></td>
                     <td className="px-4 py-3"><span className="font-medium">{recipient.name}</span><span className="block text-muted-foreground">{recipient.organization}</span></td>
                     <td className="px-4 py-3 text-muted-foreground">{recipient.pec ? `PEC: ${recipient.pec}` : ""}{recipient.pec && recipient.email ? " · " : ""}{recipient.email ? `Email: ${recipient.email}` : ""}</td>
-                    <td className="px-4 py-3"><Badge variant={recipient.active ? "primary" : "muted"}>{recipient.active ? "Attivo" : "Disattivato"}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant={recipient.active ? "success" : "muted"}>{recipient.active ? "Attivo" : "Disattivato"}</Badge></td>
                   </tr>
                 ))}
               </tbody>
@@ -98,5 +98,5 @@ async function getRoutingPageData() {
   } finally { await connection?.close(); }
 }
 
-function StatusMessage({ text }: { text: string }) { return <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">{text}</div>; }
-function ErrorMessage({ text }: { text: string }) { return <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">{text}</div>; }
+function StatusMessage({ text }: { text: string }) { return <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">{text}</div>; }
+function ErrorMessage({ text }: { text: string }) { return <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">{text}</div>; }

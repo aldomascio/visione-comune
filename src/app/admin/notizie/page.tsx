@@ -106,9 +106,9 @@ async function getAdminNewsPosts() {
 }
 
 function NewsStatusBadge({ status }: { status: NewsPostStatus }) {
-  return <Badge variant={status === "published" ? "primary" : "muted"}>{status === "published" ? "Pubblicata" : "Bozza"}</Badge>;
+  return <Badge variant={status === "published" ? "success" : "muted"}>{status === "published" ? "Pubblicata" : "Bozza"}</Badge>;
 }
 
 function SuccessMessage({ text }: { text: string }) {
-  return <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">{text}</div>;
+  return <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">{text}</div>;
 }

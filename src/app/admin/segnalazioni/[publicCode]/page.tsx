@@ -857,7 +857,7 @@ function OperationalSuccessMessage({ type }: { type: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {messages[type] ?? "Registro operativo aggiornato."}
     </div>
   );
@@ -865,7 +865,7 @@ function OperationalSuccessMessage({ type }: { type: string }) {
 
 function OperationalErrorMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {message}
     </div>
   );
@@ -879,7 +879,7 @@ function AttachmentSuccessMessage({ type }: { type: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {messages[type] ?? "Foto aggiornata."}
     </div>
   );
@@ -887,7 +887,7 @@ function AttachmentSuccessMessage({ type }: { type: string }) {
 
 function AttachmentErrorMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {message}
     </div>
   );
@@ -900,7 +900,7 @@ function DuplicateSuccessMessage({ type }: { type: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {messages[type] ?? "Collegamento duplicati aggiornato."}
     </div>
   );
@@ -915,7 +915,7 @@ function DuplicateErrorMessage({ code }: { code: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {messages[code] ?? messages.generic}
     </div>
   );
@@ -927,7 +927,7 @@ function ResolutionSuccessMessage({ type }: { type: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {messages[type] ?? "Risoluzione aggiornata."}
     </div>
   );
@@ -942,7 +942,7 @@ function ResolutionErrorMessage({ code }: { code: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {messages[code] ?? messages.generic}
     </div>
   );
@@ -956,7 +956,7 @@ function CommunicationSuccessMessage({ type }: { type: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {messages[type] ?? "Comunicazione aggiornata."}
     </div>
   );
@@ -964,7 +964,7 @@ function CommunicationSuccessMessage({ type }: { type: string }) {
 
 function CommunicationErrorMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {message}
     </div>
   );
@@ -985,7 +985,7 @@ function SuccessMessage({ type }: { type: string }) {
   const text = type === "rejected" ? "Segnalazione rifiutata." : "Segnalazione approvata e pubblicata come Segnalata.";
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {text}
     </div>
   );
@@ -1000,7 +1000,7 @@ function ErrorMessage({ code }: { code: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
       {messages[code] ?? messages.generic}
     </div>
   );

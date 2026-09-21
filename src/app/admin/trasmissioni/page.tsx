@@ -7,7 +7,7 @@ import type { OutboundCommunicationStatus } from "@/modules/communications/appli
 import { createDatabaseConnection } from "@/shared/db/client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select } from "@/shared/ui";
 import { formatAdminDate } from "../segnalazioni/format";
-import { transmissionStatusLabel } from "./status";
+import { TransmissionStatusBadge } from "./transmission-status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +86,7 @@ export default async function AdminTransmissionsPage({ searchParams }: PageProps
                         <td className="px-4 py-3">{transmission.recipientNameSnapshot} — {transmission.recipientOrganizationSnapshot}</td>
                         <td className="px-4 py-3">{transmission.reportCount}</td>
                         <td className="px-4 py-3 uppercase">{transmission.channel}</td>
-                        <td className="px-4 py-3">{transmissionStatusLabel(transmission.status)}</td>
+                        <td className="px-4 py-3"><TransmissionStatusBadge status={transmission.status} /></td>
                         <td className="px-4 py-3"><Link className="font-semibold text-primary hover:underline" href={`/admin/trasmissioni/${transmission.id}`}>Apri</Link></td>
                       </tr>
                     ))}

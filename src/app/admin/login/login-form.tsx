@@ -21,7 +21,7 @@ export function AdminLoginForm() {
         <form action={formAction} className="grid gap-5">
           {state.message ? (
             <div
-              className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-foreground"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
               role="alert"
             >
               {state.message}

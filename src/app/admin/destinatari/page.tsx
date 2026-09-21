@@ -45,7 +45,7 @@ export default async function AdminRecipientsPage({ searchParams }: AdminRecipie
                         <td className="px-4 py-4 font-medium">{recipient.name}</td>
                         <td className="px-4 py-4 text-muted-foreground">{recipient.organization}</td>
                         <td className="px-4 py-4 text-muted-foreground"><ContactLine label="Email" value={recipient.email} /><ContactLine label="PEC" value={recipient.pec} /></td>
-                        <td className="px-4 py-4"><Badge variant={recipient.active ? "primary" : "muted"}>{recipient.active ? "Attivo" : "Disattivato"}</Badge></td>
+                        <td className="px-4 py-4"><Badge variant={recipient.active ? "success" : "muted"}>{recipient.active ? "Attivo" : "Disattivato"}</Badge></td>
                         <td className="px-4 py-4 text-muted-foreground">{recipient.categories.length ? recipient.categories.map((category) => category.name).join(", ") : "Nessuna"}</td>
                         <td className="px-4 py-4 text-right"><Link className="font-semibold text-primary hover:underline" href={`/admin/destinatari/${recipient.id}`}>Modifica</Link></td>
                       </tr>
@@ -70,4 +70,4 @@ async function getRecipients() {
 }
 
 function ContactLine({ label, value }: { label: string; value?: string }) { return <p>{label}: {value ?? "—"}</p>; }
-function SuccessMessage({ text }: { text: string }) { return <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">{text}</div>; }
+function SuccessMessage({ text }: { text: string }) { return <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">{text}</div>; }

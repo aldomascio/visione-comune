@@ -8,15 +8,15 @@ export type MapStatusBadgeStyle = {
 export const MAP_STATUS_BADGE_STYLES: Record<PublicReportStatus, MapStatusBadgeStyle> = {
   reported: {
     label: "Segnalata",
-    badgeClassName: "border-primary bg-primary text-primary-foreground"
+    badgeClassName: "border-info/20 bg-info/10 text-info"
   },
   communicated: {
     label: "Comunicata",
-    badgeClassName: "border-border bg-accent text-accent-foreground"
+    badgeClassName: "border-info/20 bg-info/10 text-info"
   },
   resolved: {
     label: "Risolta",
-    badgeClassName: "border-primary bg-background text-primary"
+    badgeClassName: "border-success/20 bg-success/10 text-success"
   }
 };
 

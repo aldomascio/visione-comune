@@ -6,6 +6,7 @@ import {
   serializeNewsPostContentDocument
 } from "./news-post-content";
 import {
+  CountPublishedNewsPostsUseCase,
   CreateNewsPostUseCase,
   DuplicateNewsPostSlugError,
   ListPublishedNewsPostsUseCase,
@@ -122,6 +123,19 @@ describe("news post management", () => {
     const posts = await new ListPublishedNewsPostsUseCase({ newsPostRepository: repository }).execute();
 
     expect(posts.map((post) => post.id)).toEqual(["new", "old"]);
+  });
+
+  it("paginates and counts only published posts", async () => {
+    const repository = new InMemoryNewsPostRepository();
+    await repository.create(makePost({ id: "draft", slug: "draft", status: "draft", publishedAt: null }));
+    await repository.create(makePost({ id: "first", slug: "first", status: "published", publishedAt: new Date("2026-01-03T10:00:00.000Z") }));
+    await repository.create(makePost({ id: "second", slug: "second", status: "published", publishedAt: new Date("2026-01-02T10:00:00.000Z") }));
+
+    const posts = await new ListPublishedNewsPostsUseCase({ newsPostRepository: repository }).execute({ limit: 1, offset: 1 });
+    const count = await new CountPublishedNewsPostsUseCase({ newsPostRepository: repository }).execute();
+
+    expect(posts.map((post) => post.id)).toEqual(["second"]);
+    expect(count).toBe(2);
   });
 
 
@@ -249,11 +263,15 @@ class InMemoryNewsPostRepository implements NewsPostRepository {
     return [...this.posts.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
-  async listPublished(limit?: number): Promise<NewsPostDetails[]> {
+  async listPublished(limit?: number, offset = 0): Promise<NewsPostDetails[]> {
     const posts = [...this.posts.values()]
       .filter((post) => post.status === "published" && post.publishedAt)
       .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
-    return typeof limit === "number" ? posts.slice(0, limit) : posts;
+    return typeof limit === "number" ? posts.slice(offset, offset + limit) : posts.slice(offset);
+  }
+
+  async countPublished(): Promise<number> {
+    return [...this.posts.values()].filter((post) => post.status === "published" && post.publishedAt).length;
   }
 
   async findPublishedBySlug(slug: string): Promise<NewsPostDetails | null> {

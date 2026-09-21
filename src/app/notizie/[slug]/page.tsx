@@ -4,6 +4,7 @@ import { GetPublishedNewsPostBySlugUseCase } from "@/modules/news/application/ma
 import { NewsPostContentRenderer } from "@/modules/news/ui/news-post-content-renderer";
 import { DrizzleNewsPostRepository } from "@/modules/news/infrastructure/drizzle-news-post-repository";
 import { createDatabaseConnection } from "@/shared/db/client";
+import { ArticleShare } from "./article-share";
 
 type NewsPostPageProps = {
   params: Promise<{ slug: string }>;
@@ -20,9 +21,9 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
+    <main className="min-h-screen bg-background px-6 pb-10 pt-16 text-foreground sm:px-8 sm:pt-20 lg:px-12">
       <article className="mx-auto grid w-full max-w-6xl gap-8">
-        <header className="grid gap-4">
+        <header className="mx-auto grid w-full max-w-2xl gap-4">
           <p className="text-sm font-medium text-muted-foreground">{formatPublicDate(post.publishedAt)}</p>
           <h1 className="max-w-3xl font-serif text-4xl font-semibold tracking-normal sm:text-5xl">{post.title}</h1>
           {post.excerpt ? <p className="max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p> : null}
@@ -42,6 +43,8 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
         ) : null}
 
         <NewsPostContentRenderer document={post.contentJson} />
+
+        <ArticleShare title={post.title} />
       </article>
     </main>
   );

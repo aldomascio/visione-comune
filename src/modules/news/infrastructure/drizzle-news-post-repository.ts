@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull } from "drizzle-orm";
 import type { Database } from "@/shared/db/client";
 import { newsPosts, type NewsPostRecord } from "@/shared/db/schema";
 import { normalizeNewsPostContentDocument, newsPostContentDocumentFromText } from "../application/news-post-content";
@@ -76,7 +76,7 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
     return posts.map(mapNewsPostRecord);
   }
 
-  async listPublished(limit?: number): Promise<NewsPostListItem[]> {
+  async listPublished(limit?: number, offset?: number): Promise<NewsPostListItem[]> {
     const query = this.db
       .select()
       .from(newsPosts)
@@ -85,12 +85,21 @@ export class DrizzleNewsPostRepository implements NewsPostRepository {
       .$dynamic();
 
     if (typeof limit === "number") {
-      const posts = await query.limit(limit);
+      const posts = await query.limit(limit).offset(offset ?? 0);
       return posts.map(mapNewsPostRecord);
     }
 
     const posts = await query;
     return posts.map(mapNewsPostRecord);
+  }
+
+  async countPublished(): Promise<number> {
+    const [result] = await this.db
+      .select({ value: count() })
+      .from(newsPosts)
+      .where(and(eq(newsPosts.status, "published"), isNotNull(newsPosts.publishedAt)));
+
+    return result?.value ?? 0;
   }
 
   async findPublishedBySlug(slug: string): Promise<NewsPostDetails | null> {

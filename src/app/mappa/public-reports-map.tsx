@@ -236,8 +236,7 @@ export function PublicReportsMap({ reports, config, compact = false }: PublicRep
             </Select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium text-muted-foreground">Stato</span>
+          <div aria-label="Filtra per stato" className="flex flex-wrap items-center gap-2 text-sm" role="group">
             {statusFilters.map((filter) => {
               const selected = selectedStatus === filter.value;
               return (

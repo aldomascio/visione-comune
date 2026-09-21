@@ -41,7 +41,7 @@ export default async function TransmissionDetailPage({ params, searchParams }: P
         </section>
 
         {query?.transmission ? <SuccessMessage type={query.transmission} /> : null}
-        {query?.error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">{query.error}</div> : null}
+        {query?.error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">{query.error}</div> : null}
 
         <div className="grid gap-6 lg:grid-cols-[1fr_0.7fr]">
           <Card>
@@ -135,5 +135,5 @@ function SuccessMessage({ type }: { type: string }) {
     delivered: "Trasmissione marcata come consegnata.",
     failed: "Trasmissione marcata come fallita."
   };
-  return <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">{messages[type] ?? "Trasmissione aggiornata."}</div>;
+  return <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">{messages[type] ?? "Trasmissione aggiornata."}</div>;
 }

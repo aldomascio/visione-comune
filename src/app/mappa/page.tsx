@@ -10,10 +10,10 @@ export default async function PublicMapPage() {
   const { reports, mapConfig } = await getPublicMapPageData();
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
+    <main className="min-h-screen bg-background px-6 pb-10 pt-16 text-foreground sm:px-8 sm:pt-20 lg:px-12">
       <div className="mx-auto grid w-full max-w-6xl gap-8">
         <section className="grid gap-3">
-          <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="grid gap-3">
               <h1 className="font-serif text-4xl font-semibold tracking-normal sm:text-5xl">
                 Mappa delle segnalazioni

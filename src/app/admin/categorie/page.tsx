@@ -73,7 +73,7 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                         <td className="px-4 py-4 font-medium">{category.name}</td>
                         <td className="px-4 py-4 font-mono text-xs text-muted-foreground">{category.slug}</td>
                         <td className="px-4 py-4">
-                          <Badge variant={category.active ? "primary" : "muted"}>
+                          <Badge variant={category.active ? "success" : "muted"}>
                             {category.active ? "Attiva" : "Disattivata"}
                           </Badge>
                         </td>
@@ -112,7 +112,7 @@ async function getCategories() {
 
 function SuccessMessage({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
+    <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success" role="status">
       {text}
     </div>
   );

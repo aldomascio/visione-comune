@@ -38,7 +38,7 @@ export default async function NewTransmissionPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        {query?.error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium" role="alert">{query.error}</div> : null}
+        {query?.error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">{query.error}</div> : null}
 
         <Card>
           <CardHeader>

@@ -11,7 +11,7 @@ export function NewsPostContentRenderer({ document }: NewsPostContentRendererPro
   const normalizedDocument = normalizeNewsPostContentDocument(document);
 
   return (
-    <div className="grid max-w-3xl gap-5 text-base leading-8 text-foreground [&_a]:font-semibold [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-5 [&_blockquote]:font-serif [&_blockquote]:text-xl [&_blockquote]:leading-9 [&_blockquote]:text-muted-foreground [&_h2]:pt-4 [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:leading-tight [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:pl-1 [&_ol]:ml-6 [&_ol]:list-decimal [&_ul]:ml-6 [&_ul]:list-disc">
+    <div className="mx-auto grid w-full max-w-2xl gap-5 text-base leading-8 text-foreground [&_a]:font-semibold [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-5 [&_blockquote]:font-serif [&_blockquote]:text-xl [&_blockquote]:leading-9 [&_blockquote]:text-muted-foreground [&_h2]:pt-4 [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:leading-tight [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:pl-1 [&_ol]:ml-6 [&_ol]:list-decimal [&_ul]:ml-6 [&_ul]:list-disc">
       {normalizedDocument.content.map((node, index) => renderBlock(node, index))}
     </div>
   );

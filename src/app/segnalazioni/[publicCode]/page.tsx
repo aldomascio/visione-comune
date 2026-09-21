@@ -29,14 +29,14 @@ export const dynamic = "force-dynamic";
 export default async function PublicReportPage({ params }: PublicReportPageProps) {
   const { publicCode } = await params;
   const { report, timeline, confirmationState, mapConfig } = await getPublicReportPageData(publicCode);
-  const publicStatusLabel = PUBLIC_REPORT_STATUS_LABELS[report.publicStatus];
-
   return (
-    <main className="bg-background px-6 py-10 text-foreground sm:px-8 lg:px-12">
+    <main className="bg-background px-6 pb-10 pt-16 text-foreground sm:px-8 sm:pt-20 lg:px-12">
       <article className="mx-auto grid w-full max-w-6xl gap-8">
         <header className="grid gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge>{publicStatusLabel}</Badge>
+            <Badge variant={report.publicStatus === "resolved" ? "success" : "info"}>
+              {PUBLIC_REPORT_STATUS_LABELS[report.publicStatus]}
+            </Badge>
             <p className="text-sm font-normal text-muted-foreground">{report.categoryName}</p>
           </div>
 

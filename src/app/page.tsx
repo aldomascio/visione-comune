@@ -16,6 +16,7 @@ import { DrizzleReportRepository } from "@/modules/reports/infrastructure/drizzl
 import { createDatabaseConnection } from "@/shared/db/client";
 import { readPublicMapConfig, type PublicMapConfig } from "@/shared/config/map";
 import { cn } from "@/shared/ui";
+import { HomeAnchorLink } from "./home-anchor-link";
 import { PublicReportsMap } from "./mappa/public-reports-map";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +93,7 @@ export default async function Home() {
           </div>
           <div className="flex w-full max-w-md flex-col justify-center gap-3 sm:w-auto sm:max-w-none sm:flex-row">
             <PrimaryLink href="/segnala">Segnala un problema</PrimaryLink>
-            <HeroSecondaryLink href="#esplora-progetto">Esplora il progetto</HeroSecondaryLink>
+            <HomeAnchorLink href="#esplora-progetto">Esplora il progetto</HomeAnchorLink>
           </div>
         </div>
       </section>
@@ -209,6 +210,5 @@ async function getHomePageData(): Promise<HomePageData> {
 
 function EmptyBlock({ text }: { text: string }) { return <p className="border-y border-border py-6 text-sm text-muted-foreground">{text}</p>; }
 function PrimaryLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={href}>{children}</Link>; }
-function HeroSecondaryLink({ children, href }: { children: ReactNode; href: string }) { return <Link className="inline-flex min-h-11 items-center justify-center rounded-md border border-primary-foreground/60 bg-transparent px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground" href={href}>{children}</Link>; }
 function TextLink({ children, className, href }: { children: ReactNode; className?: string; href: string }) { return <Link className={cn("inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline", className)} href={href}>{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>; }
 function formatPublicDate(date: Date | null): string { return date ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(date) : "Data non disponibile"; }

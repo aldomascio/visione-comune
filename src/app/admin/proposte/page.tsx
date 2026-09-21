@@ -62,6 +62,6 @@ export default async function AdminProposalsPage() {
 }
 
 function ProposalStatusBadge({ status }: { status: ProposalStatus }) {
-  const variant = status === "new" ? "primary" : status === "reviewing" ? "secondary" : "muted";
+  const variant = status === "new" ? "info" : status === "reviewing" ? "warning" : "muted";
   return <Badge variant={variant}>{PROPOSAL_STATUS_LABELS[status]}</Badge>;
 }

@@ -82,8 +82,16 @@ export class ListAdminNewsPostsUseCase {
 export class ListPublishedNewsPostsUseCase {
   constructor(private readonly dependencies: ListAdminNewsPostsUseCaseDependencies) {}
 
-  execute(input?: { limit?: number }): Promise<NewsPostListItem[]> {
-    return this.dependencies.newsPostRepository.listPublished(input?.limit);
+  execute(input?: { limit?: number; offset?: number }): Promise<NewsPostListItem[]> {
+    return this.dependencies.newsPostRepository.listPublished(input?.limit, input?.offset);
+  }
+}
+
+export class CountPublishedNewsPostsUseCase {
+  constructor(private readonly dependencies: ListAdminNewsPostsUseCaseDependencies) {}
+
+  execute(): Promise<number> {
+    return this.dependencies.newsPostRepository.countPublished();
   }
 }
 

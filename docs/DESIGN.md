@@ -17,7 +17,7 @@
 
 La base visiva ufficiale dell'applicazione e il tema Tailwind CSS v4 fornito in VC-003B e integrato in `src/app/globals.css`.
 
-Il tema usa token semantici CSS e Tailwind, cosi i componenti devono riferirsi a ruoli come `background`, `foreground`, `primary`, `muted`, `border`, `ring` e non a valori cromatici hardcoded quando esiste un token equivalente.
+Il tema usa token semantici CSS e Tailwind, cosi i componenti devono riferirsi a ruoli come `background`, `foreground`, `primary`, `success`, `warning`, `info`, `destructive`, `muted`, `border` e `ring`, senza valori cromatici hardcoded quando esiste un token equivalente.
 
 ## Tailwind CSS v4
 
@@ -43,7 +43,11 @@ Token light principali:
 - `--secondary` / `--secondary-foreground`: superfici secondarie;
 - `--muted` / `--muted-foreground`: contenuti meno evidenti;
 - `--accent` / `--accent-foreground`: accenti secondari;
-- `--destructive` / `--destructive-foreground`: azioni distruttive o errori;
+- `--success`: `#1a6b3a`, per conferme, approvazioni, consegne e risoluzioni;
+- `--warning`: `#a16207`, per stati da verificare, bozze operative e lavorazioni in corso;
+- `--info`: `#25637a`, per stati informativi come segnalazioni pubblicate o comunicate;
+- `--destructive`: `#b42318`, per azioni distruttive, errori, rifiuti e fallimenti;
+- i relativi token `*-foreground` definiscono il testo sulle superfici semantiche;
 - `--border`, `--input`, `--ring`: bordi, campi e focus;
 - `--chart-1` ... `--chart-5`: token per visualizzazioni future;
 - `--sidebar` e relativi token: base per eventuale navigazione laterale futura.
@@ -90,7 +94,7 @@ Le primitive introdotte sono minime e riutilizzabili:
 - `Input`;
 - `Textarea`;
 - `Select`;
-- `Badge` con varianti `primary`, `secondary`, `outline`, `muted`;
+- `Badge` con varianti generiche `primary`, `secondary`, `outline`, `muted` e semantiche `success`, `warning`, `danger`, `info`;
 - `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`;
 - `Field` per label, controllo e hint.
 
@@ -135,11 +139,7 @@ Questi componenti non sono stati ancora implementati.
 
 ## Mappa pubblica
 
-La mappa pubblica introdotta in VC-008 usa i token del tema per layout, card, badge, focus state e lista accessibile. I marker usano colori derivati dai token semantici del tema:
-
-- `--primary` per `Segnalata`;
-- `--chart-2` per `Comunicata`;
-- `--chart-5` per `Risolta`.
+La mappa pubblica usa i token del tema per layout, popup, badge, focus state e lista accessibile. I marker usano tutti `--primary` per mantenere la mappa pulita; lo stato resta esplicito nel testo e usa i token semantici nei badge (`info` per `Segnalata` e `Comunicata`, `success` per `Risolta`).
 
 La mappa non e l'unico accesso alle informazioni: sotto la mappa e presente una lista accessibile con titolo, categoria, stato, indirizzo e link alla scheda pubblica. I filtri minimi per stato e categoria lavorano sui soli report pubblici gia caricati.
 

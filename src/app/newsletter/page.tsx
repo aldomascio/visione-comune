@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 
 export default function NewsletterPage() {
   return (
-    <main className="flex flex-1 items-center bg-background px-6 py-12 text-foreground sm:px-8 sm:py-16 lg:px-12">
+    <main className="bg-background px-6 py-16 text-foreground sm:px-8 sm:py-20 lg:px-12">
       <div className="mx-auto grid w-full max-w-xl gap-8">
         <header className="grid gap-3 text-center">
-          <h1 className="font-serif text-4xl font-semibold tracking-normal">Non perderti gli aggiornamenti</h1>
+          <h1 className="font-serif text-4xl font-semibold tracking-normal sm:text-5xl">Non perderti gli aggiornamenti</h1>
           <p className="text-base leading-7 text-muted-foreground">
             Ricevi periodicamente le novità di Visione Comune, le iniziative sul territorio e i contenuti che meritano di essere seguiti.
           </p>

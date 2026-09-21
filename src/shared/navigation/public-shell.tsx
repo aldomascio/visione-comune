@@ -45,11 +45,11 @@ export function PublicShell({ children, contactLinks }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="public-shell flex min-h-screen flex-col bg-background text-foreground">
       {isTaskRoute(pathname) ? null : (
         <>
           <PublicHeader key={pathname} pathname={pathname} />
-          {pathname === "/" ? null : <div aria-hidden="true" className="h-20 shrink-0 lg:h-26" />}
+          {pathname === "/" ? null : <div aria-hidden="true" className="public-header-spacer h-20 shrink-0 lg:h-26" />}
         </>
       )}
       {children}
@@ -135,7 +135,7 @@ function PublicHeader({ pathname }: { pathname: string }) {
     <>
       <header
         className={cn(
-          "inset-x-0 top-0 z-40 px-6 transition-[transform,background-color,color,border-color] duration-300 ease-out motion-reduce:transition-none sm:px-8 lg:px-12",
+          "public-header inset-x-0 top-0 z-40 px-6 transition-[transform,background-color,color,border-color] duration-300 ease-out motion-reduce:transition-none sm:px-8 lg:px-12",
           onHome && !homeHeaderActivated
             ? "absolute border-b border-transparent bg-transparent text-primary-foreground"
             : "fixed border-b border-border bg-background text-foreground",

@@ -385,6 +385,10 @@
 }
 
 @layer components {
+  .public-shell:has(> .not-found-page) > :where(.public-header, .public-header-spacer, .public-footer) {
+    display: none;
+  }
+
   .vc-map-surface {
     background: var(--muted);
     border: 1px solid var(--border);

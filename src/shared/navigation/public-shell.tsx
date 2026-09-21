@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Mail, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaFacebookF, FaInstagram, FaTiktok } from "react-icons/fa6";
 import type { PublicContactKind, PublicContactLink } from "@/shared/config/public-contact";
 import { cn } from "@/shared/ui";
@@ -46,7 +46,12 @@ export function PublicShell({ children, contactLinks }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {isTaskRoute(pathname) ? null : <PublicHeader pathname={pathname} />}
+      {isTaskRoute(pathname) ? null : (
+        <>
+          <PublicHeader key={pathname} pathname={pathname} />
+          {pathname === "/" ? null : <div aria-hidden="true" className="h-20 shrink-0 lg:h-26" />}
+        </>
+      )}
       {children}
       {isTaskRoute(pathname) ? null : <PublicFooter contactLinks={contactLinks} />}
     </div>
@@ -58,9 +63,54 @@ function isTaskRoute(pathname: string) {
 }
 
 function PublicHeader({ pathname }: { pathname: string }) {
-  const onHomeHero = pathname === "/";
+  const onHome = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [homeHeaderActivated, setHomeHeaderActivated] = useState(false);
+  const homeHeaderActivatedRef = useRef(false);
+  const previousScrollY = useRef(0);
+
+  useEffect(() => {
+    previousScrollY.current = window.scrollY;
+
+    let frame: number | null = null;
+
+    function updateHeaderVisibility() {
+      const currentScrollY = Math.max(window.scrollY, 0);
+      const scrollDifference = currentScrollY - previousScrollY.current;
+
+      if (currentScrollY === 0) {
+        homeHeaderActivatedRef.current = false;
+        setHomeHeaderActivated(false);
+        setHeaderVisible(true);
+      } else if (menuOpen) {
+        setHeaderVisible(true);
+      } else if (scrollDifference < 0) {
+        if (onHome && !homeHeaderActivatedRef.current) {
+          homeHeaderActivatedRef.current = true;
+          setHomeHeaderActivated(true);
+        }
+        setHeaderVisible(true);
+      } else if (scrollDifference > 0 && (!onHome || homeHeaderActivatedRef.current)) {
+        setHeaderVisible(false);
+      }
+
+      previousScrollY.current = currentScrollY;
+      frame = null;
+    }
+
+    function handleScroll() {
+      if (frame === null) frame = window.requestAnimationFrame(updateHeaderVisibility);
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    frame = window.requestAnimationFrame(updateHeaderVisibility);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [menuOpen, onHome]);
 
   function openMenu() {
     setMenuClosing(false);
@@ -83,15 +133,24 @@ function PublicHeader({ pathname }: { pathname: string }) {
   }
   return (
     <>
-      <header className={cn("z-40 px-6 transition-colors sm:px-8 lg:px-12", onHomeHero ? "absolute inset-x-0 top-0 bg-transparent text-primary-foreground" : "sticky top-0 border-b border-border bg-background/95 text-foreground backdrop-blur supports-[backdrop-filter]:bg-background/80")}>
-        <nav aria-label="Navigazione principale" className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-3">
+      <header
+        className={cn(
+          "inset-x-0 top-0 z-40 px-6 transition-[transform,background-color,color,border-color] duration-300 ease-out motion-reduce:transition-none sm:px-8 lg:px-12",
+          onHome && !homeHeaderActivated
+            ? "absolute border-b border-transparent bg-transparent text-primary-foreground"
+            : "fixed border-b border-border bg-background text-foreground",
+          onHome && !homeHeaderActivated || headerVisible || menuOpen ? "translate-y-0" : "-translate-y-full"
+        )}
+        onFocusCapture={() => setHeaderVisible(true)}
+      >
+        <nav aria-label="Navigazione principale" className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 lg:h-26">
         <Link aria-label="Visione Comune - Home" className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/">
           <LogoMark className="h-14 w-14 lg:h-20 lg:w-20" />
         </Link>
 
         <div className="hidden items-center gap-6 lg:flex">
           {publicNavItems.map((item) => (
-            <PublicNavLink className="text-sm font-semibold" item={item} key={item.href} onHero={onHomeHero} pathname={pathname} />
+            <PublicNavLink className="text-sm font-semibold" item={item} key={item.href} onHero={onHome && !homeHeaderActivated} pathname={pathname} />
           ))}
         </div>
 

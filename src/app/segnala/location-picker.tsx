@@ -64,15 +64,20 @@ export function LocationPicker({
   const [mapReady, setMapReady] = useState(false);
   const [showMap, setShowMap] = useState(true);
   const selectedQueryRef = useRef(initialAddress);
-  const addressRef = useRef(address);
+  const locationOperationRef = useRef(0);
+  const reverseGeocodingControllerRef = useRef<AbortController | null>(null);
   const onLocationChangeRef = useRef(onLocationChange);
-  useEffect(() => {
-    addressRef.current = address;
-  }, [address]);
 
   useEffect(() => {
     onLocationChangeRef.current = onLocationChange;
   }, [onLocationChange]);
+
+  useEffect(() => {
+    return () => {
+      locationOperationRef.current += 1;
+      reverseGeocodingControllerRef.current?.abort();
+    };
+  }, []);
 
   const selectedPosition = useMemo(() => {
     const parsedLatitude = Number(latitude);
@@ -83,26 +88,52 @@ export function LocationPicker({
       : null;
   }, [latitude, locationConfirmed, longitude]);
 
+  const beginLocationOperation = useCallback(() => {
+    reverseGeocodingControllerRef.current?.abort();
+    reverseGeocodingControllerRef.current = null;
+    locationOperationRef.current += 1;
+    return locationOperationRef.current;
+  }, []);
+
   const updateFromCoordinates = useCallback(async (input: {
     latitude: number;
     longitude: number;
-  }) => {
+  }, operationId: number) => {
+    if (operationId !== locationOperationRef.current) {
+      return;
+    }
+
     const nextLatitude = formatCoordinate(input.latitude);
     const nextLongitude = formatCoordinate(input.longitude);
+    selectedQueryRef.current = "";
+    setAddress("");
+    setQuery("");
+    setResults([]);
+    setActiveIndex(-1);
     setLatitude(nextLatitude);
     setLongitude(nextLongitude);
     setLocationConfirmed(true);
     setShowMap(true);
-    onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
+    onLocationChangeRef.current?.({ address: "", latitude: nextLatitude, longitude: nextLongitude });
+
+    const controller = new AbortController();
+    reverseGeocodingControllerRef.current = controller;
 
     try {
-      const response = await fetch(`/api/geocoding/reverse?lat=${nextLatitude}&lon=${nextLongitude}`);
+      const response = await fetch(
+        `/api/geocoding/reverse?lat=${nextLatitude}&lon=${nextLongitude}`,
+        { signal: controller.signal }
+      );
 
       if (!response.ok) {
         throw new Error("Reverse geocoding failed.");
       }
 
       const payload = (await response.json()) as { result?: GeocodingResult | null };
+
+      if (controller.signal.aborted || operationId !== locationOperationRef.current) {
+        return;
+      }
 
       if (payload.result?.label) {
         selectedQueryRef.current = payload.result.label;
@@ -113,12 +144,20 @@ export function LocationPicker({
         onLocationChangeRef.current?.({ address: payload.result.label, latitude: nextLatitude, longitude: nextLongitude });
         setStatus({ type: "idle" });
       } else {
-        onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
+        onLocationChangeRef.current?.({ address: "", latitude: nextLatitude, longitude: nextLongitude });
         setStatus({ type: "idle" });
       }
     } catch {
-      onLocationChangeRef.current?.({ address: addressRef.current, latitude: nextLatitude, longitude: nextLongitude });
+      if (controller.signal.aborted || operationId !== locationOperationRef.current) {
+        return;
+      }
+
+      onLocationChangeRef.current?.({ address: "", latitude: nextLatitude, longitude: nextLongitude });
       setStatus({ type: "idle" });
+    } finally {
+      if (reverseGeocodingControllerRef.current === controller) {
+        reverseGeocodingControllerRef.current = null;
+      }
     }
   }, []);
 
@@ -281,6 +320,7 @@ export function LocationPicker({
   }, [query]);
 
   function handleAddressChange(nextAddress: string) {
+    beginLocationOperation();
     setAddress(nextAddress);
     setQuery(nextAddress);
     selectedQueryRef.current = "";
@@ -290,17 +330,15 @@ export function LocationPicker({
     }
 
     onLocationChangeRef.current?.({ address: nextAddress, latitude: "", longitude: "" });
-
-    if (locationConfirmed || latitude || longitude) {
-      setLatitude("");
-      setLongitude("");
-      setLocationConfirmed(false);
-      setShowMap(true);
-      setStatus({ type: "idle" });
-    }
+    setLatitude("");
+    setLongitude("");
+    setLocationConfirmed(false);
+    setShowMap(true);
+    setStatus({ type: "idle" });
   }
 
   async function handleUseCurrentLocation() {
+    const operationId = beginLocationOperation();
     setResults([]);
     setActiveIndex(-1);
 
@@ -313,13 +351,21 @@ export function LocationPicker({
     }
 
     const onSuccess: PositionCallback = (position) => {
+      if (operationId !== locationOperationRef.current) {
+        return;
+      }
+
       void updateFromCoordinates({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude
-      });
+      }, operationId);
     };
 
     const onFinalError: PositionErrorCallback = (error) => {
+      if (operationId !== locationOperationRef.current) {
+        return;
+      }
+
       const message =
         error.code === error.PERMISSION_DENIED
           ? "Permesso negato. Puoi cercare e selezionare un indirizzo."
@@ -350,6 +396,7 @@ export function LocationPicker({
   }
 
   function selectResult(result: GeocodingResult) {
+    beginLocationOperation();
     selectedQueryRef.current = result.label;
     setAddress(result.label);
     setQuery(result.label);

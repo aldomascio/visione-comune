@@ -72,7 +72,7 @@ test("preserves entered data while moving back and forward through the wizard", 
   await page.getByRole("button", { name: "Continua" }).click();
   await selectAddressSuggestion(page, "Via Roma, Venafro");
   await page.getByRole("button", { name: "Continua" }).click();
-  await expect(page.getByRole("heading", { name: "Vuoi aggiungere una foto?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aggiungi una foto" })).toBeVisible();
 
   await page.getByRole("button", { name: "Indietro" }).click();
   await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Via Roma, Venafro, Molise, Italia");
@@ -152,6 +152,124 @@ test("uses browser geolocation and reverse geocoding", async ({ page }) => {
   await expectSuccessState(page);
 });
 
+test("keeps a manual address selection when an earlier reverse geocoding response arrives late", async ({ page }) => {
+  await mockGeocoding(page);
+  let releaseReverseGeocoding: (() => void) | undefined;
+  const reverseGeocodingGate = new Promise<void>((resolve) => {
+    releaseReverseGeocoding = resolve;
+  });
+
+  await page.route("**/api/geocoding/reverse**", async (route) => {
+    await reverseGeocodingGate;
+
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          result: {
+            id: "late-gps-result",
+            label: "Corso Campano, Venafro, Molise, Italia",
+            latitude: 41.4836,
+            longitude: 14.0443
+          }
+        })
+      });
+    } catch {
+      // The request is expected to be aborted after the manual selection.
+    }
+  });
+  await installImmediateGeolocation(page, 41.4836, 14.0443);
+
+  await page.goto("/segnala");
+  await completeProblemStep(page);
+  const reverseRequest = page.waitForRequest("**/api/geocoding/reverse**");
+  await page.getByRole("button", { name: "Usa la mia posizione" }).click();
+  await reverseRequest;
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
+  releaseReverseGeocoding?.();
+
+  await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Via Roma, Venafro, Molise, Italia");
+  await expect(page.locator('input[name="latitude"]')).toHaveValue("41.482100");
+  await expect(page.locator('input[name="longitude"]')).toHaveValue("14.047400");
+
+  await page.getByRole("button", { name: "Continua" }).click();
+  await skipPhotoStep(page);
+  await submitReviewStep(page);
+  await expectSuccessState(page);
+
+  const publicCode = await readPublicCode(page);
+  await expect(readReportLocation(publicCode)).resolves.toEqual({
+    address: "Via Roma, Venafro, Molise, Italia",
+    latitude: 41.4821,
+    longitude: 14.0474,
+    source: "platform",
+    createdByAdminId: null
+  });
+});
+
+test("ignores a browser geolocation callback that arrives after a manual address selection", async ({ page }) => {
+  await mockGeocoding(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: PositionCallback) => {
+          (window as typeof window & { completePendingGeolocation?: () => void }).completePendingGeolocation = () => {
+            success({
+              coords: {
+                latitude: 41.4836,
+                longitude: 14.0443,
+                accuracy: 10,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                speed: null
+              },
+              timestamp: Date.now()
+            } as GeolocationPosition);
+          };
+        }
+      }
+    });
+  });
+
+  await page.goto("/segnala");
+  await completeProblemStep(page);
+  await page.getByRole("button", { name: "Usa la mia posizione" }).click();
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
+  await page.evaluate(() => {
+    (window as typeof window & { completePendingGeolocation?: () => void }).completePendingGeolocation?.();
+  });
+
+  await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("Via Roma, Venafro, Molise, Italia");
+  await expect(page.locator('input[name="latitude"]')).toHaveValue("41.482100");
+  await expect(page.locator('input[name="longitude"]')).toHaveValue("14.047400");
+});
+
+test("does not retain an old address when reverse geocoding fails", async ({ page }) => {
+  await mockGeocoding(page);
+  await page.route("**/api/geocoding/reverse**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ result: null, error: "Provider unavailable" })
+    });
+  });
+  await installImmediateGeolocation(page, 41.4836, 14.0443);
+
+  await page.goto("/segnala");
+  await completeProblemStep(page);
+  await selectAddressSuggestion(page, "Via Roma, Venafro");
+  await page.getByRole("button", { name: "Usa la mia posizione" }).click();
+
+  await expect(page.getByLabel("Inserisci indirizzo")).toHaveValue("");
+  await expect(page.locator('input[name="latitude"]')).toHaveValue("41.483600");
+  await expect(page.locator('input[name="longitude"]')).toHaveValue("14.044300");
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(page.getByText("Seleziona un indirizzo riconoscibile.")).toBeVisible();
+});
+
 test("requires a new location confirmation after editing a selected address", async ({ page }) => {
   await mockGeocoding(page);
   await page.goto("/segnala");
@@ -191,7 +309,7 @@ test("previews, removes, and reselects a photo before submitting", async ({ page
 
   await completeProblemStep(page, "Una buca profonda con foto rende difficile il passaggio pedonale vicino alla scuola.");
   await completeLocationStepWithAddress(page);
-  await expect(page.getByRole("heading", { name: "Vuoi aggiungere una foto?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aggiungi una foto" })).toBeVisible();
 
   await page.setInputFiles("#photo", { name: "prima.png", mimeType: "image/png", buffer: await validPng("red") });
   await expect(page.getByAltText("Anteprima della foto selezionata")).toBeVisible();
@@ -265,8 +383,8 @@ test("rejects an invalid photo without creating a successful report", async ({ p
   await page.getByRole("button", { name: "Continua" }).click();
   await submitReviewStep(page);
 
-  await expect(page.getByRole("heading", { name: "Vuoi aggiungere una foto?" })).toBeVisible();
-  await expect(page.locator("#photo-error")).toHaveText("La foto deve essere JPEG, PNG o WebP.");
+  await expect(page.getByRole("heading", { name: "Aggiungi una foto" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "La foto deve essere JPEG, PNG o WebP." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Segnalazione ricevuta" })).toHaveCount(0);
 });
 
@@ -305,11 +423,11 @@ async function completeLocationStepWithAddress(page: Page): Promise<void> {
   await expect(page.locator('input[name="latitude"]')).not.toHaveValue("");
   await expect(page.locator('input[name="longitude"]')).not.toHaveValue("");
   await page.getByRole("button", { name: "Continua" }).click();
-  await expect(page.getByRole("heading", { name: "Vuoi aggiungere una foto?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aggiungi una foto" })).toBeVisible();
 }
 
 async function skipPhotoStep(page: Page): Promise<void> {
-  await expect(page.getByText("Puoi continuare anche senza foto.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aggiungi una foto" })).toBeVisible();
   await page.getByRole("button", { name: "Continua" }).click();
   await expect(page.getByRole("heading", { name: "Controlla la segnalazione" })).toBeVisible();
 }
@@ -321,7 +439,7 @@ async function submitReviewStep(page: Page): Promise<void> {
 async function expectSuccessState(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Segnalazione ricevuta" })).toBeVisible();
   await expect(page.getByText(/VC-[0-9A-Z]{8}/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Controlla lo stato" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Vai alla mappa" })).toBeVisible();
 }
 
 async function mockGeocoding(page: Page): Promise<void> {
@@ -367,6 +485,33 @@ async function mockGeocoding(page: Page): Promise<void> {
       })
     });
   });
+}
+
+async function installImmediateGeolocation(page: Page, latitude: number, longitude: number): Promise<void> {
+  await page.addInitScript(
+    ({ latitude: mockedLatitude, longitude: mockedLongitude }) => {
+      Object.defineProperty(navigator, "geolocation", {
+        configurable: true,
+        value: {
+          getCurrentPosition: (success: PositionCallback) => {
+            success({
+              coords: {
+                latitude: mockedLatitude,
+                longitude: mockedLongitude,
+                accuracy: 10,
+                altitude: null,
+                altitudeAccuracy: null,
+                heading: null,
+                speed: null
+              },
+              timestamp: Date.now()
+            } as GeolocationPosition);
+          }
+        }
+      });
+    },
+    { latitude, longitude }
+  );
 }
 
 async function selectAddressSuggestion(page: Page, query: string): Promise<void> {

@@ -488,7 +488,7 @@ Caso:
 l'utente seleziona un suggerimento o ottiene un indirizzo da geolocalizzazione/reverse geocoding, poi modifica manualmente il testo.
 
 Gestione prevista:
-la posizione viene marcata come non confermata e le coordinate non vengono inviate. Per proseguire l'utente deve selezionare un nuovo suggerimento, usare la geolocalizzazione o scegliere il punto sulla mappa. Questo evita di associare coordinate vecchie a un indirizzo modificato.
+la posizione viene marcata come non confermata e le coordinate non vengono inviate. Per proseguire l'utente deve selezionare un nuovo suggerimento o usare nuovamente la geolocalizzazione. Ogni nuova azione sulla posizione invalida le callback GPS e le richieste di reverse geocoding precedenti, cosi una risposta tardiva non puo associare coordinate vecchie a un indirizzo modificato o selezionato successivamente.
 
 ### EC-VC021B-003 — Risultati fuori Venafro
 
